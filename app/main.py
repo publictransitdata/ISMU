@@ -1,10 +1,9 @@
 from machine import Pin, I2C
-from lib import sh1106
+import sh1106
 from framebuf import FrameBuffer
-from lib import writer
-from lib import monotype_font_ukr
-from gui_management import GuiManager
-
+import writer
+import monotype_font_ukr
+from gui_management import GuiManager, ScreenConfig, MenuConfig
 
 if __name__ == "__main__":
     screen_width = 128
@@ -18,17 +17,16 @@ if __name__ == "__main__":
 
     writer = writer.Writer(display, monotype_font_ukr)
 
-    routeMenu = ["20 Кільцевий", "27 Енеїда", "Пум пум пум"]
-    selected = 0
+    route_menu = ["20 Кільцевий", "27 Енеїда", "Пум пум пум", "Агаааа", "Прийом"]
+    selected = 2
 
     gui_manager = GuiManager(display, writer)
 
+    screen_config = ScreenConfig(screen_width, screen_height, font_size)
+    menu_config = MenuConfig(arrow_size, visible_items, selected)
+
     gui_manager.draw_route_menu(
-        routeMenu,
-        screen_width,
-        screen_height,
-        font_size,
-        arrow_size,
-        visible_items,
-        selected,
+        route_menu,
+        screen_config,
+        menu_config
     )
