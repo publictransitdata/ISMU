@@ -1,5 +1,6 @@
-from lib.sh1106 import SH1106_I2C
-from lib.writer import Writer
+import sh1106
+import writer
+from gui_management.config import ScreenConfig, MenuConfig
 
 
 class GuiManager:
@@ -15,97 +16,143 @@ class GuiManager:
 
     def draw_route_menu(
         self,
-        routeMenu: list[str],
-        screen_width: int,
-        screen_height: int,
-        font_size: int,
-        arrow_size=6,
-        visible_items=2,
-        selected=0,
+        route_menu: list[str],
+        screen_config: ScreenConfig,
+        menu_config: MenuConfig,
     ) -> None:
         """
         Draws a route selection menu on the display.
         Args:
-            routeMenu: A list of strings representing the route names.
-            screen_width: The width of the display screen in pixels.
-            screen_height: The height of the display screen in pixels.
-            font_size: The size of the font used for rendering text in the menu.
-            arrow_size: The size of the arrows indicating navigation options. Default is 6.
-            visible_items: The number of menu items visible at one time. Default is 2.
-            selected: The index of the currently selected route. Default is 0.
+            route_menu: A list of strings representing the route names.
+            screen_config: Configuration object containing screen dimensions and font size.
+            menu_config: Configuration object containing menu display settings.
         """
-        line_height = font_size + 2
-        top_offset = line_height + 3
+        line_height = screen_config.font_size + 2
+        top_offset = line_height + 3  # 3 = line and two pixel spacing on the sides
         left_offset = 2
-        top_offset_with_up_arrow = top_offset + arrow_size + 1
-        visible_items = visible_items
-        top_offset_with_up_arrow_and_routes = (
-            top_offset_with_up_arrow + line_height * visible_items
-        )
-        screen_center_width = int(screen_width / 2)
+        bottom_offset = screen_config.height - 1
+        top_offset_with_up_arrow = top_offset + menu_config.arrow_size + 2
+        screen_center_width = int(screen_config.width / 2)
 
         self._display.fill(0)
 
-        # Header
+        self.draw_header(screen_config.width, left_offset, line_height)
+
+        # Calculate the range of menu items (indexes) that will be visible on the screen
+        # based on the currently selected item and the maximum number of visible items.
+        start_idx = (
+            menu_config.selected // menu_config.visible_items
+        ) * menu_config.visible_items
+        end_idx = min(start_idx + menu_config.visible_items, len(route_menu))
+
+        self.draw_menu_items(
+            route_menu,
+            start_idx,
+            end_idx,
+            menu_config.selected,
+            screen_config.width,
+            line_height,
+            top_offset_with_up_arrow,
+            left_offset=2,
+        )
+
+        self.draw_arrows(
+            screen_center_width,
+            top_offset,
+            bottom_offset,
+            start_idx,
+            end_idx,
+            len(route_menu),
+            menu_config.arrow_size,
+        )
+
+        self._display.show()
+
+    def draw_header(self, screen_width: int, left_offset: int, line_height: int):
+        """
+        Draws the header section of the menu on the display. The header contains a title and a separator.
+        Args:
+            screen_width: The width of the display in pixels.
+            left_offset: The horizontal offset for the text.
+        """
         self._writer.set_textpos(self._display, 0, left_offset)
         self._writer.printstring("Маршрут:", 0)
-        self._display.fill_rect(0, 16, screen_width, 1, 1)
+        self._display.fill_rect(0, line_height + 1, screen_width, 1, 1)
 
-        for i in range(visible_items):
-            idx = selected + i
-            if idx >= len(routeMenu):
-                break
-
-            y = top_offset_with_up_arrow + i * line_height
-            is_selected = i == 0
+    def draw_menu_items(
+        self,
+        menu: list[str],
+        start: int,
+        end: int,
+        selected: int,
+        screen_width: int,
+        line_height: int,
+        top_offset: int,
+        left_offset: int,
+    ) -> None:
+        """
+        Draws the menu items on the display.
+        Args:
+            menu: A list of menu items (strings) to be displayed.
+            start: The index of the first item to be displayed.
+            end: The index of the last item to be displayed (exclusive).
+            selected: The index of the currently selected item in the menu.
+            screen_width: The width of the display, used to position elements.
+            line_height: The spacing in pixels between each menu item.
+            top_offset: The vertical starting position for the first menu item.
+            left_offset: The horizontal offset for positioning the text of menu items.
+        """
+        for i in range(start, end):
+            y = top_offset + (i - start) * line_height
+            is_selected = i == selected
 
             if is_selected:
                 self._display.fill_rect(0, y, screen_width, line_height, 1)
                 self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(routeMenu[idx], 1)
+                self._writer.printstring(menu[i], 1)
             else:
                 self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(routeMenu[idx], 0)
+                self._writer.printstring(menu[i], 0)
 
-        if selected > 1:
-            self.draw_up_arrow(screen_center_width, top_offset, 6, 2)
-
-        if selected + visible_items < len(routeMenu):
-            self.draw_down_arrow(
-                screen_center_width, top_offset_with_up_arrow_and_routes, 6, 2
-            )
-
-        self._display.show()
-
-    def draw_up_arrow(
-        self, x_center: int, y_top: int, height=6, width_coefficient=2
+    def draw_arrows(
+        self,
+        center_x: int,
+        top_y: int,
+        bottom_y: int,
+        start_idx: int,
+        end_idx: int,
+        menu_length: int,
+        arrow_size: int,
     ) -> None:
         """
-        Draws an upward-pointing arrow on the display.
+        Draws scrolling arrows (up and/or down) on the display if necessary.
         Args:
-            x_center: The horizontal center of the arrow.
-            y_top: The vertical starting position (top) of the arrow.
-            height: The height of the arrow in pixels. Default is 6.
-            width_coefficient: Controls the width of the arrow. Default is 2.
+            center_x: The horizontal center position for the arrows.
+            top_y: The vertical position for the "up" arrow.
+            bottom_y: The vertical position for the "down" arrow.
+            start_idx: The first index of the currently visible menu item.
+            end_idx: The last index of the currently visible menu item.
+            menu_length: The total number of items in the menu.
+            arrow_size: The size (height) of the arrows in pixels.
         """
-        for i in range(height):
-            for j in range((-i * width_coefficient), (i * width_coefficient) + 1):
-                self._display.pixel(x_center + j, y_top + i, 1)
+        if start_idx > 0:
+            self.draw_arrow(center_x, top_y, arrow_size, is_up=True)
 
-    def draw_down_arrow(
-        self, x_center: int, y_top: int, height=6, width_coefficient=2
-    ) -> None:
+        if end_idx < menu_length:
+            self.draw_arrow(center_x, bottom_y, arrow_size, is_up=False)
+
+    def draw_arrow(self, x_center: int, y_top: int, height: int, is_up: bool) -> None:
         """
-        Draws a downward-pointing arrow on the display.
+        Draws an arrow (up or down) on the display.
         Args:
-            x_center: The horizontal center of the arrow.
-            y_top: The vertical starting position (top) of the arrow.
-            height: The height of the arrow in pixels. Default is 6.
-            width_coefficient: Controls the width of the arrow. Default is 2.
+            x_center: The horizontal center of the arrow on the display.
+            y_top: The vertical starting position of the arrow's tip.
+                   For an up arrow, this is the topmost pixel, and the arrow is drawn downward.
+                   For a down arrow, this is the bottommost pixel, and the arrow is drawn upward.
+            height: The height of the arrow, in pixels.
+            is_up: If True, the arrow points upward. If False, the arrow points downward.
         """
+        coef = 1 if is_up else -1  # Controls the arrow pointing direction
         for i in range(height):
-            for j in range(
-                -(height - i - 1) * width_coefficient,
-                (height - i - 1) * width_coefficient + 1,
-            ):
-                self._display.pixel(x_center + j, y_top + i, 1)
+            for j in range(-i * 2, (i * 2) + 1):
+                self._display.pixel(x_center + j, y_top + i * coef, 1)
