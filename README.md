@@ -1,7 +1,7 @@
 # ISMU
 Information system master unit
 
-## How to Run the Project on Raspberry Pi Pico Using VSCode
+## How to Run the Project on Raspberry Pi Pico W Using VSCode
 ### Prerequisites
 1. **Hardware:**
     - Raspberry Pi Pico W.
@@ -34,11 +34,19 @@ Information system master unit
 ``` bash
   code .
 ```
-#### 5. Upload Code to Pico
+#### 5. Initialize MicroPico project
+- **Right-click** on area in folder/project view.
+- In the context menu that appears, select **Initialize MicroPico project**
+
+#### 6. Toggle virtual MicroPico workspace
+- At the bottom of vs studio you will see a button with the same name and you have to click it
+
+#### 7. Upload Code to Pico
 - To upload your code:
   - **Right-click** on the file you want to upload in the side panel (or folder/project view).
   - In the context menu that appears, select **Upload File to Pico**
 
-#### 6. Run the Script
-  - **Right-click** on the file you want to run in the side panel (In Mpy Remote Workspace).
+#### 8. Run the Script
+  - **Right-click** on the file you want to run In Mpy Remote Workspace.
   - In the context menu that appears, select **run current file on Pico**
+
