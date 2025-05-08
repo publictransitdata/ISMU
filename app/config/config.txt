@@ -1,0 +1,10 @@
+ibis_inerface=/dev/ttyS0
+#IBIS VDV300 telegrams configuration
+line=DS001 #DS001,DS001neu
+dest_num=DS003 #DS003, DS003r
+destination=DS003a #DS003a
+display_start_and_dist=true #true or false
+forse_short_names=false #true or false
+stop_display=DS003c #DS003c, DS003neu
+rt_on_stop_disp=true #true or false
+ap_pswd=123456
