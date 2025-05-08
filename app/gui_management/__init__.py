@@ -1,4 +1,10 @@
 from .gui_manager import GuiManager
-from .config import ScreenConfig, MenuConfig
+from .gui_config import ScreenConfig, RouteMenuConfig, DirectionMenuConfig, MenuStates
 
-__all__ = ["GuiManager", "ScreenConfig", "MenuConfig"]
+__all__ = [
+    "GuiManager",
+    "ScreenConfig",
+    "RouteMenuConfig",
+    "DirectionMenuConfig",
+    "MenuStates",
+]
