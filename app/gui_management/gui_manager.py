@@ -114,6 +114,31 @@ class GuiManager:
             direction_menu, MenuStates.DIRECTION_MENU, "Напрямок:", f"   {route_number}"
         )
 
+    def draw_status_screen(
+        self,
+        direction_name: str,
+        route_id: int,
+        direction_id: int,
+        direction_number: int,
+    ) -> None:
+        """ """
+        line_height = self._screen_config.font_size + 2
+        left_offset = 2
+        screen_height = self._screen_config.height
+
+        self._display.fill(0)
+
+        self._writer.set_textpos(self._display, 0, left_offset)
+        self._writer.printstring("> " + direction_name, False)
+
+        bottom_y = screen_height - line_height
+        self._writer.set_textpos(self._display, bottom_y, left_offset)
+        self._writer.printstring(
+            f"М:{route_id:02d} Н:{direction_id:02d} К:{direction_number:03d}", False
+        )
+
+        self._display.show()
+
     def draw_menu_items(
         self,
         menu: list[str],

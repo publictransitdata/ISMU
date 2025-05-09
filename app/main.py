@@ -85,7 +85,7 @@ if __name__ == "__main__":
             print("Accepted")
             time.sleep(0.2)
 
-        gui_manager.draw_direction_menu(route_menu, 3)
+        gui_manager.draw_status_screen("Енеїда", 3, 1, 1)
 
 
 # if __name__ == "__main__":
