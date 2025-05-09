@@ -49,7 +49,6 @@ class GuiManager:
         screen_center_width = int(self._screen_config.width / 2)
         selected_route = self._route_menu_config.selected
         visible_items = self._screen_config.visible_items
-        route_menu_length = self._route_menu_config.number_of_options
 
         self._display.fill(0)
         self.draw_route_header(self._screen_config.width, left_offset, line_height)
@@ -57,7 +56,7 @@ class GuiManager:
         # Calculate the range of menu items (indexes) that will be visible on the screen
         # based on the currently selected item and the maximum number of visible items.
         start_idx = (selected_route // visible_items) * visible_items
-        end_idx = min(start_idx + visible_items, route_menu_length)
+        end_idx = min(start_idx + visible_items, len(route_menu))
 
         self.draw_menu_items(
             route_menu,
@@ -95,7 +94,6 @@ class GuiManager:
         route_number = 3
         selected_route = self._direction_menu_config.selected
         visible_items = self._screen_config.visible_items
-        direction_menu_length = self._direction_menu_config.number_of_options
 
         self._display.fill(0)
 
