@@ -66,12 +66,12 @@ class ScreenConfig:
 
 
 @singleton
-class RouteMenuConfig:
+class RouteMenuState:
     def __init__(self):
         self._number_of_options = 0
         self._selected = 0
 
-    def set_route_config(self, route_length: int, route_selected: int = 0):
+    def set_route_state(self, route_length: int, route_selected: int = 0):
         self._number_of_options = route_length
         self._selected = route_selected
 
@@ -93,12 +93,12 @@ class RouteMenuConfig:
 
 
 @singleton
-class DirectionMenuConfig:
+class DirectionMenuState:
     def __init__(self):
         self._number_of_options = 0
         self._selected = 0
 
-    def set_direction_config(self, direction_length: int, direction_selected: int = 0):
+    def set_direction_state(self, direction_length: int, direction_selected: int = 0):
         self._number_of_options = direction_length
         self._selected = direction_selected
 

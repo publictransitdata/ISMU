@@ -6,8 +6,8 @@ import monotype_font_ukr  # type: ignore
 from gui_management import (
     GuiManager,
     ScreenConfig,
-    RouteMenuConfig,
-    DirectionMenuConfig,
+    RouteMenuState,
+    DirectionMenuState,
     MenuStates,
 )
 import time
@@ -43,11 +43,11 @@ if __name__ == "__main__":
         screen_width, screen_height, font_size, arrow_size, visible_items
     )
 
-    route_menu_config = RouteMenuConfig()
-    route_menu_config.set_route_config(len(route_menu), 0)
+    route_menu_state = RouteMenuState()
+    route_menu_state.set_route_state(len(route_menu), 0)
 
-    direction_menu_config = DirectionMenuConfig()
-    direction_menu_config.set_direction_config(len(route_menu), 0)
+    direction_menu_state = DirectionMenuState()
+    direction_menu_state.set_direction_state(len(route_menu), 0)
 
     if (
         screen_config.width == 0
@@ -59,16 +59,16 @@ if __name__ == "__main__":
         print("Screen configuration is not set correctly.")
         exit()
 
-    if route_menu_config.number_of_options == 0:
+    if route_menu_state.number_of_options == 0:
         print("Route menu configuration is not set correctly.")
         exit()
 
-    if direction_menu_config.number_of_options == 0:
+    if direction_menu_state.number_of_options == 0:
         print("Direction menu configuration is not set correctly.")
         exit()
 
     gui_manager = GuiManager(
-        display, writer, screen_config, route_menu_config, direction_menu_config
+        display, writer, screen_config, route_menu_state, direction_menu_state
     )
 
     while True:
@@ -76,16 +76,16 @@ if __name__ == "__main__":
             print("Main Menu")
             time.sleep(0.2)
         if not btn_up.value():
-            gui_manager.navigate_up(MenuStates.ROUTE_MENU)
+            gui_manager.navigate_up(MenuStates.DIRECTION_MENU)
             time.sleep(0.2)
         if not btn_down.value():
-            gui_manager.navigate_down(MenuStates.ROUTE_MENU)
+            gui_manager.navigate_down(MenuStates.DIRECTION_MENU)
             time.sleep(0.2)
         if not btn_select.value():
             print("Accepted")
             time.sleep(0.2)
 
-        gui_manager.draw_route_menu(route_menu)
+        gui_manager.draw_direction_menu(route_menu, 3)
 
 
 # if __name__ == "__main__":
