@@ -1,6 +1,13 @@
 from .singleton_decorator import singleton
 
 
+class ScreenStates:
+    STATUS_SCREEN = "status"
+    ROUTE_MENU = "route"
+    DIRECTION_MENU = "direction"
+    ERROR_SCREEN = "error"
+
+
 @singleton
 class ScreenConfig:
     def __init__(self):
@@ -9,6 +16,7 @@ class ScreenConfig:
         self._font_size = 0
         self._arrow_size = 0
         self._visible_items = 0
+        self._current_screen = None
 
     def set_screen_config(
         self,
@@ -17,12 +25,14 @@ class ScreenConfig:
         font_size: int,
         arrow_size: int = 6,
         visible_items: int = 2,
+        current_screen: str = ScreenStates.STATUS_SCREEN,
     ):
         self._width = width
         self._height = height
         self._font_size = font_size
         self._arrow_size = arrow_size
         self._visible_items = visible_items
+        self._current_screen = ScreenStates.STATUS_SCREEN
 
     @property
     def width(self):
@@ -63,6 +73,14 @@ class ScreenConfig:
     @visible_items.setter
     def visible_items(self, value: int):
         self._visible_items = value
+
+    @property
+    def current_screen(self):
+        return self._current_screen
+
+    @current_screen.setter
+    def current_screen(self, value: str):
+        self._current_screen = value
 
 
 @singleton
@@ -117,9 +135,3 @@ class DirectionMenuState:
     @number_of_options.setter
     def number_of_options(self, value):
         self._number_of_options = value
-
-
-class MenuStates:
-    MAIN_MENU = "main_menu"
-    ROUTE_MENU = "route"
-    DIRECTION_MENU = "direction"

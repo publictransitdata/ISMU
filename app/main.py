@@ -3,14 +3,7 @@ import sh1106  # type: ignore
 from framebuf import FrameBuffer
 import writer  # type: ignore
 import monotype_font_ukr  # type: ignore
-from gui_management import (
-    GuiManager,
-    ScreenConfig,
-    RouteMenuState,
-    DirectionMenuState,
-    MenuStates,
-)
-import time
+from gui_management import GuiManager, ScreenConfig, RouteMenuState, DirectionMenuState
 
 
 if __name__ == "__main__":
@@ -36,6 +29,8 @@ if __name__ == "__main__":
     btn_up = Pin(5, Pin.IN, Pin.PULL_UP)
 
     route_menu = ["20 Кільцевий", "27 Енеїда", "Пум пум пум", "Агаааа", "Прийом"]
+
+    direction_menu = ["01 вул Енеїда", "02 вул. Балакіна", "03 Центр", "04 Пум пум"]
 
     screen_config = ScreenConfig()
 
@@ -72,21 +67,10 @@ if __name__ == "__main__":
     )
 
     while True:
-        if not btn_menu.value():
-            print("Main Menu")
-            time.sleep(0.2)
-        if not btn_up.value():
-            gui_manager.navigate_up(MenuStates.DIRECTION_MENU)
-            time.sleep(0.2)
-        if not btn_down.value():
-            gui_manager.navigate_down(MenuStates.DIRECTION_MENU)
-            time.sleep(0.2)
-        if not btn_select.value():
-            print("Accepted")
-            time.sleep(0.2)
-
-        gui_manager.draw_status_screen("Енеїда", 3, 1, 1)
-
+        gui_manager.handle_buttons(
+            btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
+        )
+        gui_manager.draw_current_screen(route_menu, direction_menu)
 
 # if __name__ == "__main__":
 #     routes_path = "app/config/routes.txt"
