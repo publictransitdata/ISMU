@@ -187,6 +187,38 @@ class GuiManager:
         self._writer.printstring(error_message, False)
         self._display.show()
 
+    def draw_update_mode_screen(self, ip_address: str) -> None:
+        """
+        Draws the update mode screen with the device's IP address.
+
+        Args:
+            ip_address: The IP address to display on the screen.
+        """
+        self._display.fill(0)
+
+        line_height = self._screen_config.font_size + 2
+        screen_width = self._screen_config.width
+        screen_height = self._screen_config.height
+
+        line1 = "Режим оновлення"
+        line2 = f"ІР: {ip_address}"
+
+        top_y = int((screen_height - line_height * 2) / 2)
+
+        line1_width = self._writer.stringlen(line1)
+        line2_width = self._writer.stringlen(line2)
+
+        line1_offset = (screen_width - line1_width) // 2
+        line2_offset = (screen_width - line2_width) // 2
+
+        self._writer.set_textpos(self._display, top_y, line1_offset)
+        self._writer.printstring(line1, False)
+
+        self._writer.set_textpos(self._display, top_y + line_height + 2, line2_offset)
+        self._writer.printstring(line2, False)
+
+        self._display.show()
+
     def draw_menu_items(
         self,
         menu: list[str],

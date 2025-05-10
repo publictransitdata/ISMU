@@ -67,10 +67,11 @@ if __name__ == "__main__":
     )
 
     while True:
-        gui_manager.handle_buttons(
-            btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
-        )
-        gui_manager.draw_current_screen(route_menu, direction_menu)
+        # gui_manager.handle_buttons(
+        #     btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
+        # )
+        # gui_manager.draw_current_screen(route_menu, direction_menu)
+        gui_manager.draw_update_mode_screen("10.0.0.2")
 
 # if __name__ == "__main__":
 #     routes_path = "app/config/routes.txt"
