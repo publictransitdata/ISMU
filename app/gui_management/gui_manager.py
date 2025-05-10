@@ -1,9 +1,10 @@
 import sys
+import time
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
     DirectionMenuState,
-    MenuStates,
+    ScreenStates,
 )
 
 if sys.platform != "rp2":
@@ -100,7 +101,7 @@ class GuiManager:
         Args:
             route_menu: A list of route names to display in the menu.
         """
-        self._draw_menu(route_menu, MenuStates.ROUTE_MENU, "Маршрут:")
+        self._draw_menu(route_menu, ScreenStates.ROUTE_MENU, "Маршрут:")
 
     def draw_direction_menu(self, direction_menu: list[str], route_number: int) -> None:
         """
@@ -111,8 +112,35 @@ class GuiManager:
             route_number: The route number to display in the header.
         """
         self._draw_menu(
-            direction_menu, MenuStates.DIRECTION_MENU, "Напрямок:", f"   {route_number}"
+            direction_menu,
+            ScreenStates.DIRECTION_MENU,
+            "Напрямок:",
+            f"   {route_number}",
         )
+
+    def draw_current_screen(self, route_menu: list[str], direction_menu: list[str]):
+        """
+        Draws the current screen based on the current screen state.
+
+        Args:
+            route_menu: A list of route names to display if the route menu is active.
+            direction_menu: A list of direction names to display if the direction menu is active.
+        """
+        if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
+            self.draw_route_menu(route_menu)
+        elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
+            self.draw_direction_menu(
+                direction_menu, self._route_menu_state.selected + 1
+            )
+        elif self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
+            self.draw_status_screen(
+                direction_menu[self._direction_menu_state.selected],
+                3,
+                self._direction_menu_state.selected + 1,
+                1,
+            )
+        elif self._screen_config.current_screen == ScreenStates.ERROR_SCREEN:
+            self.draw_error_screen("Error: Test error message")
 
     def draw_status_screen(
         self,
@@ -121,7 +149,15 @@ class GuiManager:
         direction_id: int,
         direction_number: int,
     ) -> None:
-        """ """
+        """
+        Draws the status screen with the selected direction and general selected information.
+
+        Args:
+            direction_name (str): The name of the selected direction.
+            route_id (int): The ID of the selected route.
+            direction_id (int): The ID of the selected direction.
+            direction_number (int): The number of the selected direction.
+        """
         line_height = self._screen_config.font_size + 2
         left_offset = 2
         screen_height = self._screen_config.height
@@ -137,6 +173,18 @@ class GuiManager:
             f"М:{route_id:02d} Н:{direction_id:02d} К:{direction_number:03d}", False
         )
 
+        self._display.show()
+
+    def draw_error_screen(self, error_message: str) -> None:
+        """
+        Draws an error message on the display.
+
+        Args:
+            error_message: The error message to display.
+        """
+        self._display.fill(0)
+        self._writer.set_textpos(self._display, 0, 0)
+        self._writer.printstring(error_message, False)
         self._display.show()
 
     def draw_menu_items(
@@ -252,9 +300,53 @@ class GuiManager:
         Returns:
             RouteMenuState or DirectionMenuState: The state object for the menu.
         """
-        if menu_type == MenuStates.ROUTE_MENU:
+        if menu_type == ScreenStates.ROUTE_MENU:
             return self._route_menu_state
-        elif menu_type == MenuStates.DIRECTION_MENU:
+        elif menu_type == ScreenStates.DIRECTION_MENU:
             return self._direction_menu_state
         else:
             raise ValueError(f"Unknown menu type: {menu_type}")
+
+    def handle_buttons(
+        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
+    ) -> None:
+        """
+        Handles button presses and updates the screen state accordingly.
+
+        Args:
+            btn_menu: The button for toggling between menus.
+            btn_up: The button for navigating up in the menu.
+            btn_down: The button for navigating down in the menu.
+            btn_select: The button for selecting an item in the menu.
+        """
+        if not btn_menu:
+            if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
+                self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+            elif self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
+                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
+                self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+            time.sleep(0.2)
+
+        if not btn_up:
+            if self._screen_config.current_screen in (
+                ScreenStates.ROUTE_MENU,
+                ScreenStates.DIRECTION_MENU,
+            ):
+                self.navigate_up(self._screen_config.current_screen)
+            time.sleep(0.2)
+
+        if not btn_down:
+            if self._screen_config.current_screen in (
+                ScreenStates.ROUTE_MENU,
+                ScreenStates.DIRECTION_MENU,
+            ):
+                self.navigate_down(self._screen_config.current_screen)
+            time.sleep(0.2)
+
+        if not btn_select:
+            if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
+                self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
+            elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
+                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            time.sleep(0.2)
