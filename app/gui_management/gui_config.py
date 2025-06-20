@@ -86,12 +86,12 @@ class ScreenConfig:
 @singleton
 class RouteMenuState:
     def __init__(self):
-        self._number_of_options = 0
         self._selected = 0
+        self._highlighted = 0
 
-    def set_route_state(self, route_length: int, route_selected: int = 0):
-        self._number_of_options = route_length
+    def set_route_state(self, route_selected: int = 0):
         self._selected = route_selected
+        self._highlighted = route_selected
 
     @property
     def selected(self):
@@ -102,23 +102,23 @@ class RouteMenuState:
         self._selected = value
 
     @property
-    def number_of_options(self):
-        return self._number_of_options
+    def highlighted(self):
+        return self._highlighted
 
-    @number_of_options.setter
-    def number_of_options(self, value):
-        self._number_of_options = value
+    @highlighted.setter
+    def highlighted(self, value):
+        self._highlighted = value
 
 
 @singleton
 class DirectionMenuState:
     def __init__(self):
-        self._number_of_options = 0
         self._selected = 0
+        self._highlighted = 0
 
-    def set_direction_state(self, direction_length: int, direction_selected: int = 0):
-        self._number_of_options = direction_length
+    def set_direction_state(self, direction_selected: int = 0):
         self._selected = direction_selected
+        self._highlighted = direction_selected
 
     @property
     def selected(self):
@@ -129,9 +129,9 @@ class DirectionMenuState:
         self._selected = value
 
     @property
-    def number_of_options(self):
-        return self._number_of_options
+    def highlighted(self):
+        return self._highlighted
 
-    @number_of_options.setter
-    def number_of_options(self, value):
-        self._number_of_options = value
+    @highlighted.setter
+    def highlighted(self, value):
+        self._highlighted = value

@@ -25,6 +25,7 @@ venv.bak/
 
 # VS Code
 .vscode/
+ISMU.code-workspace
 
 # MicroPico
 .micropico
