@@ -1,15 +1,16 @@
-from .singleton_meta import SingletonMeta
+from .singleton_decorator import singleton
 from .route_info import RouteInfo, DirectionInfo
 
 
-class Routes(metaclass=SingletonMeta):
+@singleton
+class Routes:
     """
     A class for managing the routes.
     Only one instance of the class can exist throughout the application.
     """
 
     def __init__(self):
-        self.__routes = None
+        self.__routes = []
 
     def load_routes(self, routes_path: str) -> None:
         """
@@ -43,6 +44,15 @@ class Routes(metaclass=SingletonMeta):
 
                 try:
                     next_line = next(lines_iter).strip()
+
+                    if "#" in next_line:
+                        next_line = next_line.split("#", 1)[0].strip()
+
+                    if "-" in next_line:
+                        next_line = next_line.replace("-", "").strip()
+
+                    current_route_number = next_line if next_line else None
+
                     current_route_number = next_line
                 except StopIteration:
                     print("Warning: Unexpected end of input after '|'")
@@ -59,10 +69,12 @@ class Routes(metaclass=SingletonMeta):
                 direction_id = parts[0].strip()
                 point_id = parts[1].strip()
                 full_names = parts[2]
+                full_names = full_names.strip().replace("^", "-")
 
                 short_names = None
                 if len(parts) == 4:
                     short_names = parts[3]
+                    short_names = short_names.strip().replace("^", "-")
 
                 current_directions.append(
                     DirectionInfo(direction_id, point_id, full_names, short_names)  # type: ignore
@@ -73,5 +85,6 @@ class Routes(metaclass=SingletonMeta):
 
         return routes
 
-    def get_routes(self):
+    @property
+    def routes(self):
         return self.__routes
