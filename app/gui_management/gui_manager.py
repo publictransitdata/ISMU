@@ -1,5 +1,8 @@
 import sys
 import time
+
+from routes_loading.route_info import RouteInfo
+from routes_loading.routes_loader import Routes
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
@@ -18,8 +21,6 @@ class GuiManager:
         display: SH1106_I2C,
         writer: Writer,
         screen_config: ScreenConfig,
-        route_menu_state: RouteMenuState,
-        direction_menu_state: DirectionMenuState,
     ):
         """
         Initializes the GuiManager with the necessary configurations and display components.
@@ -33,8 +34,11 @@ class GuiManager:
         """
         self._display = display
         self._writer = writer
-        self._route_menu_state = route_menu_state
-        self._direction_menu_state = direction_menu_state
+        self._routes = Routes()
+        self._route_menu_state = RouteMenuState()
+        self._route_menu_state.set_route_state(0)
+        self._direction_menu_state = DirectionMenuState()
+        self._direction_menu_state.set_direction_state(0)
         self._screen_config = screen_config
 
     def _draw_menu(
@@ -59,7 +63,7 @@ class GuiManager:
         bottom_offset = self._screen_config.height - 1
         top_offset_with_up_arrow = top_offset + self._screen_config.arrow_size + 2
         screen_center_width = int(self._screen_config.width / 2)
-        selected_index = self._get_menu_state(menu_type).selected
+        highlighted_index = self._get_menu_state(menu_type).highlighted
         visible_items = self._screen_config.visible_items
 
         self._display.fill(0)
@@ -70,7 +74,7 @@ class GuiManager:
 
         # Calculate the range of menu items (indexes) that will be visible on the screen
         # based on the currently selected item and the maximum number of visible items.
-        start_idx = (selected_index // visible_items) * visible_items
+        start_idx = (highlighted_index // visible_items) * visible_items
         end_idx = min(start_idx + visible_items, len(items))
 
         self.draw_menu_items(
@@ -89,63 +93,69 @@ class GuiManager:
             bottom_offset,
             start_idx,
             end_idx,
-            menu_type,
         )
 
         self._display.show()
 
-    def draw_route_menu(self, route_menu: list[str]) -> None:
+    def trim_text_to_fit(self, text: str, max_width: int) -> str:
         """
-        Draws the route selection menu on the display.
+        Trims the input text to fit within the given pixel width.
+        If it's too long, shortens it and adds ellipsis.
 
         Args:
-            route_menu: A list of route names to display in the menu.
-        """
-        self._draw_menu(route_menu, ScreenStates.ROUTE_MENU, "Маршрут:")
+            text (str): The string to trim.
+            max_width (int): The maximum width in pixels.
 
-    def draw_direction_menu(self, direction_menu: list[str], route_number: int) -> None:
+        Returns:
+            str: Trimmed string.
         """
-        Draws the direction selection menu on the display.
+        if self._writer.stringlen(text) <= max_width:
+            return text
 
-        Args:
-            direction_menu: A list of direction names to display in the menu.
-            route_number: The route number to display in the header.
-        """
-        self._draw_menu(
-            direction_menu,
-            ScreenStates.DIRECTION_MENU,
-            "Напрямок:",
-            f"   {route_number}",
-        )
+        for i in range(len(text), 0, -1):
+            trimmed = text[:i]
+            if self._writer.stringlen(trimmed) <= max_width:
+                return trimmed
 
-    def draw_current_screen(self, route_menu: list[str], direction_menu: list[str]):
-        """
-        Draws the current screen based on the current screen state.
+        return "..."
 
-        Args:
-            route_menu: A list of route names to display if the route menu is active.
-            direction_menu: A list of direction names to display if the direction menu is active.
+    def draw_current_screen(self):
         """
-        if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
-            self.draw_route_menu(route_menu)
-        elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
-            self.draw_direction_menu(
-                direction_menu, self._route_menu_state.selected + 1
+        Draws the current screen based on the screen state.
+        """
+        current_screen = self._screen_config.current_screen
+
+        if current_screen == ScreenStates.ROUTE_MENU:
+            menu = self.get_route_menu(self._routes.routes)
+            self._draw_menu(menu, ScreenStates.ROUTE_MENU, "Маршрут:")
+        elif current_screen == ScreenStates.DIRECTION_MENU:
+            route = self._routes.routes[self._route_menu_state.highlighted]
+            menu = self.get_direction_menu(route)
+            self._draw_menu(
+                menu,
+                ScreenStates.DIRECTION_MENU,
+                "Напрямок:",
+                f"   {route.route_number}",
             )
-        elif self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
+
+        elif current_screen == ScreenStates.STATUS_SCREEN:
+            route = self._routes.routes[self._route_menu_state.selected]
+            direction_name = route.directions[
+                self._direction_menu_state.selected
+            ].full_name
             self.draw_status_screen(
-                direction_menu[self._direction_menu_state.selected],
-                3,
+                direction_name,
+                route.route_number,
                 self._direction_menu_state.selected + 1,
-                1,
+                int(route.directions[self._direction_menu_state.selected].point_id),
             )
-        elif self._screen_config.current_screen == ScreenStates.ERROR_SCREEN:
+        elif current_screen == ScreenStates.ERROR_SCREEN:
             self.draw_error_screen("Error: Test error message")
 
     def draw_status_screen(
         self,
         direction_name: str,
-        route_id: int,
+        route_id: str,
         direction_id: int,
         direction_number: int,
     ) -> None:
@@ -154,7 +164,7 @@ class GuiManager:
 
         Args:
             direction_name (str): The name of the selected direction.
-            route_id (int): The ID of the selected route.
+            route_id (str): The ID of the selected route.
             direction_id (int): The ID of the selected direction.
             direction_number (int): The number of the selected direction.
         """
@@ -170,7 +180,8 @@ class GuiManager:
         bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
         self._writer.printstring(
-            f"М:{route_id:02d} Н:{direction_id:02d} К:{direction_number:03d}", False
+            f"М:{route_id}Н:{direction_id:02d}К:{direction_number}",
+            False,
         )
 
         self._display.show()
@@ -244,15 +255,17 @@ class GuiManager:
 
         for i in range(start, end):
             y = top_offset + (i - start) * line_height
-            is_selected = i == config.selected
+            is_highlighted = i == config.highlighted
+            available_width = self._screen_config.width - left_offset
+            text = self.trim_text_to_fit(menu[i], available_width)
 
-            if is_selected:
+            if is_highlighted:
                 self._display.fill_rect(0, y, self._screen_config.width, line_height, 1)
                 self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(menu[i], True)
+                self._writer.printstring(text, True)
             else:
                 self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(menu[i], False)
+                self._writer.printstring(text, False)
 
     def draw_arrows(
         self,
@@ -261,7 +274,6 @@ class GuiManager:
         bottom_y: int,
         start_idx: int,
         end_idx: int,
-        menu_type: str,
     ) -> None:
         """
         Draws scrolling arrows (up and/or down) on the display if necessary.
@@ -271,14 +283,14 @@ class GuiManager:
             bottom_y: The vertical position for the "down" arrow.
             start_idx: The first index of the currently visible menu item.
             end_idx: The last index of the currently visible menu item.
-            menu_type: The type of menu being displayed (e.g., route or direction).
         """
-        config = self._get_menu_state(menu_type)
 
         if start_idx > 0:
             self.draw_arrow(center_x, top_y, self._screen_config.arrow_size, is_up=True)
 
-        if end_idx < config.number_of_options:
+        number_of_options = self.number_of_options()
+
+        if end_idx < number_of_options:
             self.draw_arrow(
                 center_x, bottom_y, self._screen_config.arrow_size, is_up=False
             )
@@ -308,8 +320,8 @@ class GuiManager:
             menu_type: The type of menu to navigate (e.g., route or direction).
         """
         config = self._get_menu_state(menu_type)
-        if config.selected > 0:
-            config.selected -= 1
+        if config.highlighted > 0:
+            config.highlighted -= 1
 
     def navigate_down(self, menu_type: str) -> None:
         """
@@ -319,8 +331,10 @@ class GuiManager:
             menu_type: The type of menu to navigate (e.g., route or direction).
         """
         config = self._get_menu_state(menu_type)
-        if config.selected < config.number_of_options - 1:
-            config.selected += 1
+        number_of_options = self.number_of_options()
+
+        if config.highlighted < number_of_options - 1:
+            config.highlighted += 1
 
     def _get_menu_state(self, menu_type: str):
         """
@@ -343,7 +357,7 @@ class GuiManager:
         self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
     ) -> None:
         """
-        Handles button presses and updates the screen state accordingly.
+        Handles button presses and navigates or updates screen state accordingly.
 
         Args:
             btn_menu: The button for toggling between menus.
@@ -379,6 +393,42 @@ class GuiManager:
         if not btn_select:
             if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
                 self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
+                self._direction_menu_state.highlighted = 0
             elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
+                self._route_menu_state.selected = self._route_menu_state.highlighted
+                self._direction_menu_state.selected = (
+                    self._direction_menu_state.highlighted
+                )
+
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
             time.sleep(0.2)
+
+    def get_route_menu(self, routes: list[RouteInfo]) -> list[str]:
+        """Extracts route numbers and route names for the menu display."""
+        return [
+            f"{route.route_number} {(route.directions[0].short_name or route.directions[0].full_name)}"
+            for route in routes
+        ]
+
+    def get_direction_menu(self, route: RouteInfo) -> list[str]:
+        """Extracts direction full names with id for the menu display."""
+        return [
+            f"{direction.group_id} {direction.full_name.split('-')[1]}"
+            for direction in route.directions
+        ]
+
+    def number_of_options(self) -> int:
+        """
+        Returns the number of options in the current menu based on the current screen state.
+
+        Returns:
+            int: The number of options in the current menu.
+        """
+        if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
+            return len(self._routes.routes)
+        elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
+            return len(
+                self._routes.routes[self._route_menu_state.highlighted].directions
+            )
+        else:
+            return 0
