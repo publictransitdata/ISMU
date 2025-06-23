@@ -413,7 +413,7 @@ class GuiManager:
     def get_direction_menu(self, route: RouteInfo) -> list[str]:
         """Extracts direction full names with id for the menu display."""
         return [
-            f"{direction.group_id} {direction.full_name}"
+            f"{direction.group_id} {direction.full_name.split('-')[1]}"
             for direction in route.directions
         ]
 
