@@ -3,13 +3,13 @@ class DirectionInfo:
         self,
         group_id: str,
         point_id: str,
-        full_names: str,
-        short_names: None,
+        full_name: str,
+        short_name: None,
     ):
         self.group_id = group_id
         self.point_id = point_id
-        self.full_names = full_names
-        self.short_names = short_names
+        self.full_name = full_name
+        self.short_name = short_name
 
 
 class RouteInfo:
