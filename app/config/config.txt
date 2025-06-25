@@ -1,10 +1,10 @@
-ibis_interface=/dev/ttyS0
-#IBIS VDV300 telegrams configuration
-line=DS001 #DS001,DS001neu
-dest_num=DS003 #DS003, DS003r
-destination=DS003a #DS003a
+line=DS001
+dest_num=DS003
+destination=DS003a
 display_start_and_dist=true
 forse_short_names=false
-stop_display=DS003c #DS003c, DS003neu
+stop_display=DS003c
 rt_on_stop_disp=true
+ap_name=my_krabby_patty
 ap_pswd=123456
+ap_ip=10.0.0.2

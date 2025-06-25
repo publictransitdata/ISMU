@@ -1,4 +1,4 @@
-from .routes_loader import Routes
+from .routes_manager import RoutesManager
 from .route_info import RouteInfo, DirectionInfo
 
-__all__ = ["Routes, RouteInfo, DirectionInfo"]
+__all__ = ["RoutesManager, RouteInfo, DirectionInfo"]
