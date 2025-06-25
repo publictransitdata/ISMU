@@ -6,6 +6,8 @@ class ScreenStates:
     ROUTE_MENU = "route"
     DIRECTION_MENU = "direction"
     ERROR_SCREEN = "error"
+    SETTINGS_SCREEN = "settings"
+    UPDATE_SCREEN = "update"
 
 
 @singleton
