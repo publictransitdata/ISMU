@@ -2,7 +2,9 @@ import sys
 import time
 
 from routes_loading.route_info import RouteInfo
-from routes_loading.routes_loader import Routes
+from routes_loading.routes_manager import RoutesManager
+from config_loading.config_manager import ConfigManager
+from config_loading.config_info import SystemConfig
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
@@ -19,7 +21,7 @@ class GuiManager:
     def __init__(
         self,
         display: SH1106_I2C,
-        writer: Writer,
+        writers: list[Writer],
         screen_config: ScreenConfig,
     ):
         """
@@ -33,13 +35,16 @@ class GuiManager:
             direction_menu_state: State management for the direction menu.
         """
         self._display = display
-        self._writer = writer
-        self._routes = Routes()
+        self._writers = writers
+        self._routes = RoutesManager()
+        self._config = ConfigManager()
         self._route_menu_state = RouteMenuState()
         self._route_menu_state.set_route_state(0)
         self._direction_menu_state = DirectionMenuState()
         self._direction_menu_state.set_direction_state(0)
         self._screen_config = screen_config
+        self._buttons_press_start_time = None
+        self._buttons_press_active = False
 
     def _draw_menu(
         self,
@@ -68,8 +73,8 @@ class GuiManager:
 
         self._display.fill(0)
 
-        self._writer.set_textpos(self._display, 0, left_offset)
-        self._writer.printstring(f"{header_text}{header_suffix}", False)
+        self._writers[0].set_textpos(self._display, 0, left_offset)
+        self._writers[0].printstring(f"{header_text}{header_suffix}", False)
         self._display.fill_rect(0, line_height + 1, self._screen_config.width, 1, 1)
 
         # Calculate the range of menu items (indexes) that will be visible on the screen
@@ -109,12 +114,12 @@ class GuiManager:
         Returns:
             str: Trimmed string.
         """
-        if self._writer.stringlen(text) <= max_width:
+        if self._writers[0].stringlen(text) <= max_width:
             return text
 
         for i in range(len(text), 0, -1):
             trimmed = text[:i]
-            if self._writer.stringlen(trimmed) <= max_width:
+            if self._writers[0].stringlen(trimmed) <= max_width:
                 return trimmed
 
         return "..."
@@ -151,6 +156,10 @@ class GuiManager:
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
             self.draw_error_screen("Error: Test error message")
+        elif current_screen == ScreenStates.SETTINGS_SCREEN:
+            self.draw_active_settings_screen(self._config.config)
+        elif current_screen == ScreenStates.UPDATE_SCREEN:
+            self.draw_update_mode_screen(self._config.config.ap_ip)
 
     def draw_status_screen(
         self,
@@ -174,12 +183,12 @@ class GuiManager:
 
         self._display.fill(0)
 
-        self._writer.set_textpos(self._display, 0, left_offset)
-        self._writer.printstring("> " + direction_name, False)
+        self._writers[0].set_textpos(self._display, 0, left_offset)
+        self._writers[0].printstring("> " + direction_name, False)
 
         bottom_y = screen_height - line_height
-        self._writer.set_textpos(self._display, bottom_y, left_offset)
-        self._writer.printstring(
+        self._writers[0].set_textpos(self._display, bottom_y, left_offset)
+        self._writers[0].printstring(
             f"М:{route_id}Н:{direction_id:02d}К:{direction_number}",
             False,
         )
@@ -194,8 +203,8 @@ class GuiManager:
             error_message: The error message to display.
         """
         self._display.fill(0)
-        self._writer.set_textpos(self._display, 0, 0)
-        self._writer.printstring(error_message, False)
+        self._writers[0].set_textpos(self._display, 0, 0)
+        self._writers[0].printstring(error_message, False)
         self._display.show()
 
     def draw_update_mode_screen(self, ip_address: str) -> None:
@@ -216,17 +225,45 @@ class GuiManager:
 
         top_y = int((screen_height - line_height * 2) / 2)
 
-        line1_width = self._writer.stringlen(line1)
-        line2_width = self._writer.stringlen(line2)
+        line1_width = self._writers[0].stringlen(line1)
+        line2_width = self._writers[0].stringlen(line2)
 
         line1_offset = (screen_width - line1_width) // 2
         line2_offset = (screen_width - line2_width) // 2
 
-        self._writer.set_textpos(self._display, top_y, line1_offset)
-        self._writer.printstring(line1, False)
+        self._writers[0].set_textpos(self._display, top_y, line1_offset)
+        self._writers[0].printstring(line1, False)
 
-        self._writer.set_textpos(self._display, top_y + line_height + 2, line2_offset)
-        self._writer.printstring(line2, False)
+        self._writers[0].set_textpos(
+            self._display, top_y + line_height + 2, line2_offset
+        )
+        self._writers[0].printstring(line2, False)
+
+        self._display.show()
+
+    def draw_active_settings_screen(self, config) -> None:
+        """
+        Draws the active settings screen with the active telegrams and software version.
+
+        Args:
+            config: The configuration object containing the active telegrams and version.
+        """
+        line_height = self._screen_config.font_size + 2
+        left_offset = 2
+        screen_height = self._screen_config.height
+
+        self._display.fill(0)
+
+        self._writers[1].set_textpos(self._display, 0, 0)
+
+        self._writers[1].printstring(
+            f"Telegrams: {config.line}, {config.dest_num}, {config.destination}, {config.stop_display}",
+            False,
+        )
+
+        bottom_y = screen_height - line_height
+        self._writers[1].set_textpos(self._display, bottom_y, left_offset)
+        self._writers[1].printstring(f"ver:{config.version}", False)
 
         self._display.show()
 
@@ -261,11 +298,11 @@ class GuiManager:
 
             if is_highlighted:
                 self._display.fill_rect(0, y, self._screen_config.width, line_height, 1)
-                self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(text, True)
+                self._writers[0].set_textpos(self._display, y, left_offset)
+                self._writers[0].printstring(text, True)
             else:
-                self._writer.set_textpos(self._display, y, left_offset)
-                self._writer.printstring(text, False)
+                self._writers[0].set_textpos(self._display, y, left_offset)
+                self._writers[0].printstring(text, False)
 
     def draw_arrows(
         self,
@@ -353,6 +390,42 @@ class GuiManager:
         else:
             raise ValueError(f"Unknown menu type: {menu_type}")
 
+    def _check_buttons_press_timer(
+        self,
+        buttons_pressed: list[int],
+        required_screen: str,
+        target_screen: str,
+        current_time,
+    ) -> bool:
+        """
+        Handles the timer logic for buttons press of any set of buttons.
+
+        Args:
+            buttons_pressed: List of booleans representing button states (False = pressed).
+            required_screen: Screen where the press must start.
+            target_screen: Screen to switch to after 3s.
+            current_time: The current time in ms from `time.ticks_ms()`.
+
+        Returns:
+            True if screen was changed and no further handling is needed.
+        """
+        all_pressed = all(not b for b in buttons_pressed)
+
+        if all_pressed:
+            if not self._buttons_press_active:
+                self._buttons_press_start_time = current_time
+                self._buttons_press_active = True
+            elif time.ticks_diff(current_time, self._buttons_press_start_time) >= 3000:
+                if self._screen_config.current_screen == required_screen:
+                    self._screen_config.current_screen = target_screen
+                self._buttons_press_active = False
+                time.sleep(0.5)
+            return True
+        else:
+            self._buttons_press_active = False
+            self._buttons_press_start_time = None
+            return False
+
     def handle_buttons(
         self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
     ) -> None:
@@ -365,6 +438,26 @@ class GuiManager:
             btn_down: The button for navigating down in the menu.
             btn_select: The button for selecting an item in the menu.
         """
+        current_time = time.ticks_ms()
+
+        if not btn_up and not btn_down:
+            if self._check_buttons_press_timer(
+                [btn_up, btn_down],
+                ScreenStates.STATUS_SCREEN,
+                ScreenStates.SETTINGS_SCREEN,
+                current_time,
+            ):
+                return
+
+        if not btn_down and not btn_select:
+            if self._check_buttons_press_timer(
+                [btn_down, btn_select],
+                ScreenStates.SETTINGS_SCREEN,
+                ScreenStates.UPDATE_SCREEN,
+                current_time,
+            ):
+                return
+
         if not btn_menu:
             if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                 self._screen_config.current_screen = ScreenStates.ROUTE_MENU
@@ -372,6 +465,16 @@ class GuiManager:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
             elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
                 self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+            elif self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
+                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            elif self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
+                if self._check_buttons_press_timer(
+                    [btn_menu],
+                    ScreenStates.UPDATE_SCREEN,
+                    ScreenStates.STATUS_SCREEN,
+                    current_time,
+                ):
+                    return
             time.sleep(0.2)
 
         if not btn_up:
@@ -380,6 +483,8 @@ class GuiManager:
                 ScreenStates.DIRECTION_MENU,
             ):
                 self.navigate_up(self._screen_config.current_screen)
+            if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
+                self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
             time.sleep(0.2)
 
         if not btn_down:
@@ -403,6 +508,9 @@ class GuiManager:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
             time.sleep(0.2)
 
+        self._buttons_press_active = False
+        self._buttons_press_start_time = None
+
     def get_route_menu(self, routes: list[RouteInfo]) -> list[str]:
         """Extracts route numbers and route names for the menu display."""
         return [
@@ -412,10 +520,12 @@ class GuiManager:
 
     def get_direction_menu(self, route: RouteInfo) -> list[str]:
         """Extracts direction full names with id for the menu display."""
-        return [
-            f"{direction.group_id} {direction.full_name.split('-')[1]}"
-            for direction in route.directions
-        ]
+        menu_items = []
+        for direction in route.directions:
+            parts = direction.full_name.split("-")
+            name = parts[1] if len(parts) > 1 else direction.full_name
+            menu_items.append(f"{direction.group_id} {name}")
+        return menu_items
 
     def number_of_options(self) -> int:
         """
