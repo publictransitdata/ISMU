@@ -3,14 +3,14 @@ from .route_info import RouteInfo, DirectionInfo
 
 
 @singleton
-class Routes:
+class RoutesManager:
     """
     A class for managing the routes.
     Only one instance of the class can exist throughout the application.
     """
 
     def __init__(self):
-        self.__routes = []
+        self._routes = []
 
     def load_routes(self, routes_path: str) -> None:
         """
@@ -20,12 +20,12 @@ class Routes:
         """
         with open(routes_path, "rb") as f:
             try:
-                self.__routes = self.parse_routes(f.read().decode("utf-8").splitlines())
+                self._routes = self._parse_routes(f.read().decode("utf-8").splitlines())
                 print("Routes was loaded")
             except ValueError:
                 print("Error while loading routes")
 
-    def parse_routes(self, lines: list[str]) -> list[RouteInfo]:
+    def _parse_routes(self, lines: list[str]) -> list[RouteInfo]:
         routes = []
         current_route_number = None
         current_directions = []
@@ -87,4 +87,4 @@ class Routes:
 
     @property
     def routes(self):
-        return self.__routes
+        return self._routes

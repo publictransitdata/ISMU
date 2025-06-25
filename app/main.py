@@ -3,21 +3,14 @@ import sh1106  # type: ignore
 from framebuf import FrameBuffer
 import writer  # type: ignore
 from gui_management import GuiManager, ScreenConfig, RouteMenuState, DirectionMenuState
-from routes_loading import Routes, RouteInfo
-from utils import validator
+from routes_loading import RoutesManager, RouteInfo
+from config_loading import ConfigManager
 import time
 
 try:
-    from config import lang  # type: ignore
+    from config import lang_ukr, lang_eng  # type: ignore
 except ImportError:
     print("Language file is missing.")
-
-
-def draw_error_screen(display, error_message: str) -> None:
-    display.fill(0)
-    writer.set_textpos(display, 0, 0)
-    writer.printstring(error_message, False)
-    display.show()
 
 
 if __name__ == "__main__":
@@ -30,24 +23,21 @@ if __name__ == "__main__":
     i2c = I2C(0, scl=Pin(1), sda=Pin(0))
     display = sh1106.SH1106_I2C(128, 64, i2c)
 
-    writer = writer.Writer(display, lang)
+    writers = []
+
+    writer_ukr = writer.Writer(display, lang_ukr)
+    writer_eng = writer.Writer(display, lang_eng)
+
+    writers.append(writer_ukr)
+    writers.append(writer_eng)
 
     config_path = "/app/config/config.txt"
-    validator = validator.FileValidator()
-    validator.validate_config_file(config_path)
+    config = ConfigManager()
+    config.load_config(config_path)
 
     routes_path = "/app/config/routes.txt"
-    routes = Routes()
+    routes = RoutesManager()
     routes.load_routes(routes_path)
-    loaded_routes = routes.routes
-
-    # print("Loaded routes:")
-    # for route in loaded_routes:
-    #     print("Route number:")
-    #     print(route.route_number)
-    #     print("Directions:")
-    #     for direction in route.directions:
-    #         print(direction.group_id)
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
@@ -70,7 +60,7 @@ if __name__ == "__main__":
         print("Screen configuration is not set correctly.")
         exit()
 
-    gui_manager = GuiManager(display, writer, screen_config)
+    gui_manager = GuiManager(display, writers, screen_config)
 
     while True:
         gui_manager.handle_buttons(
