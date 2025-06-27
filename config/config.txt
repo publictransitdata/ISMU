@@ -6,5 +6,7 @@ forse_short_names=false
 stop_display=DS003c
 rt_on_stop_disp=true
 ap_name=my_krabby_patty
-ap_pswd=123456
-ap_ip=10.0.0.2
+ap_pswd=12345678
+ap_ip=192.168.4.1
+
+# This if upload file
