@@ -2,9 +2,15 @@ from machine import Pin, I2C
 import sh1106  # type: ignore
 from framebuf import FrameBuffer
 import writer  # type: ignore
-from gui_management import GuiManager, ScreenConfig, RouteMenuState, DirectionMenuState
-from routes_loading import RoutesManager, RouteInfo
-from config_loading import ConfigManager
+from app.gui_management import (
+    GuiManager,
+    ScreenConfig,
+    RouteMenuState,
+    DirectionMenuState,
+)
+from app.routes_loading import RoutesManager, RouteInfo
+from app.config_loading import ConfigManager
+import uasyncio as asyncio
 import time
 
 try:
@@ -31,11 +37,11 @@ if __name__ == "__main__":
     writers.append(writer_ukr)
     writers.append(writer_eng)
 
-    config_path = "/app/config/config.txt"
+    config_path = "/config/config.txt"
     config = ConfigManager()
     config.load_config(config_path)
 
-    routes_path = "/app/config/routes.txt"
+    routes_path = "/config/routes.txt"
     routes = RoutesManager()
     routes.load_routes(routes_path)
 
@@ -60,10 +66,13 @@ if __name__ == "__main__":
         print("Screen configuration is not set correctly.")
         exit()
 
-    gui_manager = GuiManager(display, writers, screen_config)
+    async def main_loop(gui: GuiManager):
+        while True:
+            gui_manager.handle_buttons(
+                btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
+            )
+            gui_manager.draw_current_screen()
+            await asyncio.sleep(0.05)
 
-    while True:
-        gui_manager.handle_buttons(
-            btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
-        )
-        gui_manager.draw_current_screen()
+    gui_manager = GuiManager(display, writers, screen_config)
+    asyncio.run(main_loop(gui_manager))

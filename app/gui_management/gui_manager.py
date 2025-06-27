@@ -1,10 +1,11 @@
 import sys
 import time
 
-from routes_loading.route_info import RouteInfo
-from routes_loading.routes_manager import RoutesManager
-from config_loading.config_manager import ConfigManager
-from config_loading.config_info import SystemConfig
+from app.routes_loading.route_info import RouteInfo
+from app.routes_loading.routes_manager import RoutesManager
+from app.config_loading.config_manager import ConfigManager
+from app.config_loading.config_info import SystemConfig
+from app.web_update import WebUpdateServer
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
@@ -45,6 +46,10 @@ class GuiManager:
         self._screen_config = screen_config
         self._buttons_press_start_time = None
         self._buttons_press_active = False
+        self._web_update_server = WebUpdateServer(
+            self._config.config.ap_name, self._config.config.ap_pswd
+        )
+        self._web_server_started = False
 
     def _draw_menu(
         self,
@@ -159,7 +164,9 @@ class GuiManager:
         elif current_screen == ScreenStates.SETTINGS_SCREEN:
             self.draw_active_settings_screen(self._config.config)
         elif current_screen == ScreenStates.UPDATE_SCREEN:
-            self.draw_update_mode_screen(self._config.config.ap_ip)
+            self.draw_update_mode_screen(
+                self._config.config.ap_ip, self._config.config.ap_name
+            )
 
     def draw_status_screen(
         self,
@@ -207,7 +214,7 @@ class GuiManager:
         self._writers[0].printstring(error_message, False)
         self._display.show()
 
-    def draw_update_mode_screen(self, ip_address: str) -> None:
+    def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
         """
         Draws the update mode screen with the device's IP address.
 
@@ -221,23 +228,31 @@ class GuiManager:
         screen_height = self._screen_config.height
 
         line1 = "Режим оновлення"
-        line2 = f"ІР: {ip_address}"
+        line2 = f"{ap_name}"
+        line3 = f"ІР:{ip_address}"
 
         top_y = int((screen_height - line_height * 2) / 2)
 
         line1_width = self._writers[0].stringlen(line1)
-        line2_width = self._writers[0].stringlen(line2)
+        line2_width = self._writers[1].stringlen(line2)
+        line3_width = self._writers[0].stringlen(line3)
 
         line1_offset = (screen_width - line1_width) // 2
         line2_offset = (screen_width - line2_width) // 2
+        line3_offset = (screen_width - line3_width) // 2
 
         self._writers[0].set_textpos(self._display, top_y, line1_offset)
         self._writers[0].printstring(line1, False)
 
-        self._writers[0].set_textpos(
+        self._writers[1].set_textpos(
             self._display, top_y + line_height + 2, line2_offset
         )
-        self._writers[0].printstring(line2, False)
+        self._writers[1].printstring(line2, False)
+
+        self._writers[0].set_textpos(
+            self._display, top_y + line_height * 2 + 2, line3_offset
+        )
+        self._writers[0].printstring(line3, False)
 
         self._display.show()
 
@@ -456,6 +471,12 @@ class GuiManager:
                 ScreenStates.UPDATE_SCREEN,
                 current_time,
             ):
+                if (
+                    self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN
+                    and not self._web_server_started
+                ):
+                    self._web_update_server.start()
+                    self._web_server_started = True
                 return
 
         if not btn_menu:
@@ -474,6 +495,12 @@ class GuiManager:
                     ScreenStates.STATUS_SCREEN,
                     current_time,
                 ):
+                    if (
+                        self._screen_config.current_screen == ScreenStates.STATUS_SCREEN
+                        and self._web_server_started
+                    ):
+                        self._web_update_server.stop()
+                        self._web_server_started = False
                     return
             time.sleep(0.2)
 
