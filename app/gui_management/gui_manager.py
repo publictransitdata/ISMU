@@ -30,10 +30,8 @@ class GuiManager:
 
         Args:
             display: The display object used for rendering content on the screen.
-            writer: The writer object used for rendering text on the screen.
+            writers: The writer objects used for rendering text on the screen.
             screen_config: Configuration for the screen dimensions and properties.
-            route_menu_state: State management for the route menu.
-            direction_menu_state: State management for the direction menu.
         """
         self._display = display
         self._writers = writers
@@ -47,9 +45,8 @@ class GuiManager:
         self._buttons_press_start_time = None
         self._buttons_press_active = False
         self._web_update_server = WebUpdateServer(
-            self._config.config.ap_name, self._config.config.ap_pswd
+            self._config.config.ap_name, self._config.config.ap_password
         )
-        self._web_server_started = False
 
     def _draw_menu(
         self,
@@ -272,7 +269,7 @@ class GuiManager:
         self._writers[1].set_textpos(self._display, 0, 0)
 
         self._writers[1].printstring(
-            f"Telegrams: {config.line}, {config.dest_num}, {config.destination}, {config.stop_display}",
+            f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_display_telegram}",
             False,
         )
 
@@ -471,12 +468,8 @@ class GuiManager:
                 ScreenStates.UPDATE_SCREEN,
                 current_time,
             ):
-                if (
-                    self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN
-                    and not self._web_server_started
-                ):
-                    self._web_update_server.start()
-                    self._web_server_started = True
+                if self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
+                    self._web_update_server.ensure_started()
                 return
 
         if not btn_menu:
@@ -495,12 +488,8 @@ class GuiManager:
                     ScreenStates.STATUS_SCREEN,
                     current_time,
                 ):
-                    if (
-                        self._screen_config.current_screen == ScreenStates.STATUS_SCREEN
-                        and self._web_server_started
-                    ):
+                    if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                         self._web_update_server.stop()
-                        self._web_server_started = False
                     return
             time.sleep(0.2)
 

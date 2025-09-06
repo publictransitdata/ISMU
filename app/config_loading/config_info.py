@@ -4,14 +4,14 @@ from .singleton_decorator import singleton
 class SystemConfig:
     def __init__(self):
         self._line: str = ""
-        self._dest_num: str = ""
+        self._destination_number: str = ""
         self._destination: str = ""
-        self._display_start_and_dist: bool = False
-        self._forse_short_names: bool = False
-        self._stop_display: str = ""
-        self._rt_on_stop_disp: bool = False
+        self._display_start_and_end_stops: bool = False
+        self._force_short_names: bool = False
+        self._stop_display_telegram: str = ""
+        self._display_route_on_stop_board: bool = False
         self._ap_name: str = ""
-        self._ap_pswd: str = ""
+        self._ap_password: str = ""
         self._ap_ip: str = ""
         self._version: str = "0.1.0"
 
@@ -24,12 +24,12 @@ class SystemConfig:
         self._line = value
 
     @property
-    def dest_num(self):
-        return self._dest_num
+    def destination_number(self):
+        return self._destination_number
 
-    @dest_num.setter
-    def dest_num(self, value):
-        self._dest_num = value
+    @destination_number.setter
+    def destination_number(self, value):
+        self._destination_number = value
 
     @property
     def destination(self):
@@ -40,36 +40,36 @@ class SystemConfig:
         self._destination = value
 
     @property
-    def display_start_and_dist(self):
-        return self._display_start_and_dist
+    def display_start_and_end_stops(self):
+        return self._display_start_and_end_stops
 
-    @display_start_and_dist.setter
-    def display_start_and_dist(self, value):
-        self._display_start_and_dist = value
-
-    @property
-    def forse_short_names(self):
-        return self._forse_short_names
-
-    @forse_short_names.setter
-    def forse_short_names(self, value):
-        self._forse_short_names = value
+    @display_start_and_end_stops.setter
+    def display_start_and_end_stops(self, value):
+        self._display_start_and_end_stops = value
 
     @property
-    def stop_display(self):
-        return self._stop_display
+    def force_short_names(self):
+        return self._force_short_names
 
-    @stop_display.setter
-    def stop_display(self, value):
-        self._stop_display = value
+    @force_short_names.setter
+    def force_short_names(self, value):
+        self._force_short_names = value
 
     @property
-    def rt_on_stop_disp(self):
-        return self._rt_on_stop_disp
+    def stop_display_telegram(self):
+        return self._stop_display_telegram
 
-    @rt_on_stop_disp.setter
-    def rt_on_stop_disp(self, value):
-        self._rt_on_stop_disp = value
+    @stop_display_telegram.setter
+    def stop_display_telegram(self, value):
+        self._stop_display_telegram = value
+
+    @property
+    def display_route_on_stop_board(self):
+        return self._display_route_on_stop_board
+
+    @display_route_on_stop_board.setter
+    def display_route_on_stop_board(self, value):
+        self._display_route_on_stop_board = value
 
     @property
     def ap_name(self):
@@ -80,12 +80,12 @@ class SystemConfig:
         self._ap_name = value
 
     @property
-    def ap_pswd(self):
-        return self._ap_pswd
+    def ap_password(self):
+        return self._ap_password
 
-    @ap_pswd.setter
-    def ap_pswd(self, value):
-        self._ap_pswd = value
+    @ap_password.setter
+    def ap_password(self, value):
+        self._ap_password = value
 
     @property
     def ap_ip(self):
