@@ -1,12 +1,10 @@
 line=DS001
-dest_num=DS003
+destination_number=DS003
 destination=DS003a
-display_start_and_dist=true
-forse_short_names=false
-stop_display=DS003c
-rt_on_stop_disp=true
+display_start_and_end_stops=true
+force_short_names=false
+stop_display_telegram=DS003c
+display_route_on_stop_board=true
 ap_name=my_krabby_patty
-ap_pswd=12345678
+ap_password=12345678
 ap_ip=192.168.4.1
-
-# This if upload file

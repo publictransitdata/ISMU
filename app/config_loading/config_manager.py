@@ -12,7 +12,11 @@ class ConfigManager:
         self._config = SystemConfig()
 
     def _convert_value(self, key: str, value: str):
-        if key in {"display_start_and_dist", "forse_short_names", "rt_on_stop_disp"}:
+        if key in {
+            "display_start_and_end_stops",
+            "force_short_names",
+            "display_route_on_stop_board",
+        }:
             return value.lower() == "true"
         return value
 

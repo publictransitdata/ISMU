@@ -34,7 +34,7 @@ class ScreenConfig:
         self._font_size = font_size
         self._arrow_size = arrow_size
         self._visible_items = visible_items
-        self._current_screen = ScreenStates.STATUS_SCREEN
+        self._current_screen = current_screen
 
     @property
     def width(self):
