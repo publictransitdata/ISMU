@@ -4,10 +4,6 @@ from .config_info import SystemConfig
 
 @singleton
 class ConfigManager:
-    """
-    A singleton class responsible for loading and parsing system config.
-    """
-
     def __init__(self):
         self._config = SystemConfig()
 
@@ -22,7 +18,8 @@ class ConfigManager:
 
     def load_config(self, config_path: str) -> None:
         """
-        Loads the config file from the given path and parses it into SystemConfig.
+        Args:
+            config_path: The path to the config.txt file.
         """
         try:
             with open(config_path, "r") as file:
@@ -50,7 +47,4 @@ class ConfigManager:
 
     @property
     def config(self):
-        """
-        Returns the loaded configuration.
-        """
         return self._config

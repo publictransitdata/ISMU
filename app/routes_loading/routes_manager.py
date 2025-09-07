@@ -4,11 +4,6 @@ from .route_info import RouteInfo, DirectionInfo
 
 @singleton
 class RoutesManager:
-    """
-    A class for managing the routes.
-    Only one instance of the class can exist throughout the application.
-    """
-
     def __init__(self):
         self._routes = []
 
