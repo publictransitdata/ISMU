@@ -14,8 +14,7 @@ class RoutesManager:
 
     def load_routes(self, routes_path: str) -> None:
         """
-        Loads list of routes from the specified path.
-        :param:
+        Args:
             routes_path: The path to the routes.txt file.
         """
         with open(routes_path, "rb") as f:
