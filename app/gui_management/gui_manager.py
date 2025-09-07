@@ -33,8 +33,6 @@ class GuiManager:
             writers: The writer objects used for rendering string_line on the screen.
             screen_config: Configuration for the screen dimensions and properties.
         """
-        self._display = display
-        self._writers = writers
         self._routes_manager = RoutesManager()
         self._config_manager = ConfigManager()
         self._route_menu_state = RouteMenuState()

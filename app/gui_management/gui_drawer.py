@@ -16,6 +16,14 @@ class GuiDrawer:
         writers: list[Writer],
         screen_config: ScreenConfig,
     ):
+        """
+        Initializes the GuiDrawer with the necessary configurations and display components.
+
+        Args:
+            display: The display object used for rendering content on the screen.
+            writers: The writer objects used for rendering string_line on the screen.
+            screen_config: Configuration for the screen dimensions and properties.
+        """
         self._display = display
         self._writers = writers
         self._screen_config = screen_config
