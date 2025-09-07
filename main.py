@@ -24,7 +24,7 @@ if __name__ == "__main__":
     screen_height = 64
     font_size = 13
     arrow_size = 6
-    visible_items = 2
+    max_visible_items_count = 2
 
     i2c = I2C(0, scl=Pin(1), sda=Pin(0))
     display = sh1106.SH1106_I2C(128, 64, i2c)
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     screen_config = ScreenConfig()
 
     screen_config.set_screen_config(
-        screen_width, screen_height, font_size, arrow_size, visible_items
+        screen_width, screen_height, font_size, arrow_size, max_visible_items_count
     )
 
     if (
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         or screen_config.height == 0
         or screen_config.font_size == 0
         or screen_config.arrow_size == 0
-        or screen_config.visible_items == 0
+        or screen_config.max_visible_items_count == 0
     ):
         print("Screen configuration is not set correctly.")
         exit()

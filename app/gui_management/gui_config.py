@@ -12,12 +12,22 @@ class ScreenStates:
 
 @singleton
 class ScreenConfig:
+    """
+    Attributes:
+        _width (int): Width of the screen in pixels.
+        _height (int): Height of the screen in pixels.
+        _font_size (int): Font size used for rendering text (default: 12).
+        _arrow_size (int): Size of navigation arrows (default: 6).
+        _max_visible_items_count (int): Maximum number of items visible at once (default: 2).
+        _current_screen (str): Identifier of the current active screen.
+    """
+
     def __init__(self):
         self._width = 0
         self._height = 0
         self._font_size = 0
         self._arrow_size = 0
-        self._visible_items = 0
+        self._max_visible_items_count = 0
         self._current_screen = None
 
     def set_screen_config(
@@ -26,14 +36,14 @@ class ScreenConfig:
         height: int,
         font_size: int,
         arrow_size: int = 6,
-        visible_items: int = 2,
+        max_visible_items_count: int = 2,
         current_screen: str = ScreenStates.STATUS_SCREEN,
     ):
         self._width = width
         self._height = height
         self._font_size = font_size
         self._arrow_size = arrow_size
-        self._visible_items = visible_items
+        self._max_visible_items_count = max_visible_items_count
         self._current_screen = current_screen
 
     @property
@@ -69,12 +79,12 @@ class ScreenConfig:
         self._arrow_size = value
 
     @property
-    def visible_items(self):
-        return self._visible_items
+    def max_visible_items_count(self):
+        return self._max_visible_items_count
 
-    @visible_items.setter
-    def visible_items(self, value: int):
-        self._visible_items = value
+    @max_visible_items_count.setter
+    def max_visible_items_count(self, value: int):
+        self._max_visible_items_count = value
 
     @property
     def current_screen(self):
@@ -88,52 +98,48 @@ class ScreenConfig:
 @singleton
 class RouteMenuState:
     def __init__(self):
-        self._selected = 0
-        self._highlighted = 0
-
-    def set_route_state(self, route_selected: int = 0):
-        self._selected = route_selected
-        self._highlighted = route_selected
+        self._selected_item_index = 0
+        self._highlighted_item_index = 0
 
     @property
-    def selected(self):
-        return self._selected
+    def selected_item_index(self):
+        return self._selected_item_index
 
-    @selected.setter
-    def selected(self, value):
-        self._selected = value
+    @selected_item_index.setter
+    def selected_item_index(self, value):
+        self._selected_item_index = value
 
     @property
-    def highlighted(self):
-        return self._highlighted
+    def highlighted_item_index(self):
+        return self._highlighted_item_index
 
-    @highlighted.setter
-    def highlighted(self, value):
-        self._highlighted = value
+    @highlighted_item_index.setter
+    def highlighted_item_index(self, value):
+        self._highlighted_item_index = value
 
 
 @singleton
 class DirectionMenuState:
     def __init__(self):
-        self._selected = 0
-        self._highlighted = 0
+        self._selected_item_index = 0
+        self._highlighted_item_index = 0
 
-    def set_direction_state(self, direction_selected: int = 0):
-        self._selected = direction_selected
-        self._highlighted = direction_selected
-
-    @property
-    def selected(self):
-        return self._selected
-
-    @selected.setter
-    def selected(self, value):
-        self._selected = value
+    def set_direction_state(self, direction_selected_item_index: int = 0):
+        self._selected_item_index = direction_selected_item_index
+        self._highlighted_item_index = direction_selected_item_index
 
     @property
-    def highlighted(self):
-        return self._highlighted
+    def selected_item_index(self):
+        return self._selected_item_index
 
-    @highlighted.setter
-    def highlighted(self, value):
-        self._highlighted = value
+    @selected_item_index.setter
+    def selected_item_index(self, value):
+        self._selected_item_index = value
+
+    @property
+    def highlighted_item_index(self):
+        return self._highlighted_item_index
+
+    @highlighted_item_index.setter
+    def highlighted_item_index(self, value):
+        self._highlighted_item_index = value
