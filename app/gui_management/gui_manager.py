@@ -1,11 +1,11 @@
 import sys
 import time
 
-from app.routes_loading.route_info import RouteInfo
-from app.routes_loading.routes_manager import RoutesManager
-from app.config_loading.config_manager import ConfigManager
-from app.config_loading.config_info import SystemConfig
+from app.routes_loading import RouteInfo
+from app.routes_loading import RoutesManager
+from app.config_loading import ConfigManager
 from app.web_update import WebUpdateServer
+from .gui_drawer import GuiDrawer
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
@@ -43,104 +43,37 @@ class GuiManager:
         self._web_update_server = WebUpdateServer(
             self._config_manager.config.ap_name, self._config_manager.config.ap_password
         )
+        self._gui_drawer = GuiDrawer(display, writers, screen_config)
 
         self._buttons_press_start_time = None
         self._buttons_press_active = False
 
-    def _draw_menu(
-        self,
-        menu_items: list[str],
-        menu_type: str,
-        header_text: str,
-        header_suffix: str = "",
-    ) -> None:
-        """
-        Draws a menu on the display. There is same template for route and direction menus.
-
-        Args:
-            menu_items: A list of menu items to display.
-            menu_type: The type of menu (e.g., route or direction).
-            header_text: The string_line to display in the menu header.
-            header_suffix: Additional string_line to display in the header.
-        """
-        line_height = self._screen_config.font_size + 2
-        top_offset = line_height + 3  # 3 = line and two pixel spacing on the sides
-        left_offset = 2
-        bottom_offset = self._screen_config.height - 1
-        top_offset_with_up_arrow = top_offset + self._screen_config.arrow_size + 2
-        screen_center_width = int(self._screen_config.width / 2)
-        highlighted_item_index = self._get_menu_state(menu_type).highlighted_item_index
-        max_visible_items_count = self._screen_config.max_visible_items_count
-
-        self._display.fill(0)
-
-        self._writers[0].set_textpos(self._display, 0, left_offset)
-        self._writers[0].printstring(f"{header_text}{header_suffix}", False)
-        self._display.fill_rect(0, line_height + 1, self._screen_config.width, 1, 1)
-
-        first_visible_menu_item_idx = (
-            highlighted_item_index // max_visible_items_count
-        ) * max_visible_items_count
-        last_visible_menu_item_idx = min(
-            first_visible_menu_item_idx + max_visible_items_count, len(menu_items)
-        )
-
-        self.draw_menu_items(
-            menu_items,
-            first_visible_menu_item_idx,
-            last_visible_menu_item_idx,
-            line_height,
-            top_offset_with_up_arrow,
-            left_offset,
-            menu_type,
-        )
-
-        self.draw_arrows(
-            screen_center_width,
-            top_offset,
-            bottom_offset,
-            first_visible_menu_item_idx,
-            last_visible_menu_item_idx,
-        )
-
-        self._display.show()
-
-    def trim_text_to_fit(self, string_line: str, max_width_of_line: int) -> str:
-        """
-        Trims the input string_line to fit within the given pixel width.
-        If it's too long, shortens it and adds ellipsis.
-
-        Returns:
-            str: Trimmed string line.
-        """
-        if self._writers[0].stringlen(string_line) <= max_width_of_line:
-            return string_line
-
-        for i in range(len(string_line), 0, -1):
-            trimmed = string_line[:i]
-            if self._writers[0].stringlen(trimmed) <= max_width_of_line:
-                return trimmed
-
-        return "..."
-
     def draw_current_screen(self):
-        """
-        Draws the current screen based on the screen state.
-        """
         current_screen = self._screen_config.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
-            menu = self.get_route_list_to_display(self._routes_manager.routes)
-            self._draw_menu(menu, ScreenStates.ROUTE_MENU, "Маршрут:")
+            menu_items = self.get_route_list_to_display(self._routes_manager.routes)
+            highlighted_item_index = self._get_menu_state(
+                ScreenStates.ROUTE_MENU
+            )._highlighted_item_index
+            number_of_menu_items = self.get_number_of_menu_items()
+            self._gui_drawer._draw_menu(
+                menu_items, "Маршрут:", highlighted_item_index, number_of_menu_items
+            )
         elif current_screen == ScreenStates.DIRECTION_MENU:
             route = self._routes_manager.routes[
                 self._route_menu_state.highlighted_item_index
             ]
-            menu = self.get_direction_list_to_display(route)
-            self._draw_menu(
-                menu,
-                ScreenStates.DIRECTION_MENU,
+            menu_items = self.get_direction_list_to_display(route)
+            highlighted_item_index = self._get_menu_state(
+                ScreenStates.DIRECTION_MENU
+            )._highlighted_item_index
+            number_of_menu_items = self.get_number_of_menu_items()
+            self._gui_drawer._draw_menu(
+                menu_items,
                 "Напрямок:",
+                highlighted_item_index,
+                number_of_menu_items,
                 f"   {route.route_number}",
             )
 
@@ -148,11 +81,11 @@ class GuiManager:
             route = self._routes_manager.routes[
                 self._route_menu_state.selected_item_index
             ]
-            direction_name = route.directions[
+            selected_direction_name = route.directions[
                 self._direction_menu_state.selected_item_index
             ].full_name
-            self.draw_status_screen(
-                direction_name,
+            self._gui_drawer.draw_status_screen(
+                selected_direction_name,
                 route.route_number,
                 self._direction_menu_state.selected_item_index + 1,
                 int(
@@ -162,200 +95,13 @@ class GuiManager:
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
-            self.draw_error_screen("Error: Test error message")
+            self._gui_drawer.draw_error_screen("Error: Test error message")
         elif current_screen == ScreenStates.SETTINGS_SCREEN:
-            self.draw_active_settings_screen(self._config_manager.config)
+            self._gui_drawer.draw_active_settings_screen(self._config_manager.config)
         elif current_screen == ScreenStates.UPDATE_SCREEN:
-            self.draw_update_mode_screen(
+            self._gui_drawer.draw_update_mode_screen(
                 self._config_manager.config.ap_ip, self._config_manager.config.ap_name
             )
-
-    def draw_status_screen(
-        self,
-        direction_name: str,
-        route_id: str,
-        direction_id: int,
-        direction_number: int,
-    ) -> None:
-        """
-        Draws the status screen with the selected_item_index direction and general selected_item_index information.
-
-        Args:
-            direction_name (str): The name of the selected_item_index direction.
-            route_id (str): The ID of the selected_item_index route.
-            direction_id (int): The ID of the selected_item_index direction.
-            direction_number (int): The number of the selected_item_index direction.
-        """
-        line_height = self._screen_config.font_size + 2
-        left_offset = 2
-        screen_height = self._screen_config.height
-
-        self._display.fill(0)
-
-        self._writers[0].set_textpos(self._display, 0, left_offset)
-        self._writers[0].printstring("> " + direction_name, False)
-
-        bottom_y = screen_height - line_height
-        self._writers[0].set_textpos(self._display, bottom_y, left_offset)
-        self._writers[0].printstring(
-            f"М:{route_id}Н:{direction_id:02d}К:{direction_number}",
-            False,
-        )
-
-        self._display.show()
-
-    def draw_error_screen(self, error_message: str) -> None:
-        """
-        Draws an error message on the display.
-
-        Args:
-            error_message: The error message to display.
-        """
-        self._display.fill(0)
-        self._writers[0].set_textpos(self._display, 0, 0)
-        self._writers[0].printstring(error_message, False)
-        self._display.show()
-
-    def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
-        """
-        Draws the update mode screen with the device's IP address.
-
-        Args:
-            ip_address: The IP address to display on the screen.
-        """
-        self._display.fill(0)
-
-        line_height = self._screen_config.font_size + 2
-        screen_width = self._screen_config.width
-        screen_height = self._screen_config.height
-
-        line1 = "Режим оновлення"
-        line2 = f"{ap_name}"
-        line3 = f"ІР:{ip_address}"
-
-        top_y = int((screen_height - line_height * 2) / 2)
-
-        line1_width = self._writers[0].stringlen(line1)
-        line2_width = self._writers[1].stringlen(line2)
-        line3_width = self._writers[0].stringlen(line3)
-
-        line1_offset = (screen_width - line1_width) // 2
-        line2_offset = (screen_width - line2_width) // 2
-        line3_offset = (screen_width - line3_width) // 2
-
-        self._writers[0].set_textpos(self._display, top_y, line1_offset)
-        self._writers[0].printstring(line1, False)
-
-        self._writers[1].set_textpos(
-            self._display, top_y + line_height + 2, line2_offset
-        )
-        self._writers[1].printstring(line2, False)
-
-        self._writers[0].set_textpos(
-            self._display, top_y + line_height * 2 + 2, line3_offset
-        )
-        self._writers[0].printstring(line3, False)
-
-        self._display.show()
-
-    def draw_active_settings_screen(self, config) -> None:
-        """
-        Draws the active settings screen with the active telegrams and software version.
-
-        Args:
-            config: The configuration object containing the active telegrams and version.
-        """
-        line_height = self._screen_config.font_size + 2
-        left_offset = 2
-        screen_height = self._screen_config.height
-
-        self._display.fill(0)
-
-        self._writers[1].set_textpos(self._display, 0, 0)
-
-        self._writers[1].printstring(
-            f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_display_telegram}",
-            False,
-        )
-
-        bottom_y = screen_height - line_height
-        self._writers[1].set_textpos(self._display, bottom_y, left_offset)
-        self._writers[1].printstring(f"ver:{config.version}", False)
-
-        self._display.show()
-
-    def draw_menu_items(
-        self,
-        menu: list[str],
-        start: int,
-        end: int,
-        line_height: int,
-        top_offset: int,
-        left_offset: int,
-        menu_type: str,
-    ) -> None:
-        """
-        Draws the menu items on the display.
-        Args:
-            menu: A list of menu items (strings) to be displayed.
-            start: The index of the first item to be displayed.
-            end: The index of the last item to be displayed (exclusive).
-            line_height: The spacing in pixels between each menu item.
-            top_offset: The vertical starting position for the first menu item.
-            left_offset: The horizontal offset for positioning the string_line of menu items.
-            menu_type: The type of menu being displayed (e.g., route or direction).
-        """
-        config = self._get_menu_state(menu_type)
-
-        for i in range(start, end):
-            y = top_offset + (i - start) * line_height
-            is_highlighted = i == config.highlighted_item_index
-            available_width = self._screen_config.width - left_offset
-            string_line = self.trim_text_to_fit(menu[i], available_width)
-
-            if is_highlighted:
-                self._display.fill_rect(0, y, self._screen_config.width, line_height, 1)
-                self._writers[0].set_textpos(self._display, y, left_offset)
-                self._writers[0].printstring(string_line, True)
-            else:
-                self._writers[0].set_textpos(self._display, y, left_offset)
-                self._writers[0].printstring(string_line, False)
-
-    def draw_arrows(
-        self,
-        arrow_center_x: int,
-        up_arrow_tip_y: int,
-        down_arrow_tip_y: int,
-        first_visible_menu_item_idx: int,
-        last_visible_menu_item_idx: int,
-    ) -> None:
-        if first_visible_menu_item_idx > 0:
-            self.draw_arrow(
-                arrow_center_x,
-                up_arrow_tip_y,
-                self._screen_config.arrow_size,
-                is_arrow_direction_up=True,
-            )
-
-        if last_visible_menu_item_idx < self.get_number_of_menu_items():
-            self.draw_arrow(
-                arrow_center_x,
-                down_arrow_tip_y,
-                self._screen_config.arrow_size,
-                is_arrow_direction_up=False,
-            )
-
-    def draw_arrow(
-        self,
-        arrow_center_x: int,
-        arrow_tip_y: int,
-        arrow_height: int,
-        is_arrow_direction_up: bool,
-    ) -> None:
-        coef = 1 if is_arrow_direction_up else -1
-        for i in range(arrow_height):
-            for j in range(-i * 2, (i * 2) + 1):
-                self._display.pixel(arrow_center_x + j, arrow_tip_y + i * coef, 1)
 
     def navigate_up(self, menu_type: str) -> None:
         """
