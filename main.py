@@ -12,6 +12,7 @@ from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager
 import uasyncio as asyncio
 import time
+import gc
 
 try:
     from config import lang  # type: ignore
@@ -66,7 +67,14 @@ if __name__ == "__main__":
                 btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
             )
             gui_manager.draw_current_screen()
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
 
     gui_manager = GuiManager(display, writer, screen_config)
+    gc.collect()
+    free = gc.mem_free()
+    allocated = gc.mem_alloc()
+    total = free + allocated
+    print("Free:", free, "bytes")
+    print("Allocated:", allocated, "bytes")
+    print("Total:", total, "bytes")
     asyncio.run(main_loop(gui_manager))

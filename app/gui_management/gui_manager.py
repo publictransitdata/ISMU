@@ -45,10 +45,15 @@ class GuiManager:
         )
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
+        self._dirty = True 
+
         self._buttons_press_start_time = None
         self._buttons_press_active = False
 
     def draw_current_screen(self):
+        if not self._dirty:
+            return
+
         current_screen = self._screen_config.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
@@ -102,6 +107,8 @@ class GuiManager:
             self._gui_drawer.draw_update_mode_screen(
                 self._config_manager.config.ap_ip, self._config_manager.config.ap_name
             )
+
+        self._dirty = False
 
     def navigate_up(self, menu_type: ScreenStates) -> None:
         menu_state = self._get_menu_state(menu_type)
@@ -166,6 +173,7 @@ class GuiManager:
             btn_select: The button for selecting an item in the menu.
         """
         current_time = time.ticks_ms()
+        changed = False
 
         if not btn_up and not btn_down:
             if self._check_buttons_press_timer(
@@ -174,6 +182,7 @@ class GuiManager:
                 ScreenStates.SETTINGS_SCREEN,
                 current_time,
             ):
+                changed = True
                 return
 
         if not btn_down and not btn_select:
@@ -185,17 +194,22 @@ class GuiManager:
             ):
                 if self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
                     self._web_update_server.ensure_started()
+                changed = True
                 return
 
         if not btn_menu:
             if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                 self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+                changed = True
             elif self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+                changed = True
             elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
                 self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+                changed = True
             elif self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+                changed = True
             elif self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
                 if self._check_buttons_press_timer(
                     [btn_menu],
@@ -205,6 +219,7 @@ class GuiManager:
                 ):
                     if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                         self._web_update_server.stop()
+                    changed = True
                     return
             time.sleep(0.2)
 
@@ -214,8 +229,10 @@ class GuiManager:
                 ScreenStates.DIRECTION_MENU,
             ):
                 self.navigate_up(self._screen_config.current_screen)
+                changed = True
             if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                 self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
+                changed = True
             time.sleep(0.2)
 
         if not btn_down:
@@ -224,12 +241,14 @@ class GuiManager:
                 ScreenStates.DIRECTION_MENU,
             ):
                 self.navigate_down(self._screen_config.current_screen)
+                changed = True
             time.sleep(0.2)
 
         if not btn_select:
             if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
                 self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
                 self._direction_menu_state.highlighted_item_index = 0
+                changed = True
             elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
                 self._route_menu_state.selected_item_index = (
                     self._route_menu_state.highlighted_item_index
@@ -237,12 +256,21 @@ class GuiManager:
                 self._direction_menu_state.selected_item_index = (
                     self._direction_menu_state.highlighted_item_index
                 )
-
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
-            time.sleep(0.2)
+                changed = True
+     
+
+        if changed:
+            self._dirty = True
 
         self._buttons_press_active = False
         self._buttons_press_start_time = None
+
+    def mark_dirty(self):
+        self._dirty = True
+
+    def is_dirty(self) -> bool:
+        return self._dirty
 
     def get_route_list_to_display(self) -> list[str]:
         def format_route(route_doc):
@@ -278,3 +306,5 @@ class GuiManager:
             )
         else:
             return 0
+
+
