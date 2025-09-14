@@ -1,11 +1,15 @@
 from .singleton_decorator import singleton
-from .route_info import RouteInfo, DirectionInfo
+from tinydb import where
+from app.db_manager import DBManager
+import gc
 
 
 @singleton
 class RoutesManager:
     def __init__(self):
-        self._routes = []
+        self._db_manager = DBManager()
+        self._route_doc_ids = None
+        self._route_count = None
 
     def load_routes(self, routes_path: str) -> None:
         """
@@ -14,43 +18,50 @@ class RoutesManager:
         """
         with open(routes_path, "rb") as f:
             try:
-                self._routes = self._parse_routes(f.read().decode("utf-8").splitlines())
+                self._parse_routes_and_store(f)
+                self._build_index()
                 print("Routes was loaded")
             except ValueError:
                 print("Error while loading routes")
 
-    def _parse_routes(self, lines: list[str]) -> list[RouteInfo]:
-        routes = []
+    def _parse_routes_and_store(self, lines: list[str]) -> None:
         current_route_number = None
         current_directions = []
 
-        lines_iter = iter(lines)
+        def flush_route(db, route_number: str, dirs: list):
+            if not route_number:
+                return
+            t = db.table("routes")
+            doc = t.get(where("route_number") == route_number)
+            if doc:
+                t.update({"dirs": dirs}, doc_ids=[doc.doc_id])
+            else:
+                t.insert({"route_number": route_number, "dirs": dirs})
 
-        for line in lines_iter:
-            line = line.strip()
+        for line in lines:
+            line = line.decode("utf-8").strip()
             if not line:
                 continue
 
             if line.startswith("|"):
-                if current_route_number is not None and current_directions:
-                    routes.append(RouteInfo(current_route_number, current_directions))
-                    current_directions = []
+                self._db_manager.with_db(
+                    lambda db: flush_route(db, current_route_number, current_directions)
+                )
+                current_directions = []
 
                 try:
-                    next_line = next(lines_iter).strip()
-
-                    if "#" in next_line:
-                        next_line = next_line.split("#", 1)[0].strip()
-
-                    if "-" in next_line:
-                        next_line = next_line.replace("-", "").strip()
-
-                    current_route_number = next_line if next_line else None
-
-                    current_route_number = next_line
+                    next_line = next(lines).decode("utf-8").strip()
                 except StopIteration:
                     print("Warning: Unexpected end of input after '|'")
                     current_route_number = None
+                    break
+
+                if "#" in next_line:
+                    next_line = next_line.split("#", 1)[0].strip()
+                if "-" in next_line:
+                    next_line = next_line.replace("-", "").strip()
+
+                current_route_number = next_line if next_line else None
 
             else:
                 parts = line.split(",")
@@ -71,14 +82,40 @@ class RoutesManager:
                     short_names = short_names.strip().replace("^", "-")
 
                 current_directions.append(
-                    DirectionInfo(direction_id, point_id, full_names, short_names)  # type: ignore
+                    {
+                        "direction_id": direction_id,
+                        "point_id": point_id,
+                        "full_name": full_names,
+                        "short_name": short_names,
+                    }
                 )
 
-        if current_route_number is not None and current_directions:
-            routes.append(RouteInfo(current_route_number, current_directions))
+        self._db_manager.with_db(
+            lambda db: flush_route(db, current_route_number, current_directions)
+        )
+        lines = None
+        self._db_manager.close()
+        gc.collect()
+        self._db_manager.reopen()
 
-        return routes
+    def _build_index(self):
+        def inner(db):
+            t = db.table("routes")
+            docs = t.all()
+            self._route_doc_ids = [d.doc_id for d in docs]
+            self._route_count = len(self._route_doc_ids)
 
-    @property
-    def routes(self):
-        return self._routes
+        self._db_manager.with_db(inner)
+
+    def get_route_by_index(self, route_idx: int):
+        doc_id = self._route_doc_ids[route_idx]
+        return self._db_manager.with_db(
+            lambda db: db.table("routes").get(doc_id=doc_id)
+        )
+
+    def get_length_of_routes(self) -> int:
+        return self._route_count
+
+    def get_length_of_directions(self, route_idx: int) -> int:
+        route = self.get_route_by_index(route_idx)
+        return len(route.get("dirs", [])) if route else 0

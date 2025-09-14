@@ -8,13 +8,13 @@ from app.gui_management import (
     RouteMenuState,
     DirectionMenuState,
 )
-from app.routes_loading import RoutesManager, RouteInfo
+from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager
 import uasyncio as asyncio
 import time
 
 try:
-    from config import lang_ukr, lang_eng  # type: ignore
+    from config import lang  # type: ignore
 except ImportError:
     print("Language file is missing.")
 
@@ -29,13 +29,7 @@ if __name__ == "__main__":
     i2c = I2C(0, scl=Pin(1), sda=Pin(0))
     display = sh1106.SH1106_I2C(128, 64, i2c)
 
-    writers = []
-
-    writer_ukr = writer.Writer(display, lang_ukr)
-    writer_eng = writer.Writer(display, lang_eng)
-
-    writers.append(writer_ukr)
-    writers.append(writer_eng)
+    writer = writer.Writer(display, lang)
 
     config_path = "/config/config.txt"
     config = ConfigManager()
@@ -74,5 +68,5 @@ if __name__ == "__main__":
             gui_manager.draw_current_screen()
             await asyncio.sleep(0.05)
 
-    gui_manager = GuiManager(display, writers, screen_config)
+    gui_manager = GuiManager(display, writer, screen_config)
     asyncio.run(main_loop(gui_manager))

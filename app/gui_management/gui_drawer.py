@@ -13,7 +13,7 @@ class GuiDrawer:
     def __init__(
         self,
         display: SH1106_I2C,
-        writers: list[Writer],
+        writer: Writer,
         screen_config: ScreenConfig,
     ):
         """
@@ -25,7 +25,7 @@ class GuiDrawer:
             screen_config: Configuration for the screen dimensions and properties.
         """
         self._display = display
-        self._writers = writers
+        self._writer = writer
         self._screen_config = screen_config
 
     def _draw_menu(
@@ -56,8 +56,8 @@ class GuiDrawer:
 
         self._display.fill(0)
 
-        self._writers[0].set_textpos(self._display, 0, left_offset)
-        self._writers[0].printstring(f"{header_text}{header_suffix}", False)
+        self._writer.set_textpos(self._display, 0, left_offset)
+        self._writer.printstring(f"{header_text}{header_suffix}", False)
         self._display.fill_rect(0, line_height + 1, self._screen_config.width, 1, 1)
 
         first_visible_menu_item_idx = (
@@ -89,12 +89,12 @@ class GuiDrawer:
         self._display.show()
 
     def trim_text_to_fit(self, string_line: str, max_width_of_line: int) -> str:
-        if self._writers[0].stringlen(string_line) <= max_width_of_line:
+        if self._writer.stringlen(string_line) <= max_width_of_line:
             return string_line
 
         for i in range(len(string_line), 0, -1):
             trimmed = string_line[:i]
-            if self._writers[0].stringlen(trimmed) <= max_width_of_line:
+            if self._writer.stringlen(trimmed) <= max_width_of_line:
                 return trimmed
 
         return "..."
@@ -112,12 +112,12 @@ class GuiDrawer:
 
         self._display.fill(0)
 
-        self._writers[0].set_textpos(self._display, 0, left_offset)
-        self._writers[0].printstring("> " + selected_direction_name, False)
+        self._writer.set_textpos(self._display, 0, left_offset)
+        self._writer.printstring("> " + selected_direction_name, False)
 
         bottom_y = screen_height - line_height
-        self._writers[0].set_textpos(self._display, bottom_y, left_offset)
-        self._writers[0].printstring(
+        self._writer.set_textpos(self._display, bottom_y, left_offset)
+        self._writer.printstring(
             f"М:{selected_route_id}Н:{selected_direction_id:02d}К:{selected_direction_number}",
             False,
         )
@@ -126,8 +126,8 @@ class GuiDrawer:
 
     def draw_error_screen(self, error_message: str) -> None:
         self._display.fill(0)
-        self._writers[0].set_textpos(self._display, 0, 0)
-        self._writers[0].printstring(error_message, False)
+        self._writer.set_textpos(self._display, 0, 0)
+        self._writer.printstring(error_message, False)
         self._display.show()
 
     def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
@@ -143,26 +143,24 @@ class GuiDrawer:
 
         top_y = int((screen_height - line_height * 2) / 2)
 
-        line1_width = self._writers[0].stringlen(line1)
-        line2_width = self._writers[1].stringlen(line2)
-        line3_width = self._writers[0].stringlen(line3)
+        line1_width = self._writer.stringlen(line1)
+        line2_width = self._writer.stringlen(line2)
+        line3_width = self._writer.stringlen(line3)
 
         line1_offset = (screen_width - line1_width) // 2
         line2_offset = (screen_width - line2_width) // 2
         line3_offset = (screen_width - line3_width) // 2
 
-        self._writers[0].set_textpos(self._display, top_y, line1_offset)
-        self._writers[0].printstring(line1, False)
+        self._writer.set_textpos(self._display, top_y, line1_offset)
+        self._writer.printstring(line1, False)
 
-        self._writers[1].set_textpos(
-            self._display, top_y + line_height + 2, line2_offset
-        )
-        self._writers[1].printstring(line2, False)
+        self._writer.set_textpos(self._display, top_y + line_height + 2, line2_offset)
+        self._writer.printstring(line2, False)
 
-        self._writers[0].set_textpos(
+        self._writer.set_textpos(
             self._display, top_y + line_height * 2 + 2, line3_offset
         )
-        self._writers[0].printstring(line3, False)
+        self._writer.printstring(line3, False)
 
         self._display.show()
 
@@ -173,16 +171,16 @@ class GuiDrawer:
 
         self._display.fill(0)
 
-        self._writers[1].set_textpos(self._display, 0, 0)
+        self._writer.set_textpos(self._display, 0, 0)
 
-        self._writers[1].printstring(
+        self._writer.printstring(
             f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_display_telegram}",
             False,
         )
 
         bottom_y = screen_height - line_height
-        self._writers[1].set_textpos(self._display, bottom_y, left_offset)
-        self._writers[1].printstring(f"ver:{config.version}", False)
+        self._writer.set_textpos(self._display, bottom_y, left_offset)
+        self._writer.printstring(f"ver:{config.version}", False)
 
         self._display.show()
 
@@ -204,11 +202,11 @@ class GuiDrawer:
 
             if is_highlighted:
                 self._display.fill_rect(0, y, self._screen_config.width, line_height, 1)
-                self._writers[0].set_textpos(self._display, y, left_offset)
-                self._writers[0].printstring(string_line, True)
+                self._writer.set_textpos(self._display, y, left_offset)
+                self._writer.printstring(string_line, True)
             else:
-                self._writers[0].set_textpos(self._display, y, left_offset)
-                self._writers[0].printstring(string_line, False)
+                self._writer.set_textpos(self._display, y, left_offset)
+                self._writer.printstring(string_line, False)
 
     def draw_arrows(
         self,
