@@ -1,11 +1,12 @@
 import sys
 import time
 
-from app.routes_loading import RouteInfo
 from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager
 from app.web_update import WebUpdateServer
+from tinydb import TinyDB, where
 from .gui_drawer import GuiDrawer
+from app.db_manager import DBManager
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
@@ -22,7 +23,7 @@ class GuiManager:
     def __init__(
         self,
         display: SH1106_I2C,
-        writers: list[Writer],
+        writer: Writer,
         screen_config: ScreenConfig,
     ):
         """
@@ -30,18 +31,19 @@ class GuiManager:
 
         Args:
             display: The display object used for rendering content on the screen.
-            writers: The writer objects used for rendering string_line on the screen.
+            writer: The writer object used for rendering string_line on the screen.
             screen_config: Configuration for the screen dimensions and properties.
         """
         self._routes_manager = RoutesManager()
         self._config_manager = ConfigManager()
+        self._db_manager = DBManager()
         self._route_menu_state = RouteMenuState()
         self._direction_menu_state = DirectionMenuState()
         self._screen_config = screen_config
         self._web_update_server = WebUpdateServer(
             self._config_manager.config.ap_name, self._config_manager.config.ap_password
         )
-        self._gui_drawer = GuiDrawer(display, writers, screen_config)
+        self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
         self._buttons_press_start_time = None
         self._buttons_press_active = False
@@ -50,7 +52,7 @@ class GuiManager:
         current_screen = self._screen_config.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
-            menu_items = self.get_route_list_to_display(self._routes_manager.routes)
+            menu_items = self.get_route_list_to_display()
             highlighted_item_index = self._get_menu_state(
                 ScreenStates.ROUTE_MENU
             )._highlighted_item_index
@@ -59,9 +61,9 @@ class GuiManager:
                 menu_items, "Маршрут:", highlighted_item_index, number_of_menu_items
             )
         elif current_screen == ScreenStates.DIRECTION_MENU:
-            route = self._routes_manager.routes[
+            route = self._routes_manager.get_route_by_index(
                 self._route_menu_state.highlighted_item_index
-            ]
+            )
             menu_items = self.get_direction_list_to_display(route)
             highlighted_item_index = self._get_menu_state(
                 ScreenStates.DIRECTION_MENU
@@ -72,24 +74,24 @@ class GuiManager:
                 "Напрямок:",
                 highlighted_item_index,
                 number_of_menu_items,
-                f"   {route.route_number}",
+                f"   {route['route_number']}",
             )
 
         elif current_screen == ScreenStates.STATUS_SCREEN:
-            route = self._routes_manager.routes[
+            route = self._routes_manager.get_route_by_index(
                 self._route_menu_state.selected_item_index
-            ]
-            selected_direction_name = route.directions[
+            )
+            selected_direction_name = route["dirs"][
                 self._direction_menu_state.selected_item_index
-            ].full_name
+            ]["full_name"]
             self._gui_drawer.draw_status_screen(
                 selected_direction_name,
-                route.route_number,
+                route["route_number"],
                 self._direction_menu_state.selected_item_index + 1,
                 int(
-                    route.directions[
-                        self._direction_menu_state.selected_item_index
-                    ].point_id
+                    route["dirs"][self._direction_menu_state.selected_item_index][
+                        "point_id"
+                    ]
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
@@ -101,40 +103,21 @@ class GuiManager:
                 self._config_manager.config.ap_ip, self._config_manager.config.ap_name
             )
 
-    def navigate_up(self, menu_type: str) -> None:
-        """
-        Moves the selection up in the menu.
+    def navigate_up(self, menu_type: ScreenStates) -> None:
+        menu_state = self._get_menu_state(menu_type)
+        if menu_state.highlighted_item_index > 0:
+            menu_state.highlighted_item_index -= 1
 
-        Args:
-            menu_type: The type of menu to navigate (e.g., route or direction).
-        """
-        config = self._get_menu_state(menu_type)
-        if config.highlighted_item_index > 0:
-            config.highlighted_item_index -= 1
-
-    def navigate_down(self, menu_type: str) -> None:
-        """
-        Moves the selection down in the menu.
-
-        Args:
-            menu_type: The type of menu to navigate (e.g., route or direction).
-        """
-        config = self._get_menu_state(menu_type)
+    def navigate_down(self, menu_type: ScreenStates) -> None:
+        menu_state = self._get_menu_state(menu_type)
         get_number_of_menu_items = self.get_number_of_menu_items()
 
-        if config.highlighted_item_index < get_number_of_menu_items - 1:
-            config.highlighted_item_index += 1
+        if menu_state.highlighted_item_index < get_number_of_menu_items - 1:
+            menu_state.highlighted_item_index += 1
 
-    def _get_menu_state(self, menu_type: str) -> RouteMenuState | DirectionMenuState:
-        """
-        Retrieves the state object for the specified menu type.
-
-        Args:
-            menu_type: The type of menu (e.g., route or direction).
-
-        Returns:
-            RouteMenuState or DirectionMenuState: The state object for the menu.
-        """
+    def _get_menu_state(
+        self, menu_type: ScreenStates
+    ) -> RouteMenuState | DirectionMenuState:
         if menu_type == ScreenStates.ROUTE_MENU:
             return self._route_menu_state
         elif menu_type == ScreenStates.DIRECTION_MENU:
@@ -261,28 +244,37 @@ class GuiManager:
         self._buttons_press_active = False
         self._buttons_press_start_time = None
 
-    def get_route_list_to_display(self, routes: list[RouteInfo]) -> list[str]:
-        return [
-            f"{route.route_number} {(route.directions[0].short_name or route.directions[0].full_name)}"
-            for route in routes
-        ]
+    def get_route_list_to_display(self) -> list[str]:
+        def format_route(route_doc):
+            dirs = route_doc.get("dirs", [])
+            if not dirs:
+                return route_doc["route_number"]
+            first_dir = dirs[0]
+            label = first_dir.get("short_name") or first_dir.get("full_name", "")
+            return f"{route_doc['route_number']} {label}"
 
-    def get_direction_list_to_display(self, route: RouteInfo) -> list[str]:
+        return self._db_manager.with_db(
+            lambda db: [format_route(doc) for doc in db.table("routes").all()]
+        )
+
+    def get_direction_list_to_display(self, route) -> list[str]:
         menu_items = []
-        for direction in route.directions:
-            parts = direction.full_name.split("-")
-            name = parts[1] if len(parts) > 1 else direction.full_name
-            menu_items.append(f"{direction.group_id} {name}")
+        for d in route.get("dirs", []):
+            name = d.get("short_name") or d.get("full_name", "")
+
+            if name and "-" in name:
+                parts = name.split("-", 1)
+                name = parts[1] if len(parts) > 1 else name
+
+            menu_items.append(f"{d.get('direction_id')} {name}")
         return menu_items
 
     def get_number_of_menu_items(self) -> int:
         if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
-            return len(self._routes_manager.routes)
+            return self._routes_manager.get_length_of_routes()
         elif self._screen_config.current_screen == ScreenStates.DIRECTION_MENU:
-            return len(
-                self._routes_manager.routes[
-                    self._route_menu_state.highlighted_item_index
-                ].directions
+            return self._routes_manager.get_length_of_directions(
+                self._route_menu_state.highlighted_item_index
             )
         else:
             return 0

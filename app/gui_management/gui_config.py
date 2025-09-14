@@ -37,7 +37,7 @@ class ScreenConfig:
         font_size: int,
         arrow_size: int = 6,
         max_visible_items_count: int = 2,
-        current_screen: str = ScreenStates.STATUS_SCREEN,
+        current_screen: ScreenStates = ScreenStates.STATUS_SCREEN,
     ):
         self._width = width
         self._height = height
