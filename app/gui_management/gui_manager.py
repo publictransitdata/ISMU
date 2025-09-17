@@ -183,7 +183,8 @@ class GuiManager:
                 current_time,
             ):
                 changed = True
-                return
+                self._dirty = True
+                return 
 
         if not btn_down and not btn_select:
             if self._check_buttons_press_timer(
@@ -195,6 +196,7 @@ class GuiManager:
                 if self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
                     self._web_update_server.ensure_started()
                 changed = True
+                self._dirty = True
                 return
 
         if not btn_menu:
@@ -220,7 +222,8 @@ class GuiManager:
                     if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                         self._web_update_server.stop()
                     changed = True
-                    return
+                    
+                 
             time.sleep(0.2)
 
         if not btn_up:
@@ -277,7 +280,7 @@ class GuiManager:
             dirs = route_doc.get("dirs", [])
             if not dirs:
                 return route_doc["route_number"]
-            first_dir = dirs[0]
+            first_dir = dirs[0]                 
             label = first_dir.get("short_name") or first_dir.get("full_name", "")
             return f"{route_doc['route_number']} {label}"
 
