@@ -25,7 +25,8 @@ if __name__ == "__main__":
     screen_height = 64
     font_size = 13
     arrow_size = 6
-    max_visible_items_count = 2
+    max_menu_items = 2
+    max_number_of_characters_in_line = 18
 
     i2c = I2C(0, scl=Pin(1), sda=Pin(0))
     display = sh1106.SH1106_I2C(128, 64, i2c)
@@ -48,15 +49,21 @@ if __name__ == "__main__":
     screen_config = ScreenConfig()
 
     screen_config.set_screen_config(
-        screen_width, screen_height, font_size, arrow_size, max_visible_items_count
+        screen_width,
+        screen_height,
+        font_size,
+        arrow_size,
+        max_menu_items,
+        max_number_of_characters_in_line,
     )
 
     if (
-        screen_config.width == 0
-        or screen_config.height == 0
+        screen_config.screen_width == 0
+        or screen_config.screen_height == 0
         or screen_config.font_size == 0
         or screen_config.arrow_size == 0
-        or screen_config.max_visible_items_count == 0
+        or screen_config.max_menu_items == 0
+        or max_number_of_characters_in_line == 0
     ):
         print("Screen configuration is not set correctly.")
         exit()
@@ -66,15 +73,7 @@ if __name__ == "__main__":
             gui_manager.handle_buttons(
                 btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
             )
-            gui_manager.draw_current_screen()
             await asyncio.sleep(0.01)
 
     gui_manager = GuiManager(display, writer, screen_config)
-    gc.collect()
-    free = gc.mem_free()
-    allocated = gc.mem_alloc()
-    total = free + allocated
-    print("Free:", free, "bytes")
-    print("Allocated:", allocated, "bytes")
-    print("Total:", total, "bytes")
     asyncio.run(main_loop(gui_manager))

@@ -49,22 +49,25 @@ class GuiDrawer:
         line_height = self._screen_config.font_size + 2
         top_offset = line_height + 3  # 3 = line and two pixel spacing on the sides
         left_offset = 2
-        bottom_offset = self._screen_config.height - 1
+        bottom_offset = self._screen_config.screen_height - 1
         top_offset_with_up_arrow = top_offset + self._screen_config.arrow_size + 2
-        screen_center_width = int(self._screen_config.width / 2)
-        max_visible_items_count = self._screen_config.max_visible_items_count
+        screen_center_width = int(self._screen_config.screen_width / 2)
+        max_menu_items = self._screen_config.max_menu_items
 
         self._display.fill(0)
 
         self._writer.set_textpos(self._display, 0, left_offset)
         self._writer.printstring(f"{header_text}{header_suffix}", False)
-        self._display.fill_rect(0, line_height + 1, self._screen_config.width, 1, 1)
+        self._display.fill_rect(
+            0, line_height + 1, self._screen_config.screen_height, 1, 1
+        )
 
         first_visible_menu_item_idx = (
-            highlighted_item_index // max_visible_items_count
-        ) * max_visible_items_count
+            highlighted_item_index // max_menu_items
+        ) * max_menu_items
         last_visible_menu_item_idx = min(
-            first_visible_menu_item_idx + max_visible_items_count, len(menu_items)
+            first_visible_menu_item_idx + max_menu_items,
+            len(menu_items),
         )
 
         self.draw_menu_items(
@@ -88,16 +91,10 @@ class GuiDrawer:
 
         self._display.show()
 
-    def trim_text_to_fit(self, string_line: str, max_width_of_line: int) -> str:
-        if self._writer.stringlen(string_line) <= max_width_of_line:
-            return string_line
-
-        for i in range(len(string_line), 0, -1):
-            trimmed = string_line[:i]
-            if self._writer.stringlen(trimmed) <= max_width_of_line:
-                return trimmed
-
-        return "..."
+    def trim_text_to_fit(
+        self, string_line: str, max_number_of_characters_in_line: int = 18
+    ) -> str:
+        return string_line[0:max_number_of_characters_in_line]
 
     def draw_status_screen(
         self,
@@ -108,7 +105,7 @@ class GuiDrawer:
     ) -> None:
         line_height = self._screen_config.font_size + 2
         left_offset = 2
-        screen_height = self._screen_config.height
+        screen_height = self._screen_config.screen_height
 
         self._display.fill(0)
 
@@ -134,8 +131,8 @@ class GuiDrawer:
         self._display.fill(0)
 
         line_height = self._screen_config.font_size + 2
-        screen_width = self._screen_config.width
-        screen_height = self._screen_config.height
+        screen_width = self._screen_config.screen_width
+        screen_height = self._screen_config.screen_height
 
         line1 = "Режим оновлення"
         line2 = f"{ap_name}"
@@ -167,7 +164,7 @@ class GuiDrawer:
     def draw_active_settings_screen(self, config) -> None:
         line_height = self._screen_config.font_size + 2
         left_offset = 2
-        screen_height = self._screen_config.height
+        screen_height = self._screen_config.screen_height
 
         self._display.fill(0)
 
@@ -197,11 +194,13 @@ class GuiDrawer:
         for i in range(first_visible_menu_item_idx, last_visible_menu_item_idx):
             y = top_offset + (i - first_visible_menu_item_idx) * line_height
             is_highlighted = i == highlighted_item_index
-            available_width = self._screen_config.width - left_offset
+            available_width = self._screen_config._max_number_of_characters_in_line
             string_line = self.trim_text_to_fit(menu_items[i], available_width)
 
             if is_highlighted:
-                self._display.fill_rect(0, y, self._screen_config.width, line_height, 1)
+                self._display.fill_rect(
+                    0, y, self._screen_config.screen_width, line_height, 1
+                )
                 self._writer.set_textpos(self._display, y, left_offset)
                 self._writer.printstring(string_line, True)
             else:
