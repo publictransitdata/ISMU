@@ -4,7 +4,7 @@ from .singleton_decorator import singleton
 class ScreenStates:
     STATUS_SCREEN = "status"
     ROUTE_MENU = "route"
-    DIRECTION_MENU = "direction"
+    TRIP_MENU = "trip"
     ERROR_SCREEN = "error"
     SETTINGS_SCREEN = "settings"
     UPDATE_SCREEN = "update"
@@ -129,14 +129,14 @@ class RouteMenuState:
 
 
 @singleton
-class DirectionMenuState:
+class TripMenuState:
     def __init__(self):
         self._selected_item_index = 0
         self._highlighted_item_index = 0
 
-    def set_direction_state(self, direction_selected_item_index: int = 0):
-        self._selected_item_index = direction_selected_item_index
-        self._highlighted_item_index = direction_selected_item_index
+    def set_trip_state(self, trip_selected_item_index: int = 0):
+        self._selected_item_index = trip_selected_item_index
+        self._highlighted_item_index = trip_selected_item_index
 
     @property
     def selected_item_index(self):

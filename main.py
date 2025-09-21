@@ -6,7 +6,7 @@ from app.gui_management import (
     GuiManager,
     ScreenConfig,
     RouteMenuState,
-    DirectionMenuState,
+    TripMenuState,
 )
 from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager

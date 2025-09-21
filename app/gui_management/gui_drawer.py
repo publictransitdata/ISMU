@@ -37,7 +37,7 @@ class GuiDrawer:
         header_suffix: str = "",
     ) -> None:
         """
-        Draws a menu on the display. There is same template for route and direction menus.
+        Draws a menu on the display. There is same template for route and trip menus.
 
         Args:
             menu_items: A list of menu items to display.
@@ -98,10 +98,10 @@ class GuiDrawer:
 
     def draw_status_screen(
         self,
-        selected_direction_name: str,
+        selected_trip_name: str,
         selected_route_id: str,
-        selected_direction_id: int,
-        selected_direction_number: int,
+        selected_trip_id: int,
+        selected_trip_number: int,
     ) -> None:
         line_height = self._screen_config.font_size + 2
         left_offset = 2
@@ -110,12 +110,12 @@ class GuiDrawer:
         self._display.fill(0)
 
         self._writer.set_textpos(self._display, 0, left_offset)
-        self._writer.printstring("> " + selected_direction_name, False)
+        self._writer.printstring("> " + selected_trip_name, False)
 
         bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
         self._writer.printstring(
-            f"М:{selected_route_id}Н:{selected_direction_id:02d}К:{selected_direction_number}",
+            f"М:{selected_route_id}Н:{selected_trip_id:02d}К:{selected_trip_number}",
             False,
         )
 
@@ -221,7 +221,7 @@ class GuiDrawer:
                 arrow_center_x,
                 up_arrow_tip_y,
                 self._screen_config.arrow_size,
-                is_arrow_direction_up=True,
+                is_arrow_trip_up=True,
             )
 
         if last_visible_menu_item_idx < number_of_menu_items:
@@ -229,7 +229,7 @@ class GuiDrawer:
                 arrow_center_x,
                 down_arrow_tip_y,
                 self._screen_config.arrow_size,
-                is_arrow_direction_up=False,
+                is_arrow_trip_up=False,
             )
 
     def draw_arrow(
@@ -237,9 +237,9 @@ class GuiDrawer:
         arrow_center_x: int,
         arrow_tip_y: int,
         arrow_height: int,
-        is_arrow_direction_up: bool,
+        is_arrow_trip_up: bool,
     ) -> None:
-        coef = 1 if is_arrow_direction_up else -1
+        coef = 1 if is_arrow_trip_up else -1
         for i in range(arrow_height):
             for j in range(-i * 2, (i * 2) + 1):
                 self._display.pixel(arrow_center_x + j, arrow_tip_y + i * coef, 1)
