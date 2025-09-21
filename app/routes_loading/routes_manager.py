@@ -26,7 +26,7 @@ class RoutesManager:
 
     def _parse_routes_and_store(self, lines: list[str]) -> None:
         current_route_number = None
-        current_directions = []
+        current_trips = []
 
         def flush_route(db, route_number: str, dirs: list):
             if not route_number:
@@ -45,9 +45,9 @@ class RoutesManager:
 
             if line.startswith("|"):
                 self._db_manager.with_db(
-                    lambda db: flush_route(db, current_route_number, current_directions)
+                    lambda db: flush_route(db, current_route_number, current_trips)
                 )
-                current_directions = []
+                current_trips = []
 
                 try:
                     next_line = next(lines).decode("utf-8").strip()
@@ -71,7 +71,7 @@ class RoutesManager:
                     )
                     continue
 
-                direction_id = parts[0].strip()
+                trip_id = parts[0].strip()
                 point_id = parts[1].strip()
                 full_names = parts[2]
                 full_names = full_names.strip().split("^")
@@ -81,9 +81,9 @@ class RoutesManager:
                     short_names = parts[3]
                     short_names = short_names.strip().split("^")
 
-                current_directions.append(
+                current_trips.append(
                     {
-                        "direction_id": direction_id,
+                        "trip_id": trip_id,
                         "point_id": point_id,
                         "full_name": full_names,
                         "short_name": short_names,
@@ -91,7 +91,7 @@ class RoutesManager:
                 )
 
         self._db_manager.with_db(
-            lambda db: flush_route(db, current_route_number, current_directions)
+            lambda db: flush_route(db, current_route_number, current_trips)
         )
         lines = None
         self._db_manager.close()
@@ -116,6 +116,6 @@ class RoutesManager:
     def get_length_of_routes(self) -> int:
         return self._route_count
 
-    def get_length_of_directions(self, route_idx: int) -> int:
+    def get_length_of_trips(self, route_idx: int) -> int:
         route = self.get_route_by_index(route_idx)
         return len(route.get("dirs", [])) if route else 0

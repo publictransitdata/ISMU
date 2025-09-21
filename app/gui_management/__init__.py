@@ -3,7 +3,7 @@ from .gui_drawer import GuiDrawer
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
-    DirectionMenuState,
+    TripMenuState,
     ScreenStates,
 )
 
@@ -11,7 +11,7 @@ __all__ = [
     "GuiManager",
     "ScreenConfig",
     "RouteMenuState",
-    "DirectionMenuState",
+    "TripMenuState",
     "ScreenStates",
     "GuiDrawer",
 ]
