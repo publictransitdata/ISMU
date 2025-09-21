@@ -74,12 +74,12 @@ class RoutesManager:
                 direction_id = parts[0].strip()
                 point_id = parts[1].strip()
                 full_names = parts[2]
-                full_names = full_names.strip().replace("^", "-")
+                full_names = full_names.strip().split("^")
 
                 short_names = None
                 if len(parts) == 4:
                     short_names = parts[3]
-                    short_names = short_names.strip().replace("^", "-")
+                    short_names = short_names.strip().split("^")
 
                 current_directions.append(
                     {
