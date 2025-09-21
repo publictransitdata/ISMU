@@ -86,9 +86,14 @@ class GuiManager:
             route = self._routes_manager.get_route_by_index(
                 self._route_menu_state.selected_item_index
             )
-            selected_direction_name = route["dirs"][
+            selected_direction_name_list = route["dirs"][
                 self._direction_menu_state.selected_item_index
             ]["full_name"]
+            if len(selected_direction_name_list) == 2:
+                selected_direction_name = selected_direction_name_list[1]
+            else:
+                selected_direction_name = selected_direction_name_list[0]
+
             self._gui_drawer.draw_status_screen(
                 selected_direction_name,
                 route["route_number"],
@@ -224,7 +229,7 @@ class GuiManager:
                     changed = True
                     
                  
-            time.sleep(0.2)
+            time.sleep(0.15)
 
         if not btn_up:
             if self._screen_config.current_screen in (
@@ -236,7 +241,7 @@ class GuiManager:
             if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
                 self._screen_config.current_screen = ScreenStates.DIRECTION_MENU
                 changed = True
-            time.sleep(0.2)
+            time.sleep(0.15)
 
         if not btn_down:
             if self._screen_config.current_screen in (
@@ -245,7 +250,7 @@ class GuiManager:
             ):
                 self.navigate_down(self._screen_config.current_screen)
                 changed = True
-            time.sleep(0.2)
+            time.sleep(0.15)
 
         if not btn_select:
             if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
@@ -281,8 +286,12 @@ class GuiManager:
             if not dirs:
                 return route_doc["route_number"]
             first_dir = dirs[0]                 
-            label = first_dir.get("short_name") or first_dir.get("full_name", "")
-            return f"{route_doc['route_number']} {label}"
+            label_list = first_dir.get("short_name") or first_dir.get("full_name", "")
+
+            if len(label_list) == 2:
+                return f"{route_doc['route_number']} {label_list[0]+' - '+label_list[1]}"
+            else:
+                return f"{route_doc['route_number']} {label_list[0]}"
 
         return self._db_manager.with_db(
             lambda db: [format_route(doc) for doc in db.table("routes").all()]
@@ -291,11 +300,11 @@ class GuiManager:
     def get_direction_list_to_display(self, route) -> list[str]:
         menu_items = []
         for d in route.get("dirs", []):
-            name = d.get("short_name") or d.get("full_name", "")
-
-            if name and "-" in name:
-                parts = name.split("-", 1)
-                name = parts[1] if len(parts) > 1 else name
+            name_list = d.get("short_name") or d.get("full_name", "")
+            if len(name_list) == 2:
+                name = name_list[1]
+            else:
+                name = name_list[0]
 
             menu_items.append(f"{d.get('direction_id')} {name}")
         return menu_items
