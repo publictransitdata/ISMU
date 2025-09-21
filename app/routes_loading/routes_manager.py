@@ -1,120 +1,129 @@
 from .singleton_decorator import singleton
-from tinydb import where
-from app.db_manager import DBManager
-import gc
+import os
+import ujson as json
+
+DB_PATH = "/config/routes_db.ndjson"
 
 
 @singleton
 class RoutesManager:
     def __init__(self):
-        self._db_manager = DBManager()
         self._route_doc_ids = None
-        self._route_count = None
+        self._route_list = []
+        self._db_file_path = DB_PATH
 
     def load_routes(self, routes_path: str) -> None:
         """
         Args:
             routes_path: The path to the routes.txt file.
         """
-        with open(routes_path, "rb") as f:
-            try:
-                self._parse_routes_and_store(f)
-                self._build_index()
-                print("Routes was loaded")
-            except ValueError:
-                print("Error while loading routes")
+        try:
+            os.remove(DB_PATH)
+        except OSError:
+            pass
+        self.import_routes_txt(routes_path)
+        self._route_list = self.build_route_list()
+        print("Routes was loaded")
 
-    def _parse_routes_and_store(self, lines: list[str]) -> None:
-        current_route_number = None
-        current_trips = []
+    def append_route(self, number: str):
+        rec = {"t": "route", "n": number}
+        with open(DB_PATH, "a") as f:
+            f.write(json.dumps(rec) + "\n")
 
-        def flush_route(db, route_number: str, dirs: list):
-            if not route_number:
-                return
-            t = db.table("routes")
-            doc = t.get(where("route_number") == route_number)
-            if doc:
-                t.update({"dirs": dirs}, doc_ids=[doc.doc_id])
-            else:
-                t.insert({"route_number": route_number, "dirs": dirs})
+    def append_direction(
+        self, route_number: str, d_id: str, p_id: str, full_name: str, short_name=None
+    ):
+        rec = {"t": "dir", "rn": route_number, "d": d_id, "p": p_id, "f": full_name}
+        if short_name:
+            rec["s"] = short_name
+        with open(DB_PATH, "a") as f:
+            f.write(json.dumps(rec) + "\n")
 
-        for line in lines:
-            line = line.decode("utf-8").strip()
-            if not line:
-                continue
+    def import_routes_txt(self, path_txt):
+        with open(path_txt, "rb") as fh:
+            current_route = None
 
-            if line.startswith("|"):
-                self._db_manager.with_db(
-                    lambda db: flush_route(db, current_route_number, current_trips)
-                )
-                current_trips = []
-
-                try:
-                    next_line = next(lines).decode("utf-8").strip()
-                except StopIteration:
-                    print("Warning: Unexpected end of input after '|'")
-                    current_route_number = None
-                    break
-
-                if "#" in next_line:
-                    next_line = next_line.split("#", 1)[0].strip()
-                if "-" in next_line:
-                    next_line = next_line.replace("-", "").strip()
-
-                current_route_number = next_line if next_line else None
-
-            else:
-                parts = line.split(",")
-                if len(parts) < 3 or len(parts) > 4:
-                    print(
-                        f"Warning: Invalid line format (strange number of parts): {line}"
-                    )
+            for raw in fh:
+                line = raw.decode("utf-8").strip()
+                if not line:
                     continue
 
-                trip_id = parts[0].strip()
-                point_id = parts[1].strip()
-                full_names = parts[2]
-                full_names = full_names.strip().split("^")
+                if line.startswith("|"):
+                    try:
+                        num_line = next(fh).decode("utf-8").strip()
+                    except StopIteration:
+                        break
 
-                short_names = None
+                    if "#" in num_line:
+                        num_line = num_line.split("#", 1)[0].strip()
+                    if "-" in num_line:
+                        num_line = num_line.replace("-", "").strip()
+
+                    current_route = num_line or None
+                    if current_route:
+                        self.append_route(current_route)
+                    continue
+
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) not in (3, 4) or not current_route:
+                    continue
+
+                d_id, p_id = parts[0], parts[1]
+                full_name = parts[2].split("^")
+                short_name = None
+
                 if len(parts) == 4:
-                    short_names = parts[3]
-                    short_names = short_names.strip().split("^")
+                    short_name = parts[3].split("^")
 
-                current_trips.append(
-                    {
-                        "trip_id": trip_id,
-                        "point_id": point_id,
-                        "full_name": full_names,
-                        "short_name": short_names,
-                    }
-                )
+                self.append_direction(current_route, d_id, p_id, full_name, short_name)
 
-        self._db_manager.with_db(
-            lambda db: flush_route(db, current_route_number, current_trips)
-        )
-        lines = None
-        self._db_manager.close()
-        gc.collect()
-        self._db_manager.reopen()
+    def build_route_list(self):
+        routes_list = []
 
-    def _build_index(self):
-        def inner(db):
-            t = db.table("routes")
-            docs = t.all()
-            self._route_doc_ids = [d.doc_id for d in docs]
-            self._route_count = len(self._route_doc_ids)
+        try:
+            with open(DB_PATH, "r") as f:
+                for line in f:
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+                    if rec.get("t") == "route":
+                        n = rec.get("n")
+                        if n and n not in routes_list:
+                            routes_list.append(n)
+        except OSError:
+            return []
 
-        self._db_manager.with_db(inner)
+        return routes_list
 
-    def get_route_by_index(self, route_idx: int):
-        doc_id = self._route_doc_ids[route_idx]
-        return self._db_manager.with_db(
-            lambda db: db.table("routes").get(doc_id=doc_id)
-        )
+    def get_route_by_index(self, index: int):
+        route_number = self._route_list[index]
+        dirs = []
+        try:
+            with open(DB_PATH, "r") as f:
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    try:
+                        rec = json.loads(line)
+                    except Exception:
+                        continue
+                    if rec.get("t") == "dir" and rec.get("rn") == route_number:
+                        dirs.append(
+                            {
+                                "trip_id": rec.get("d", ""),
+                                "point_id": rec.get("p", ""),
+                                "full_name": rec.get("f", ""),
+                                "short_name": rec.get("s", None),
+                            }
+                        )
+        except OSError:
+            pass
+        return {"route_number": route_number, "dirs": dirs}
 
     def get_length_of_routes(self) -> int:
-        return self._route_count
+        return len(self._route_list)
 
     def get_length_of_trips(self, route_idx: int) -> int:
         route = self.get_route_by_index(route_idx)

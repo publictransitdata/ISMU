@@ -4,15 +4,14 @@ import time
 from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager
 from app.web_update import WebUpdateServer
-from tinydb import TinyDB, where
 from .gui_drawer import GuiDrawer
-from app.db_manager import DBManager
 from .gui_config import (
     ScreenConfig,
     RouteMenuState,
     TripMenuState,
     ScreenStates,
 )
+import ujson as json
 
 if sys.platform != "rp2":
     from lib.sh1106 import SH1106_I2C  # for vs code
@@ -36,7 +35,6 @@ class GuiManager:
         """
         self._routes_manager = RoutesManager()
         self._config_manager = ConfigManager()
-        self._db_manager = DBManager()
         self._route_menu_state = RouteMenuState()
         self._trip_menu_state = TripMenuState()
         self._screen_config = screen_config
@@ -57,10 +55,13 @@ class GuiManager:
         current_screen = self._screen_config.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
-            menu_items = self.get_route_list_to_display()
+            menu_items = self.get_route_list_to_display(
+                self._routes_manager._db_file_path
+            )
             highlighted_item_index = self._get_menu_state(
                 ScreenStates.ROUTE_MENU
             )._highlighted_item_index
+
             number_of_menu_items = self.get_number_of_menu_items()
             self._gui_drawer._draw_menu(
                 menu_items, "Маршрут:", highlighted_item_index, number_of_menu_items
@@ -276,22 +277,39 @@ class GuiManager:
     def is_dirty(self) -> bool:
         return self._dirty
 
-    def get_route_list_to_display(self) -> list[str]:
-        def format_route(route_doc):
-            dirs = route_doc.get("dirs", [])
-            if not dirs:
-                return route_doc["route_number"]
-            first_dir = dirs[0]
-            label_list = first_dir.get("short_name") or first_dir.get("full_name", "")
+    def get_route_list_to_display(self, route_file_path) -> list[str]:
+        routes = self._routes_manager._route_list
+        needed_routes = set(routes)
+        labels = {}
 
-            if len(label_list) == 2:
-                return f"{route_doc['route_number']} {label_list[0] + ' - ' + label_list[1]}"
+        try:
+            with open(route_file_path, "r") as f:
+                for line in f:
+                    try:
+                        record = json.loads(line)
+                    except Exception:
+                        continue
+                    if record.get("t") == "dir":
+                        route_number = record.get("rn")
+                        if route_number in needed_routes and route_number not in labels:
+                            labels[route_number] = record.get("s") or record.get(
+                                "f", ""
+                            )
+                            if len(labels) == len(needed_routes):
+                                break
+        except OSError:
+            pass
+
+        result = []
+        for route_number in routes:
+            name_list = labels.get(route_number, "")
+            if not name_list:
+                result.append(route_number)
+            elif len(name_list) == 2:
+                result.append(f"{route_number} {name_list[0]} - {name_list[1]}")
             else:
-                return f"{route_doc['route_number']} {label_list[0]}"
-
-        return self._db_manager.with_db(
-            lambda db: [format_route(doc) for doc in db.table("routes").all()]
-        )
+                result.append(f"{route_number} {name_list[0]}")
+        return result
 
     def get_trip_list_to_display(self, route) -> list[str]:
         menu_items = []
