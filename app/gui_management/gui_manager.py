@@ -48,6 +48,8 @@ class GuiManager:
         self._buttons_press_start_time = None
         self._buttons_press_active = False
 
+        self._routes_for_menu_display_list = [] # Cache for route display list - it optimezes performance
+
     def draw_current_screen(self):
         if not self._dirty:
             return
@@ -55,16 +57,17 @@ class GuiManager:
         current_screen = self._screen_config.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
-            menu_items = self.get_route_list_to_display(
-                self._routes_manager._db_file_path
-            )
+            if (len(self._routes_for_menu_display_list) == 0):
+                self._routes_for_menu_display_list = self.get_route_list_to_display(
+                    self._routes_manager._db_file_path
+                )
             highlighted_item_index = self._get_menu_state(
                 ScreenStates.ROUTE_MENU
             )._highlighted_item_index
 
             number_of_menu_items = self.get_number_of_menu_items()
             self._gui_drawer._draw_menu(
-                menu_items, "Маршрут:", highlighted_item_index, number_of_menu_items
+                self._routes_for_menu_display_list, "Маршрут:", highlighted_item_index, number_of_menu_items
             )
         elif current_screen == ScreenStates.TRIP_MENU:
             route = self._routes_manager.get_route_by_index(
