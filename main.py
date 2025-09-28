@@ -57,22 +57,12 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    if (
-        screen_config.screen_width == 0
-        or screen_config.screen_height == 0
-        or screen_config.font_size == 0
-        or screen_config.arrow_size == 0
-        or screen_config.max_menu_items == 0
-        or max_number_of_characters_in_line == 0
-    ):
-        print("Screen configuration is not set correctly.")
-        exit()
-
     async def main_loop(gui: GuiManager):
         while True:
             gui_manager.handle_buttons(
                 btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
             )
+            gui_manager.draw_current_screen()
             await asyncio.sleep(0.01)
 
     gui_manager = GuiManager(display, writer, screen_config)

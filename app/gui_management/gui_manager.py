@@ -24,6 +24,7 @@ class GuiManager:
         display: SH1106_I2C,
         writer: Writer,
         screen_config: ScreenConfig,
+        ibis_manager
     ):
         """
         Initializes the GuiManager with the necessary configurations and display components.
@@ -42,6 +43,7 @@ class GuiManager:
             self._config_manager.config.ap_name, self._config_manager.config.ap_password
         )
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
+        self._ibis_manager = ibis_manager
 
         self._dirty = True
 
@@ -97,6 +99,8 @@ class GuiManager:
                 selected_trip_name = selected_trip_name_list[1]
             else:
                 selected_trip_name = selected_trip_name_list[0]
+                
+            self._ibis_manager.send_ibis_telegrams({"DS003c": selected_trip_name})
 
             self._gui_drawer.draw_status_screen(
                 selected_trip_name,
