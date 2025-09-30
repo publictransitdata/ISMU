@@ -38,6 +38,7 @@ class IBISManager:
 
         self.dispatch = {
             "DS001": self.DS001,
+            "DS001neu": self.DS001neu,
             "DS003": self.DS003,
             "DS003a": self.DS003a,
         }
@@ -58,26 +59,33 @@ class IBISManager:
                 sanitized += "?"
         return sanitized
 
-    # def encode_ibis_telegram(self, code, value):
-    #     if code not in TELEGRAM_FORMATS:
-    #         raise ValueError(f"Unsupported telegram type: {code}")
+    def DS001(self):
+        value = self.config_manager.get_current_configuration().route_number
+        format = TELEGRAM_FORMATS["DS001"]
+        try:
+            formatted = format.format(int(value))
+        except Exception as e:
+            print(f"Error formatting DS001 with value '{value}': {e}")
+            formatted = format.format("?")
 
-    #     format = TELEGRAM_FORMATS[code]
-    #     if isinstance(value, str):
-    #         value = self.sanitize_ibis_text(value)
+        packet = formatted.encode("ascii") + b"\r/"
+        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        self.uart.write(packet)
 
-    #     try:
-    #         if format.endswith('d}'):
-    #             formatted = format.format(int(value))
-    #         else:
-    #             formatted = format.format(value)
-    #     except Exception as e:
-    #         print(f"Error formatting {code} with value '{value}': {e}")
-    #         formatted = format.format('?')
+    def DS001neu(self):
+        value = self.config_manager.get_current_configuration().route_number
+        format = TELEGRAM_FORMATS["DS001neu"]
+        if isinstance(value, str):
+            value = self.sanitize_ibis_text(value)
+        try:
+            formatted = format.format(value)
+        except Exception as e:
+            print(f"Error formatting DS003a with value '{value}': {e}")
+            formatted = format.format("?")
 
-    #     packet = formatted.encode('ascii') + b'\r/'
-    #     print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
-    #     return packet
+        packet = formatted.encode("ascii") + b"\r/"
+        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        self.uart.write(packet)
 
     def DS003(self):
         value = self.config_manager.get_current_configuration().route_number
@@ -96,11 +104,10 @@ class IBISManager:
         value = self.config_manager.get_current_configuration().trip.full_name
         if len(value) == 2:
             value = value[1]
-        else: 
+        else:
             value = value[0]
-            
+
         format = TELEGRAM_FORMATS["DS003c"]
-        print(value)
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
         try:
@@ -113,32 +120,21 @@ class IBISManager:
         print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
         self.uart.write(packet)
 
-    def DS001(self):
-        value = self.config_manager.get_current_configuration().route_number
-        format = TELEGRAM_FORMATS["DS001"]
-        try:
-            formatted = format.format(int(value))
-        except Exception as e:
-            print(f"Error formatting DS001 with value '{value}': {e}")
-            formatted = format.format("?")
-
-        packet = formatted.encode("ascii") + b"\r/"
-        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
-        self.uart.write(packet)
-
-
     async def send_ibis_telegrams(self):
         self._running = True
         while self._running:
-            if self.config_manager.get_current_configuration().route_number != None and self.config_manager.get_current_configuration().trip != None:
+            if (
+                self.config_manager.get_current_configuration().route_number != None
+                and self.config_manager.get_current_configuration().trip != None
+            ):
                 for code in self.telegramTypes:
                     handler = self.dispatch.get(code)
                     if handler:
-                            try:
-                                handler()             
-                                await asyncio.sleep_ms(5)  
-                            except Exception as e:
-                                print("Error", code, ":", e)
+                        try:
+                            handler()
+                            await asyncio.sleep_ms(5)
+                        except Exception as e:
+                            print("Error", code, ":", e)
                     else:
                         print("Unknown telegram:", code)
             await asyncio.sleep(10)
