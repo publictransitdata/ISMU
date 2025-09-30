@@ -1,11 +1,12 @@
-from .singleton_decorator import singleton
-from .config_info import SystemConfig
+from utils.singleton_decorator import singleton
+from .config_info import SystemConfig, CurrentSystemChosenConfiguraion, TripInfo
 
 
 @singleton
 class ConfigManager:
     def __init__(self):
         self._config = SystemConfig()
+        self._current_config = CurrentSystemChosenConfiguraion()
 
     def _convert_value(self, key: str, value: str):
         if key in {
@@ -48,3 +49,14 @@ class ConfigManager:
     @property
     def config(self):
         return self._config
+    
+    def update_current_configuration(self, route_number, trip):
+        self._current_config.route_number = route_number
+        self._current_config.trip = TripInfo.trip_from_dict(trip)
+
+    def get_current_configuration(self):
+        return self._current_config
+    
+    def get_telegram_types(self):
+        keys = ["line", "destination_number", "destination", "stop_display_telegram"]
+        return [getattr(self._config, k) for k in keys]

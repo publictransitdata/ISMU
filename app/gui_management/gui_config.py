@@ -1,4 +1,4 @@
-from .singleton_decorator import singleton
+from utils.singleton_decorator import singleton
 
 
 class ScreenStates:
@@ -28,7 +28,7 @@ class ScreenConfig:
         self._arrow_size = 0
         self._max_menu_items = 0
         self._max_number_of_characters_in_line = 0
-        self._current_screen = None
+        self._current_screen = ScreenStates.STATUS_SCREEN,
 
     def set_screen_config(
         self,
