@@ -1,4 +1,4 @@
-from machine import Pin, I2C
+from machine import Pin, I2C, UART
 import sh1106  # type: ignore
 from framebuf import FrameBuffer
 import writer  # type: ignore
@@ -10,6 +10,7 @@ from app.gui_management import (
 )
 from app.routes_loading import RoutesManager
 from app.config_loading import ConfigManager
+from app.ibis_management import IBISManager
 import uasyncio as asyncio
 import time
 import gc
@@ -57,7 +58,13 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    async def main_loop(gui: GuiManager):
+    uart = UART(0, tx=Pin(16), rx=Pin(17), baudrate=1200)
+
+    ibis_manager = IBISManager(uart, config.get_telegram_types())
+
+    gui_manager = GuiManager(display, writer, screen_config)
+
+    async def gui_loop(gui: GuiManager):
         while True:
             gui_manager.handle_buttons(
                 btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
@@ -65,5 +72,10 @@ if __name__ == "__main__":
             gui_manager.draw_current_screen()
             await asyncio.sleep(0.01)
 
-    gui_manager = GuiManager(display, writer, screen_config)
-    asyncio.run(main_loop(gui_manager))
+    async def main_loop():
+        gui_task = asyncio.create_task(gui_loop(gui_manager))
+        ibis_manager.start()
+
+        await asyncio.gather(gui_task, ibis_manager.task)
+
+    asyncio.run(main_loop())

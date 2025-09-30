@@ -1,4 +1,4 @@
-from .singleton_decorator import singleton
+from utils.singleton_decorator import singleton
 import os
 import ujson as json
 
