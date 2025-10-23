@@ -17,9 +17,9 @@ TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
     "DS001neu": "q{:0>4}",
     "DS003": "z{:03d}",
-    "DS003a": None,  # no description in documentation
+    "DS003a": "zA2{: <16}",
     # "DS003b":  "zR{:03d}", no description in documentation
-    "DS003c": "zA{: <16}",  # no description in documentation
+    "DS003c": None,  # no description in documentation
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
     "DS009": "v{: <16}",
@@ -42,6 +42,26 @@ class IBISManager:
             "DS003": self.DS003,
             "DS003a": self.DS003a,
         }
+
+    def calculate_ibis_checksum(self, data_bytes):
+        parity = 0x7F
+        for byte in data_bytes:
+            parity ^= byte
+        return parity
+
+    def create_ibis_packet(self, formatted_string):
+        message_bytes = formatted_string.encode("ascii") + b"\x0D"
+
+        parity_byte = self.calculate_ibis_checksum(message_bytes)
+        
+        packet = message_bytes + bytes([parity_byte])
+        
+        # Log the telegram packet details
+        print(f"Sending IBIS telegram:")
+        print(f"  ASCII: {formatted_string}")
+        print(f"  HEX: {packet.hex().upper()}")
+        
+        return packet
 
     def sanitize_ibis_text(self, text):
         """
@@ -66,10 +86,9 @@ class IBISManager:
             formatted = format.format(int(value))
         except Exception as e:
             print(f"Error formatting DS001 with value '{value}': {e}")
-            formatted = format.format("?")
+            formatted = format.format(0)
 
-        packet = formatted.encode("ascii") + b"\r/"
-        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
     def DS001neu(self):
@@ -80,11 +99,10 @@ class IBISManager:
         try:
             formatted = format.format(value)
         except Exception as e:
-            print(f"Error formatting DS003a with value '{value}': {e}")
-            formatted = format.format("?")
+            print(f"Error formatting DS001neu with value '{value}': {e}")
+            formatted = format.format("0000")
 
-        packet = formatted.encode("ascii") + b"\r/"
-        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
     def DS003(self):
@@ -94,10 +112,9 @@ class IBISManager:
             formatted = format.format(int(value))
         except Exception as e:
             print(f"Error formatting DS003 with value '{value}': {e}")
-            formatted = format.format("?")
+            formatted = format.format(0)
 
-        packet = formatted.encode("ascii") + b"\r/"
-        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
     def DS003a(self):
@@ -107,7 +124,7 @@ class IBISManager:
         else:
             value = value[0]
 
-        format = TELEGRAM_FORMATS["DS003c"]
+        format = TELEGRAM_FORMATS["DS003a"]
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
         try:
@@ -116,8 +133,7 @@ class IBISManager:
             print(f"Error formatting DS003a with value '{value}': {e}")
             formatted = format.format("?")
 
-        packet = formatted.encode("ascii") + b"\r/"
-        print(f"Sending IBIS Packet: ASCII: {formatted}, HEX: {packet.hex().upper()}")
+        packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
     async def send_ibis_telegrams(self):
