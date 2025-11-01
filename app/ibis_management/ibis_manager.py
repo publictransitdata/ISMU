@@ -17,7 +17,7 @@ TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
     "DS001neu": "q{:0>4}",
     "DS003": "z{:03d}",
-    "DS003a": "zA2{: <16}",
+    "DS003a": "zA2{: <32}",
     # "DS003b":  "zR{:03d}", no description in documentation
     "DS003c": None,  # no description in documentation
     "DS003d": "zN{:03d}",
@@ -128,10 +128,10 @@ class IBISManager:
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
         try:
-            formatted = format.format(value)
+            formatted = format.format(value[:32])
         except Exception as e:
             print(f"Error formatting DS003a with value '{value}': {e}")
-            formatted = format.format("?")
+            formatted = "zA2" + ("?" * 32)
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
