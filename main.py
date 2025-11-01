@@ -29,7 +29,7 @@ if __name__ == "__main__":
     max_menu_items = 2
     max_number_of_characters_in_line = 18
 
-    i2c = I2C(0, scl=Pin(1), sda=Pin(0))
+    i2c = I2C(1, scl=Pin(11), sda=Pin(10))
     display = sh1106.SH1106_I2C(128, 64, i2c)
 
     writer = writer.Writer(display, lang)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    uart = UART(0, tx=Pin(16), rx=Pin(17), baudrate=1200)
+    uart = UART(0, tx=Pin(0), rx=Pin(1), baudrate=1200, bits=7, parity=2, stop=2)
 
     ibis_manager = IBISManager(uart, config.get_telegram_types())
 
