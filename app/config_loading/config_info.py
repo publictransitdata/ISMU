@@ -1,6 +1,7 @@
 from utils.singleton_decorator import singleton
 
 
+@singleton
 class SystemConfig:
     def __init__(self):
         self._line: str = ""
@@ -10,11 +11,11 @@ class SystemConfig:
         self._force_short_names: bool = False
         self._stop_display_telegram: str = ""
         self._display_route_on_stop_board: bool = False
-
-        ## is that variables need to be here?
         self._ap_name: str = ""
         self._ap_password: str = ""
         self._ap_ip: str = ""
+
+        ## is that variable need to be here?
         self._version: str = "0.1.0"
 
     @property
@@ -105,6 +106,7 @@ class SystemConfig:
     def version(self, value):
         self._version = value
 
+
 class TripInfo:
     def __init__(
         self,
@@ -118,17 +120,19 @@ class TripInfo:
         self.full_name = full_name
         self.short_name = short_name
 
-    def trip_from_dict(d: dict) -> TripInfo:
-        if d != None:
+    @staticmethod
+    def trip_from_dict(d: dict | None):
+        if d is not None:
             group_id = d.get("trip_id", "")
             point_id = d.get("point_id", "")
             full_name = d.get("full_name") or []
             short_name = d.get("short_name") or []
             return TripInfo(group_id, point_id, full_name, short_name)
-        else: return None
+        else:
+            return None
 
 
 class CurrentSystemChosenConfiguraion:
-    def __init__(self, route_number: str = None, trip: dict = None):
+    def __init__(self, route_number: str | None = None, trip: dict | None = None):
         self.route_number = route_number
         self.trip = TripInfo.trip_from_dict(trip)

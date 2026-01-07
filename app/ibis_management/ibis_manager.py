@@ -1,9 +1,7 @@
-from machine import Pin, I2C, UART
 from utils.singleton_decorator import singleton
 from app.config_loading import ConfigManager
 import uasyncio as asyncio
 import ujson as json
-import time
 
 try:
     with open("/config/char_map.json") as f:
@@ -50,17 +48,17 @@ class IBISManager:
         return parity
 
     def create_ibis_packet(self, formatted_string):
-        message_bytes = formatted_string.encode("ascii") + b"\x0D"
+        message_bytes = formatted_string.encode("ascii") + b"\x0d"
 
         parity_byte = self.calculate_ibis_checksum(message_bytes)
-        
+
         packet = message_bytes + bytes([parity_byte])
-        
+
         # Log the telegram packet details
-        print(f"Sending IBIS telegram:")
+        print("Sending IBIS telegram:")
         print(f"  ASCII: {formatted_string}")
         print(f"  HEX: {packet.hex().upper()}")
-        
+
         return packet
 
     def sanitize_ibis_text(self, text):
@@ -83,6 +81,8 @@ class IBISManager:
         value = self.config_manager.get_current_configuration().route_number
         format = TELEGRAM_FORMATS["DS001"]
         try:
+            if value is None:
+                raise ValueError("Route number is None")
             formatted = format.format(int(value))
         except Exception as e:
             print(f"Error formatting DS001 with value '{value}': {e}")
@@ -109,6 +109,8 @@ class IBISManager:
         value = self.config_manager.get_current_configuration().route_number
         format = TELEGRAM_FORMATS["DS003"]
         try:
+            if value is None:
+                raise ValueError("Route number is None")
             formatted = format.format(int(value))
         except Exception as e:
             print(f"Error formatting DS003 with value '{value}': {e}")
@@ -118,7 +120,12 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS003a(self):
-        value = self.config_manager.get_current_configuration().trip.full_name
+        trip = self.config_manager.get_current_configuration().trip
+        if trip is None:
+            print("Error: Trip information is None for DS003a telegram.")
+            return
+
+        value = trip.full_name
         if len(value) == 2:
             value = value[1]
         else:
@@ -140,8 +147,8 @@ class IBISManager:
         self._running = True
         while self._running:
             if (
-                self.config_manager.get_current_configuration().route_number != None
-                and self.config_manager.get_current_configuration().trip != None
+                self.config_manager.get_current_configuration().route_number is not None
+                and self.config_manager.get_current_configuration().trip is not None
             ):
                 for code in self.telegramTypes:
                     handler = self.dispatch.get(code)
