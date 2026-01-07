@@ -1,4 +1,4 @@
-from app.web_update.safe_route_decorator import _safe_route
+from app.web_update.safe_route_decorator import safe_route
 from microdot import Microdot  # type: ignore
 import network
 import uasyncio as asyncio
@@ -124,12 +124,12 @@ class WebUpdateServer:
         return UPLOAD_HTML, 200, {"Content-Type": "text/html"}
 
     def _register_routes(self):
-        @_safe_route(self)
+        @safe_route(self)
         @self._app.route("/")
         async def index(request):
             return self._upload_page()
 
-        @_safe_route(self)
+        @safe_route(self)
         @self._app.route("/upload", methods=["POST"])
         async def upload(request):
             content_type = request.headers.get("Content-Type", "")

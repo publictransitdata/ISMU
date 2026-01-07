@@ -1,4 +1,4 @@
-def _safe_route(server):
+def safe_route(server):
     """In case of an exception, return 500 without dumping the server."""
 
     def outer(fn):
