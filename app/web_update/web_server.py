@@ -78,14 +78,17 @@ class WebUpdateServer:
     def __init__(
         self,
         ap_name: str,
+        ap_ip: str,
         ap_password: str,
         host: str = "0.0.0.0",
         port: int = 80,
     ):
         self.ap_name = ap_name
         self.ap_password = ap_password
+        self.ap_ip = ap_ip
         self.host = host
         self.port = port
+        
 
         self._app = Microdot()
         self._ap = None
@@ -155,6 +158,9 @@ class WebUpdateServer:
                     name = header_str.split('name="')[1].split('"')[0]
                     filename = header_str.split('filename="')[1].split('"')[0]
 
+                    if not filename:
+                        continue
+
                     # Validation
                     if (name == "config_file" and filename == "config.txt") or (
                         name == "routes_file" and filename == "routes.txt"
@@ -185,6 +191,8 @@ class WebUpdateServer:
         self._ap = network.WLAN(network.AP_IF)
         self._ap.active(True)
         self._ap.config(essid=self.ap_name, password=self.ap_password)
+        self._ap.ifconfig((self.ap_ip, '255.255.255.0', self.ap_ip, '8.8.8.8'))
+
         while not self._ap.active():
             await asyncio.sleep(0.1)
 

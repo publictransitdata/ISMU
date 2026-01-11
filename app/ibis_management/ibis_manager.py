@@ -1,5 +1,5 @@
 from utils.singleton_decorator import singleton
-from app.config_loading import ConfigManager
+from app.config_management import ConfigManager
 import uasyncio as asyncio
 import ujson as json
 

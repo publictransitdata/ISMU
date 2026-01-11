@@ -1,5 +1,9 @@
 from utils.singleton_decorator import singleton
 
+AP_NAME = "ismu-hotspot"
+AP_PASSWORD = "12345678"
+AP_IP = "192.168.4.1"
+
 
 @singleton
 class SystemConfig:
@@ -7,16 +11,20 @@ class SystemConfig:
         self._line: str = ""
         self._destination_number: str = ""
         self._destination: str = ""
-        self._display_start_and_end_stops: bool = False
+        self._show_start_and_end_stops: bool = False
         self._force_short_names: bool = False
-        self._stop_display_telegram: str = ""
-        self._display_route_on_stop_board: bool = False
-        self._ap_name: str = ""
-        self._ap_password: str = ""
-        self._ap_ip: str = ""
+        self._stop_board_telegram: str = ""
+        self._show_route_on_stop_board: bool = False
+        self._ap_name: str = AP_NAME
+        self._ap_password: str = AP_PASSWORD
+        self._ap_ip: str = AP_IP
+        self._baudrate: int = 1200
+        self._bits: int = 7
+        self._parity: int = 2
+        self._stop: int = 2
 
         ## is that variable need to be here?
-        self._version: str = "0.1.0"
+        self._version: str = "1.0.0"
 
     @property
     def line(self):
@@ -59,20 +67,20 @@ class SystemConfig:
         self._force_short_names = value
 
     @property
-    def stop_display_telegram(self):
-        return self._stop_display_telegram
+    def stop_board_telegram(self):
+        return self._stop_board_telegram
 
-    @stop_display_telegram.setter
-    def stop_display_telegram(self, value):
-        self._stop_display_telegram = value
+    @stop_board_telegram.setter
+    def stop_board_telegram(self, value):
+        self._stop_board_telegram = value
 
     @property
-    def display_route_on_stop_board(self):
-        return self._display_route_on_stop_board
+    def show_route_on_stop_board(self):
+        return self._show_route_on_stop_board
 
-    @display_route_on_stop_board.setter
-    def display_route_on_stop_board(self, value):
-        self._display_route_on_stop_board = value
+    @show_route_on_stop_board.setter
+    def show_route_on_stop_board(self, value):
+        self._show_route_on_stop_board = value
 
     @property
     def ap_name(self):
@@ -105,6 +113,38 @@ class SystemConfig:
     @version.setter
     def version(self, value):
         self._version = value
+
+    @property
+    def baudrate(self):
+        return self._baudrate
+
+    @baudrate.setter
+    def baudrate(self, value):
+        self._baudrate = value
+
+    @property
+    def bits(self):
+        return self._bits
+
+    @bits.setter
+    def bits(self, value):
+        self._bits = value
+
+    @property
+    def parity(self):
+        return self._parity
+
+    @parity.setter
+    def parity(self, value):
+        self._parity = value
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @stop.setter
+    def stop(self, value):
+        self._stop = value
 
 
 class TripInfo:

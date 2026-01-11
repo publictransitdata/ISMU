@@ -7,9 +7,10 @@ from app.gui_management import (
     ScreenConfig,
     RouteMenuState,
     TripMenuState,
+    ScreenStates,
 )
-from app.routes_loading import RoutesManager
-from app.config_loading import ConfigManager
+from app.routes_management import RoutesManager
+from app.config_management import ConfigManager
 from app.ibis_management import IBISManager
 import uasyncio as asyncio
 import time
@@ -34,20 +35,20 @@ if __name__ == "__main__":
 
     writer = writer.Writer(display, lang)
 
+    screen_config = ScreenConfig()
+
     config_path = "/config/config.txt"
-    config = ConfigManager()
-    config.load_config(config_path)
+    config_manager = ConfigManager()
+    config_manager.load_config(config_path)
 
     routes_path = "/config/routes.txt"
-    routes = RoutesManager()
-    routes.load_routes(routes_path)
+    routes_manager = RoutesManager()
+    routes_manager.load_routes(routes_path)
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
     btn_menu = Pin(4, Pin.IN, Pin.PULL_UP)
     btn_up = Pin(5, Pin.IN, Pin.PULL_UP)
-
-    screen_config = ScreenConfig()
 
     screen_config.set_screen_config(
         screen_width,
@@ -58,9 +59,18 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    uart = UART(0, tx=Pin(0), rx=Pin(1), baudrate=1200, bits=7, parity=2, stop=2)
+    uart = UART(
+        0,
+        tx=Pin(0),
+        rx=Pin(1),
+        baudrate=config_manager.config.baudrate,
+        bits=config_manager.config.bits,
+        parity=config_manager.config.parity,
+        stop=config_manager.config.stop,
+    )
 
-    ibis_manager = IBISManager(uart, config.get_telegram_types())
+    if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:
+        ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
 
     gui_manager = GuiManager(display, writer, screen_config)
 
@@ -73,9 +83,12 @@ if __name__ == "__main__":
             await asyncio.sleep(0.01)
 
     async def main_loop():
-        gui_task = asyncio.create_task(gui_loop(gui_manager))
-        ibis_manager.start()
-
-        await asyncio.gather(gui_task, ibis_manager.task)
+        if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:
+            gui_task = asyncio.create_task(gui_loop(gui_manager))
+            ibis_manager.start()
+            await asyncio.gather(gui_task, ibis_manager.task)
+        else:
+            gui_task = asyncio.create_task(gui_loop(gui_manager))
+            await asyncio.gather(gui_task)
 
     asyncio.run(main_loop())

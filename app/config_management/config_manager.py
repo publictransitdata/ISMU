@@ -12,9 +12,17 @@ class ConfigManager:
         if key in {
             "display_start_and_end_stops",
             "force_short_names",
-            "display_route_on_stop_board",
+            "show_route_on_stop_board",
         }:
             return value.lower() == "true"
+
+        if key in {"baudrate", "bits", "parity", "stop"}:
+            try:
+                return int(value)
+            except ValueError:
+                print(f"Warning: Could not convert {key}={value} to int")
+                return getattr(self._config, key)
+
         return value
 
     def load_config(self, config_path: str) -> None:
@@ -28,23 +36,28 @@ class ConfigManager:
                 self._parse_config(lines)
                 print("Config was loaded.")
         except Exception as e:
-            print(f"Error while loading config: {e}")
+            from app.gui_management import ScreenConfig, ScreenStates
+
+            screen_config = ScreenConfig()
+            screen_config.current_screen = ScreenStates.ERROR_SCREEN
+            screen_config.error_message = f"Error while loading config: {e}"
 
     def _parse_config(self, lines: list[str]) -> None:
         for line in lines:
             line = line.strip()
-            if not line or line.startswith("#"):
+            if not line:
                 continue
 
             if "=" not in line:
-                print(f"Skipping invalid line: {line}")
-                continue
+                print(f"Invalid config line: {line}")
+                raise ValueError(f"Invalid config line: {line}")
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
                 setattr(self._config, key, self._convert_value(key, value))
             else:
                 print(f"Unknown config key: {key}")
+                raise ValueError(f"Unknown config key: {key}")
 
     @property
     def config(self):
@@ -58,5 +71,5 @@ class ConfigManager:
         return self._current_config
 
     def get_telegram_types(self):
-        keys = ["line", "destination_number", "destination", "stop_display_telegram"]
+        keys = ["line", "destination_number", "destination", "stop_board_telegram"]
         return [getattr(self._config, k) for k in keys]

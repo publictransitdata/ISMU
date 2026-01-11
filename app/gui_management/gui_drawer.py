@@ -171,7 +171,7 @@ class GuiDrawer:
         self._writer.set_textpos(self._display, 0, 0)
 
         self._writer.printstring(
-            f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_display_telegram}",
+            f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_board_telegram}",
             False,
         )
 
