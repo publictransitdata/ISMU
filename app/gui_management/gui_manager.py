@@ -36,7 +36,9 @@ class GuiManager:
         self._trip_menu_state = TripMenuState()
         self._screen_config = screen_config
         self._web_update_server = WebUpdateServer(
-            self._config_manager.config.ap_name, self._config_manager.config.ap_ip, self._config_manager.config.ap_password
+            self._config_manager.config.ap_name,
+            self._config_manager.config.ap_ip,
+            self._config_manager.config.ap_password,
         )
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
@@ -112,7 +114,9 @@ class GuiManager:
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
-            self._gui_drawer.draw_error_screen(self._screen_config.error_message)
+            self._gui_drawer.draw_error_screen(str(self._screen_config.error_code))
+        elif current_screen == ScreenStates.INITIAL_SCREEN:
+            self._gui_drawer.draw_initial_screen()
         elif current_screen == ScreenStates.SETTINGS_SCREEN:
             self._gui_drawer.draw_active_settings_screen(self._config_manager.config)
         elif current_screen == ScreenStates.UPDATE_SCREEN:
@@ -206,7 +210,6 @@ class GuiManager:
 
             return
 
-
         if not btn_down and not btn_select:
             if self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
                 if self._check_buttons_press_timer(
@@ -229,7 +232,18 @@ class GuiManager:
                     self._web_update_server.ensure_started()
                     self.mark_dirty()
                     return
-                
+
+            elif self._screen_config.current_screen == ScreenStates.INITIAL_SCREEN:
+                if self._check_buttons_press_timer(
+                    [btn_down, btn_select],
+                    ScreenStates.INITIAL_SCREEN,
+                    ScreenStates.UPDATE_SCREEN,
+                    current_time,
+                ):
+                    self._web_update_server.ensure_started()
+                    self.mark_dirty()
+                    return
+
             return
 
         if not btn_menu:
@@ -246,17 +260,7 @@ class GuiManager:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
             elif self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
-                if not self._screen_config.error_message:
-                    if self._check_buttons_press_timer(
-                        [btn_menu],
-                        ScreenStates.UPDATE_SCREEN,
-                        ScreenStates.STATUS_SCREEN,
-                        current_time,
-                    ):
-                        self._web_update_server.stop()
-                        self.mark_dirty()
-                        return
-                else:
+                if self._screen_config.error_code:
                     if self._check_buttons_press_timer(
                         [btn_menu],
                         ScreenStates.UPDATE_SCREEN,
@@ -266,7 +270,28 @@ class GuiManager:
                         self._web_update_server.stop()
                         self.mark_dirty()
                         return
-                    
+
+                elif self._screen_config.is_system_fresh:
+                    if self._check_buttons_press_timer(
+                        [btn_menu],
+                        ScreenStates.UPDATE_SCREEN,
+                        ScreenStates.INITIAL_SCREEN,
+                        current_time,
+                    ):
+                        self._web_update_server.stop()
+                        self.mark_dirty()
+                        return
+                else:
+                    if self._check_buttons_press_timer(
+                        [btn_menu],
+                        ScreenStates.UPDATE_SCREEN,
+                        ScreenStates.STATUS_SCREEN,
+                        current_time,
+                    ):
+                        self._web_update_server.stop()
+                        self.mark_dirty()
+                        return
+
                 return
 
             time.sleep(0.15)

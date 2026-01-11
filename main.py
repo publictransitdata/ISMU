@@ -15,11 +15,29 @@ from app.ibis_management import IBISManager
 import uasyncio as asyncio
 import time
 import gc
+import os
+
 
 try:
     from config import lang  # type: ignore
 except ImportError:
     print("Language file is missing.")
+
+CONFIG_PATH = "/config/config.txt"
+ROUTES_PATH = "/config/routes.txt"
+
+
+def check_required_files(*paths):
+    missing = set()
+    for path in paths:
+        try:
+            os.stat(path)
+        except OSError:
+            missing.add(path)
+
+    if CONFIG_PATH in missing and ROUTES_PATH in missing:
+        screen_config.current_screen = ScreenStates.INITIAL_SCREEN
+        screen_config._is_system_fresh = True
 
 
 if __name__ == "__main__":
@@ -37,13 +55,17 @@ if __name__ == "__main__":
 
     screen_config = ScreenConfig()
 
-    config_path = "/config/config.txt"
     config_manager = ConfigManager()
-    config_manager.load_config(config_path)
-
-    routes_path = "/config/routes.txt"
     routes_manager = RoutesManager()
-    routes_manager.load_routes(routes_path)
+
+    check_required_files(CONFIG_PATH, ROUTES_PATH)
+
+    if screen_config.current_screen is not ScreenStates.INITIAL_SCREEN:
+        try:
+            config_manager.load_config(CONFIG_PATH)
+            routes_manager.load_routes(ROUTES_PATH)
+        except Exception as e:
+            print(f"Error during loading: {e}")
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)

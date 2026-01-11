@@ -121,10 +121,31 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_error_screen(self, error_message: str) -> None:
+    def draw_error_screen(self, error_code: str) -> None:
+        self._display.fill(0)
+
+        line_height = self._screen_config.font_size + 2
+        screen_width = self._screen_config.screen_width
+        screen_height = self._screen_config.screen_height
+
+        line1 = f"Помилка: {error_code}"
+
+        centrized_top_y = (screen_height - line_height) // 2
+
+        line1_width = self._writer.stringlen(line1)
+        line1_offset = (screen_width - line1_width) // 2
+
+        self._writer.set_textpos(self._display, centrized_top_y, line1_offset)
+        self._writer.printstring(line1, False)
+
+        self._display.show()
+
+    def draw_initial_screen(self) -> None:
         self._display.fill(0)
         self._writer.set_textpos(self._display, 0, 0)
-        self._writer.printstring(error_message, False)
+        self._writer.printstring(
+            "Потрібно завантажити файли конфігурації та маршрутів", False
+        )
         self._display.show()
 
     def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
@@ -138,7 +159,8 @@ class GuiDrawer:
         line2 = f"{ap_name}"
         line3 = f"ІР:{ip_address}"
 
-        top_y = int((screen_height - line_height * 2) / 2)
+        total_height = line_height * 3
+        top_y = (screen_height - total_height) // 2
 
         line1_width = self._writer.stringlen(line1)
         line2_width = self._writer.stringlen(line2)
