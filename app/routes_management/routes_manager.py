@@ -30,7 +30,6 @@ class RoutesManager:
             self._route_list = []
             print(f"Failed to load routes: {e}")
 
-
     def append_route(self, number: str):
         rec = {"t": "route", "n": number}
         with open(DB_PATH, "a") as f:
@@ -68,25 +67,27 @@ class RoutesManager:
                     if expecting_route_after_separator:
                         if "#" in line:
                             num_line = line.split("#", 1)[0].strip()
-                            line_with_hashtag = True
                         else:
                             num_line = line
-                            line_with_hashtag = False
 
                         if num_line.endswith("-"):
                             num_line = num_line[:-1].strip()
 
                         if not num_line:
-                            raise ValueError(f"Line {line_number}: Empty route number after separator")
+                            raise ValueError(
+                                f"Line {line_number}: Empty route number after separator"
+                            )
 
-                        current_route = num_line 
+                        current_route = num_line
                         self.append_route(current_route)
                         has_routes = True
                         expecting_route_after_separator = False
                         continue
 
                     if not current_route:
-                        raise ValueError(f"Line {line_number}: Direction data without route number: '{line}'")
+                        raise ValueError(
+                            f"Line {line_number}: Direction data without route number: '{line}'"
+                        )
 
                     parts = [p.strip() for p in line.split(",")]
 
@@ -97,13 +98,15 @@ class RoutesManager:
                         )
 
                     d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
-                
+
                     if not d_id or not p_id:
-                        raise ValueError(f"Line {line_number}: Direction ID or Point ID is empty")           
-                        
+                        raise ValueError(
+                            f"Line {line_number}: Direction ID or Point ID is empty"
+                        )
+
                     full_name = full_name_str.split("^")
-                    
-                    short_name = None 
+
+                    short_name = None
                     if len(parts) == 4:
                         short_name_str = parts[3]
                         if "^" not in short_name_str:
@@ -116,13 +119,16 @@ class RoutesManager:
                                 f"Line {line_number}: Short name must have at least 2 parts separated by '^'"
                             )
 
-                    self.append_direction(current_route, d_id, p_id, full_name, short_name)
+                    self.append_direction(
+                        current_route, d_id, p_id, full_name, short_name
+                    )
 
                 if not has_routes:
                     raise ValueError("File contains no valid routes")
 
         except Exception as e:
             from app.gui_management import ScreenConfig, ScreenStates
+
             screen_config = ScreenConfig()
             screen_config.current_screen = ScreenStates.ERROR_SCREEN
             screen_config.error_message = f"Error while importing routes.txt: {e}"

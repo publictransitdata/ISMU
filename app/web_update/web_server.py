@@ -5,73 +5,203 @@ import uasyncio as asyncio
 import os
 import machine
 
+ALLOWED_CHARS = set(
+    " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n,+"
+)
 
-UPLOAD_HTML = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Upload</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 0;
-                    padding: 0;
-                    background: #f5f5f5;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                }
-                .container {
-                    background: #fff;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    max-width: 400px;
-                    width: 90%;
-                }
-                h1 {
-                    font-size: 1.5em;
-                    margin-bottom: 1em;
-                    text-align: center;
-                }
-                p {
-                    margin: 0.5em 0 0.2em;
-                }
-                input[type="file"] {
-                    width: 100%;
-                }
-                input[type="submit"] {
-                    margin-top: 1em;
-                    width: 100%;
-                    padding: 0.7em;
-                    font-size: 1em;
-                    background: #4CAF50;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                input[type="submit"]:hover {
-                    background: #45a049;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Upload Mode</h1>
-                <form action="/upload" method="post" enctype="multipart/form-data">
-                    <p>Upload config.txt:</p>
-                    <input type="file" name="config_file">
-                    <p>Upload routes.txt:</p>
-                    <input type="file" name="routes_file">
-                    <input type="submit" value="Upload">
-                </form>
-            </div>
-        </body>
-        </html>
-        """
+ALLOWED_CONFIG_CHARS = set(
+    " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=.-\n"
+)
+
+
+VALID_CONFIG_KEYS = {
+    "display_start_and_end_stops",
+    "force_short_names",
+    "show_route_on_stop_board",
+    "baudrate",
+    "bits",
+    "parity",
+    "stop",
+    "line",
+    "destination_number",
+    "destination",
+    "stop_board_telegram",
+    "ap_name",
+    "ap_password",
+    "ap_ip",
+}
+
+
+BASE_STYLE = """body{font-family:Arial;margin:0;padding:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh}.c{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);max-width:400px;width:90%;text-align:center}h1{font-size:1.5em;margin-bottom:1em}"""
+
+UPLOAD_HTML = (
+    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upload</title><style>"""
+    + BASE_STYLE
+    + """p{margin:.5em 0 .2em;text-align:left}input[type=file]{width:100%}input[type=submit]{margin-top:1em;width:100%;padding:.7em;font-size:1em;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer}</style></head><body><div class="c"><h1>Upload Mode</h1><form action="/upload" method="post" enctype="multipart/form-data"><p>Upload config.txt:</p><input type="file" name="config_file"><p>Upload routes.txt:</p><input type="file" name="routes_file"><input type="submit" value="Upload"></form></div></body></html>"""
+)
+
+SUCCESS_HTML = (
+    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Success</title><style>"""
+    + BASE_STYLE
+    + """.ok{color:#4CAF50;font-size:3em}p{margin:1em 0}</style></head><body><div class="c"><div class="ok">&#10004;</div><h1>Upload Successful</h1><p>Files saved: {files}</p><p>Device will restart...</p></div></body></html>"""
+)
+
+ERROR_HTML = (
+    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Error</title><style>"""
+    + BASE_STYLE
+    + """.err{color:#f44336;font-size:3em}p{margin:1em 0}a{display:inline-block;margin-top:1em;padding:.5em 1em;background:#4CAF50;color:#fff;text-decoration:none;border-radius:4px}</style></head><body><div class="c"><div class="err">&#10008;</div><h1>Error</h1><p>{message}</p><a href="/">Try Again</a></div></body></html>"""
+)
+
+
+def _check_invalid_chars(content: bytes, allowed_chars: set) -> list:
+    errors = []
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as e:
+        return [f"Invalid UTF-8 encoding at byte {e.start}"]
+
+    for i, char in enumerate(text):
+        if char not in allowed_chars:
+            line_num = text[:i].count("\n") + 1
+            errors.append(
+                f"Line {line_num}: Invalid character '{char}' (code: {ord(char)})"
+            )
+            if len(errors) >= 5:
+                errors.append("... (more errors omitted)")
+                break
+    return errors
+
+
+def _check_config_content(content: bytes) -> list:
+    errors = []
+
+    if not content or not content.strip():
+        return ["config.txt is empty"]
+
+    char_errors = _check_invalid_chars(content, ALLOWED_CONFIG_CHARS)
+    if char_errors:
+        return char_errors
+
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return ["Invalid UTF-8 encoding in config.txt"]
+
+    if not text.strip():
+        return ["config.txt is empty"]
+
+    lines = text.split("\n")
+    found_keys = set()
+
+    for i, line in enumerate(lines, 1):
+        line = line.strip()
+        if not line:
+            continue
+
+        if "=" not in line:
+            errors.append(f"Line {i}: Missing '=' separator: '{line[:30]}'")
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if key not in VALID_CONFIG_KEYS:
+            errors.append(f"Line {i}: Unknown config key: '{key}'")
+        else:
+            found_keys.add(key)
+
+        if len(errors) >= 10:
+            errors.append("... (more errors omitted)")
+            break
+
+    missing_keys = VALID_CONFIG_KEYS - found_keys
+    if missing_keys:
+        errors.append(f"Missing required keys: {', '.join(sorted(missing_keys))}")
+
+    return errors
+
+
+def _check_routes_content(content: bytes) -> list:
+    errors = []
+
+    if not content or not content.strip():
+        return ["routes.txt is empty"]
+
+    char_errors = _check_invalid_chars(content, ALLOWED_CHARS)
+    if char_errors:
+        errors.extend(char_errors)
+        return errors
+
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return ["Invalid UTF-8 encoding in routes.txt"]
+
+    if not text.strip():
+        return ["routes.txt is empty"]
+
+    lines = text.split("\n")
+    current_route = None
+    expecting_route = False
+    has_routes = False
+
+    for i, raw_line in enumerate(lines, 1):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if line.startswith("|"):
+            expecting_route = True
+            current_route = None
+            continue
+
+        if expecting_route:
+            if "#" in line:
+                route_num_line = line.split("#", 1)[0].strip()
+            else:
+                route_num_line = line
+
+            if route_num_line.endswith("-"):
+                route_num_line = route_num_line[:-1].strip()
+
+            if not route_num_line:
+                errors.append(f"Line {i}: Empty route number after separator")
+            else:
+                current_route = route_num_line
+                has_routes = True
+            expecting_route = False
+            continue
+
+        if not current_route:
+            errors.append(f"Line {i}: Direction data without route number")
+            continue
+
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) not in (3, 4):
+            errors.append(
+                f"Line {i}: Expected 3 or 4 comma-separated values, got {len(parts)}"
+            )
+            continue
+
+        d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
+
+        if not d_id or not p_id:
+            errors.append(f"Line {i}: Direction ID or Point ID is empty")
+
+        if len(parts) == 4:
+            short_name_str = parts[3]
+            if "^" not in short_name_str:
+                errors.append(f"Line {i}: Short name must contain '^' separator")
+
+        if len(errors) >= 10:
+            errors.append("... (more errors omitted)")
+            break
+
+    if not has_routes and not errors:
+        errors.append("File contains no valid routes")
+
+    return errors
 
 
 class WebUpdateServer:
@@ -88,7 +218,6 @@ class WebUpdateServer:
         self.ap_ip = ap_ip
         self.host = host
         self.port = port
-        
 
         self._app = Microdot()
         self._ap = None
@@ -137,7 +266,7 @@ class WebUpdateServer:
         async def upload(request):
             content_type = request.headers.get("Content-Type", "")
             if "multipart/form-data" not in content_type:
-                return self._response("Unsupported Media Type", 415)
+                return self._error_response("Unsupported Media Type")
 
             boundary = content_type.split("boundary=")[-1]
             parts = request.body.split(b"--" + boundary.encode())
@@ -145,7 +274,7 @@ class WebUpdateServer:
             if "config" not in os.listdir():
                 os.mkdir("config")
 
-            saved_files = []
+            files_to_save = {}
 
             for part in parts:
                 if b"Content-Disposition" in part and b"filename=" in part:
@@ -154,33 +283,51 @@ class WebUpdateServer:
 
                     header_str = headers.decode()
 
-                    # Extract name and filename
                     name = header_str.split('name="')[1].split('"')[0]
                     filename = header_str.split('filename="')[1].split('"')[0]
 
                     if not filename:
                         continue
 
-                    # Validation
-                    if (name == "config_file" and filename == "config.txt") or (
-                        name == "routes_file" and filename == "routes.txt"
-                    ):
-                        with open("/config/" + filename, "wb") as f:
-                            f.write(file_content)
-                        saved_files.append(filename)
-                    else:
-                        return self._response(
-                            "Invalid file upload: wrong field or filename", 400
+                    if not filename.endswith(".txt"):
+                        return self._error_response(
+                            f"Only .txt files are allowed: '{filename}'"
                         )
 
-            if saved_files:
+                    if name == "config_file" and filename == "config.txt":
+                        errors = _check_config_content(file_content)
+                        if errors:
+                            return self._error_response(
+                                f"config.txt validation failed: {'; '.join(errors)}"
+                            )
+                        files_to_save["config.txt"] = file_content
+
+                    elif name == "routes_file" and filename == "routes.txt":
+                        errors = _check_routes_content(file_content)
+                        if errors:
+                            return self._error_response(
+                                f"routes.txt validation failed: {'; '.join(errors)}"
+                            )
+                        files_to_save["routes.txt"] = file_content
+                    else:
+                        return self._error_response(
+                            "Invalid file upload: wrong field or filename"
+                        )
+
+            # Save all validated files
+            if files_to_save:
+                saved_files = []
+                for fname, content in files_to_save.items():
+                    with open("/config/" + fname, "wb") as f:
+                        f.write(content)
+                    saved_files.append(fname)
+
                 print("Saved files:", saved_files)
                 asyncio.create_task(self._delayed_reset())
-                return f"Saved files: {', '.join(saved_files)}"
+                return self._success_response(", ".join(saved_files))
             else:
-                return self._response(
-                    "No valid files uploaded (only config.txt or routes.txt are accepted)",
-                    400,
+                return self._error_response(
+                    "No valid files uploaded (only config.txt or routes.txt are accepted)"
                 )
 
     async def _delayed_reset(self):
@@ -191,7 +338,7 @@ class WebUpdateServer:
         self._ap = network.WLAN(network.AP_IF)
         self._ap.active(True)
         self._ap.config(essid=self.ap_name, password=self.ap_password)
-        self._ap.ifconfig((self.ap_ip, '255.255.255.0', self.ap_ip, '8.8.8.8'))
+        self._ap.ifconfig((self.ap_ip, "255.255.255.0", self.ap_ip, "8.8.8.8"))
 
         while not self._ap.active():
             await asyncio.sleep(0.1)
@@ -200,8 +347,13 @@ class WebUpdateServer:
         print(f"SSID: {self.ap_name}")
         print("IP address:", self._ap.ifconfig()[0])
 
-    def _response(self, text, status=200):
-        return text, status
+    def _success_response(self, files: str):
+        html = SUCCESS_HTML.replace("{files}", files)
+        return html, 200, {"Content-Type": "text/html"}
+
+    def _error_response(self, message: str):
+        html = ERROR_HTML.replace("{message}", message)
+        return html, 400, {"Content-Type": "text/html"}
 
     async def _start_servertask(self):
         try:
