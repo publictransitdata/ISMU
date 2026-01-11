@@ -1,8 +1,8 @@
 import sys
 import time
 
-from app.routes_loading import RoutesManager
-from app.config_loading import ConfigManager
+from app.routes_management import RoutesManager
+from app.config_management import ConfigManager
 from app.web_update import WebUpdateServer
 from .gui_drawer import GuiDrawer
 from .gui_config import (
@@ -36,7 +36,7 @@ class GuiManager:
         self._trip_menu_state = TripMenuState()
         self._screen_config = screen_config
         self._web_update_server = WebUpdateServer(
-            self._config_manager.config.ap_name, self._config_manager.config.ap_password
+            self._config_manager.config.ap_name, self._config_manager.config.ap_ip, self._config_manager.config.ap_password
         )
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
@@ -112,7 +112,7 @@ class GuiManager:
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
-            self._gui_drawer.draw_error_screen("Error: Test error message")
+            self._gui_drawer.draw_error_screen(self._screen_config.error_message)
         elif current_screen == ScreenStates.SETTINGS_SCREEN:
             self._gui_drawer.draw_active_settings_screen(self._config_manager.config)
         elif current_screen == ScreenStates.UPDATE_SCREEN:
@@ -153,23 +153,32 @@ class GuiManager:
         Handles the timer logic for buttons press of any set of buttons.
 
         Returns:
-            True if press duration was long enough to trigger a screen change.
+            True if press duration was long enough to trigger a system state change.
         """
         all_pressed = all(not b for b in buttons_pressed)
 
-        if all_pressed:
-            if not self._buttons_press_active:
-                self._buttons_press_start_time = current_time
-                self._buttons_press_active = True
-                return False
-            elif time.ticks_diff(current_time, self._buttons_press_start_time) >= 3000:
-                if self._screen_config.current_screen == current_screen:
-                    self._screen_config.current_screen = target_screen
-                self._buttons_press_active = False
-                return True
-        else:
+        if not all_pressed:
             self._buttons_press_active = False
             self._buttons_press_start_time = None
+            return False
+
+        if not self._buttons_press_active:
+            self._buttons_press_start_time = current_time
+            self._buttons_press_active = True
+            return False
+
+        duration = time.ticks_diff(current_time, self._buttons_press_start_time)
+
+        if duration >= 3000:
+            if self._screen_config.current_screen == current_screen:
+                self._screen_config.current_screen = target_screen
+
+                self._buttons_press_active = False
+                self._buttons_press_start_time = None
+                return True
+            else:
+                self._buttons_press_active = False
+                self._buttons_press_start_time = None
 
         return False
 
@@ -194,18 +203,33 @@ class GuiManager:
             ):
                 self.mark_dirty()
                 return
+
             return
 
+
         if not btn_down and not btn_select:
-            if self._check_buttons_press_timer(
-                [btn_down, btn_select],
-                ScreenStates.SETTINGS_SCREEN,
-                ScreenStates.UPDATE_SCREEN,
-                current_time,
-            ):
-                self._web_update_server.ensure_started()
-                self.mark_dirty()
-                return
+            if self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
+                if self._check_buttons_press_timer(
+                    [btn_down, btn_select],
+                    ScreenStates.SETTINGS_SCREEN,
+                    ScreenStates.UPDATE_SCREEN,
+                    current_time,
+                ):
+                    self._web_update_server.ensure_started()
+                    self.mark_dirty()
+                    return
+
+            elif self._screen_config.current_screen == ScreenStates.ERROR_SCREEN:
+                if self._check_buttons_press_timer(
+                    [btn_down, btn_select],
+                    ScreenStates.ERROR_SCREEN,
+                    ScreenStates.UPDATE_SCREEN,
+                    current_time,
+                ):
+                    self._web_update_server.ensure_started()
+                    self.mark_dirty()
+                    return
+                
             return
 
         if not btn_menu:
@@ -222,15 +246,27 @@ class GuiManager:
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
             elif self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
-                if self._check_buttons_press_timer(
-                    [btn_menu],
-                    ScreenStates.UPDATE_SCREEN,
-                    ScreenStates.STATUS_SCREEN,
-                    current_time,
-                ):
-                    self._web_update_server.stop()
-                    self.mark_dirty()
-                    return
+                if not self._screen_config.error_message:
+                    if self._check_buttons_press_timer(
+                        [btn_menu],
+                        ScreenStates.UPDATE_SCREEN,
+                        ScreenStates.STATUS_SCREEN,
+                        current_time,
+                    ):
+                        self._web_update_server.stop()
+                        self.mark_dirty()
+                        return
+                else:
+                    if self._check_buttons_press_timer(
+                        [btn_menu],
+                        ScreenStates.UPDATE_SCREEN,
+                        ScreenStates.ERROR_SCREEN,
+                        current_time,
+                    ):
+                        self._web_update_server.stop()
+                        self.mark_dirty()
+                        return
+                    
                 return
 
             time.sleep(0.15)

@@ -19,6 +19,7 @@ class ScreenConfig:
         _font_size (int): Font size used for rendering text.
         _max_menu_items (int): Maximum number of items visible at once on screen.
         _current_screen (str): Identifier of the current active screen.
+        _error_message (str): Error message to display on error screen.
     """
 
     def __init__(self):
@@ -28,7 +29,8 @@ class ScreenConfig:
         self._arrow_size = 0
         self._max_menu_items = 0
         self._max_number_of_characters_in_line = 0
-        self._current_screen = (ScreenStates.STATUS_SCREEN,)
+        self._current_screen = ScreenStates.STATUS_SCREEN
+        self._error_message = ""
 
     def set_screen_config(
         self,
@@ -38,14 +40,12 @@ class ScreenConfig:
         arrow_size: int = 6,
         max_menu_items: int = 2,
         max_number_of_characters_in_line: int = 18,
-        current_screen: str = ScreenStates.STATUS_SCREEN,
     ):
         self._screen_width = screen_width
         self._screen_height = screen_height
         self._font_size = font_size
         self._arrow_size = arrow_size
         self._max_menu_items = max_menu_items
-        self._current_screen = current_screen
         self._max_number_of_characters_in_line = max_number_of_characters_in_line
 
     @property
@@ -103,6 +103,15 @@ class ScreenConfig:
     @max_number_of_characters_in_line.setter
     def max_number_of_characters_in_line(self, value: int):
         self._max_number_of_characters_in_line = value
+
+    @property
+    def error_message(self):
+        return self._error_message
+
+    @error_message.setter
+    def error_message(self, value: str):
+        self._error_message = value
+
 
 
 @singleton
