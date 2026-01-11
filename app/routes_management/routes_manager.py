@@ -1,4 +1,6 @@
+from app.error_codes import ErrorCodes
 from utils.singleton_decorator import singleton
+from utils.error_handler import set_error_and_raise
 import os
 import ujson as json
 
@@ -22,27 +24,29 @@ class RoutesManager:
         except OSError:
             pass
 
-        try:
-            self.import_routes_from_txt(routes_path)
-            self._route_list = self.build_route_list()
-            print("Routes was loaded")
-        except Exception as e:
-            self._route_list = []
-            print(f"Failed to load routes: {e}")
+        self.import_routes_from_txt(routes_path)
+        self._route_list = self.build_route_list()
+        print("Routes was loaded")
 
     def append_route(self, number: str):
-        rec = {"t": "route", "n": number}
-        with open(DB_PATH, "a") as f:
-            f.write(json.dumps(rec) + "\n")
+        try:
+            rec = {"t": "route", "n": number}
+            with open(DB_PATH, "a") as f:
+                f.write(json.dumps(rec) + "\n")
+        except OSError:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
 
     def append_direction(
         self, route_number: str, d_id: str, p_id: str, full_name: str, short_name=None
     ):
-        rec = {"t": "dir", "rn": route_number, "d": d_id, "p": p_id, "f": full_name}
-        if short_name:
-            rec["s"] = short_name
-        with open(DB_PATH, "a") as f:
-            f.write(json.dumps(rec) + "\n")
+        try:
+            rec = {"t": "dir", "rn": route_number, "d": d_id, "p": p_id, "f": full_name}
+            if short_name:
+                rec["s"] = short_name
+            with open(DB_PATH, "a") as f:
+                f.write(json.dumps(rec) + "\n")
+        except OSError:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
 
     def import_routes_from_txt(self, path_txt):
         try:
@@ -74,9 +78,7 @@ class RoutesManager:
                             num_line = num_line[:-1].strip()
 
                         if not num_line:
-                            raise ValueError(
-                                f"Line {line_number}: Empty route number after separator"
-                            )
+                            set_error_and_raise(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
 
                         current_route = num_line
                         self.append_route(current_route)
@@ -85,24 +87,19 @@ class RoutesManager:
                         continue
 
                     if not current_route:
-                        raise ValueError(
-                            f"Line {line_number}: Direction data without route number: '{line}'"
-                        )
+                        set_error_and_raise(ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE)
 
                     parts = [p.strip() for p in line.split(",")]
 
                     if len(parts) not in (3, 4):
-                        raise ValueError(
-                            f"Line {line_number}: Invalid direction format. "
-                            f"Expected 3 or 4 comma-separated values, got {len(parts)}: '{line}'"
+                        set_error_and_raise(
+                            ErrorCodes.ROUTES_DIRECTION_WRONG_PARTS_COUNT
                         )
 
                     d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
 
                     if not d_id or not p_id:
-                        raise ValueError(
-                            f"Line {line_number}: Direction ID or Point ID is empty"
-                        )
+                        set_error_and_raise(ErrorCodes.ROUTES_DIRECTION_EMPTY_ID)
 
                     full_name = full_name_str.split("^")
 
@@ -110,13 +107,13 @@ class RoutesManager:
                     if len(parts) == 4:
                         short_name_str = parts[3]
                         if "^" not in short_name_str:
-                            raise ValueError(
-                                f"Line {line_number}: Short name must contain '^' separator: '{short_name_str}'"
+                            set_error_and_raise(
+                                ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR
                             )
                         short_name = short_name_str.split("^")
                         if len(short_name) < 2:
-                            raise ValueError(
-                                f"Line {line_number}: Short name must have at least 2 parts separated by '^'"
+                            set_error_and_raise(
+                                ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS
                             )
 
                     self.append_direction(
@@ -124,16 +121,13 @@ class RoutesManager:
                     )
 
                 if not has_routes:
-                    raise ValueError("File contains no valid routes")
+                    set_error_and_raise(ErrorCodes.ROUTES_NO_ROUTES_FOUND)
 
-        except Exception as e:
-            from app.gui_management import ScreenConfig, ScreenStates
-
-            screen_config = ScreenConfig()
-            screen_config.current_screen = ScreenStates.ERROR_SCREEN
-            screen_config.error_message = f"Error while importing routes.txt: {e}"
-
-            raise
+        except OSError as e:
+            if e.args[0] == 2:
+                set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND, e)
+            else:
+                set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
 
     def build_route_list(self):
         routes_list = []
@@ -150,7 +144,7 @@ class RoutesManager:
                         if n and n not in routes_list:
                             routes_list.append(n)
         except OSError:
-            return []
+            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED)
 
         return routes_list
 

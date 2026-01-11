@@ -8,6 +8,8 @@ class ScreenStates:
     ERROR_SCREEN = "error"
     SETTINGS_SCREEN = "settings"
     UPDATE_SCREEN = "update"
+    INITIAL_SCREEN = "initial"
+    START_SCREEN = "start"
 
 
 @singleton
@@ -19,7 +21,7 @@ class ScreenConfig:
         _font_size (int): Font size used for rendering text.
         _max_menu_items (int): Maximum number of items visible at once on screen.
         _current_screen (str): Identifier of the current active screen.
-        _error_message (str): Error message to display on error screen.
+        _error_code (int): Error code to display on error screen.
     """
 
     def __init__(self):
@@ -30,7 +32,8 @@ class ScreenConfig:
         self._max_menu_items = 0
         self._max_number_of_characters_in_line = 0
         self._current_screen = ScreenStates.STATUS_SCREEN
-        self._error_message = ""
+        self._is_system_fresh = False
+        self._error_code = 0
 
     def set_screen_config(
         self,
@@ -105,13 +108,20 @@ class ScreenConfig:
         self._max_number_of_characters_in_line = value
 
     @property
-    def error_message(self):
-        return self._error_message
+    def error_code(self):
+        return self._error_code
 
-    @error_message.setter
-    def error_message(self, value: str):
-        self._error_message = value
+    @error_code.setter
+    def error_code(self, value: int):
+        self._error_code = value
 
+    @property
+    def is_system_fresh(self):
+        return self._is_system_fresh
+
+    @is_system_fresh.setter
+    def is_system_fresh(self, value: bool):
+        self._is_system_fresh = value
 
 
 @singleton

@@ -1,4 +1,6 @@
+from app.error_codes import ErrorCodes
 from utils.singleton_decorator import singleton
+from utils.error_handler import set_error_and_raise
 from .config_info import SystemConfig, CurrentSystemChosenConfiguraion, TripInfo
 
 
@@ -20,27 +22,22 @@ class ConfigManager:
             try:
                 return int(value)
             except ValueError:
-                print(f"Warning: Could not convert {key}={value} to int")
-                return getattr(self._config, key)
+                set_error_and_raise(ErrorCodes.CONFIG_INVALID_VALUE)
 
         return value
 
     def load_config(self, config_path: str) -> None:
-        """
-        Args:
-            config_path: The path to the config.txt file.
-        """
         try:
             with open(config_path, "r") as file:
                 lines = file.readlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
-        except Exception as e:
-            from app.gui_management import ScreenConfig, ScreenStates
-
-            screen_config = ScreenConfig()
-            screen_config.current_screen = ScreenStates.ERROR_SCREEN
-            screen_config.error_message = f"Error while loading config: {e}"
+        except OSError as e:
+            # errno 2 = ENOENT (file not found)
+            if e.args[0] == 2:
+                set_error_and_raise(ErrorCodes.CONFIG_FILE_NOT_FOUND, e)
+            else:
+                set_error_and_raise(ErrorCodes.CONFIG_IO_ERROR, e)
 
     def _parse_config(self, lines: list[str]) -> None:
         for line in lines:
@@ -49,15 +46,13 @@ class ConfigManager:
                 continue
 
             if "=" not in line:
-                print(f"Invalid config line: {line}")
-                raise ValueError(f"Invalid config line: {line}")
+                set_error_and_raise(ErrorCodes.CONFIG_NO_EQUALS_SIGN)
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
                 setattr(self._config, key, self._convert_value(key, value))
             else:
-                print(f"Unknown config key: {key}")
-                raise ValueError(f"Unknown config key: {key}")
+                set_error_and_raise(ErrorCodes.CONFIG_UNKNOWN_KEY)
 
     @property
     def config(self):
