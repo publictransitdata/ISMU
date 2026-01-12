@@ -12,7 +12,7 @@ class ConfigManager:
 
     def _convert_value(self, key: str, value: str):
         if key in {
-            "display_start_and_end_stops",
+            "show_start_and_end_stops",
             "force_short_names",
             "show_route_on_stop_board",
         }:
@@ -58,9 +58,10 @@ class ConfigManager:
     def config(self):
         return self._config
 
-    def update_current_configuration(self, route_number, trip):
+    def update_current_configuration(self, route_number, trip, no_line_telegram=False):
         self._current_config.route_number = route_number
         self._current_config.trip = TripInfo.trip_from_dict(trip)
+        self._current_config.no_line_telegram = no_line_telegram
 
     def get_current_configuration(self):
         return self._current_config

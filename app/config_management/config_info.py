@@ -51,12 +51,12 @@ class SystemConfig:
         self._destination = value
 
     @property
-    def display_start_and_end_stops(self):
-        return self._display_start_and_end_stops
+    def show_start_and_end_stops(self):
+        return self._show_start_and_end_stops
 
-    @display_start_and_end_stops.setter
-    def display_start_and_end_stops(self, value):
-        self._display_start_and_end_stops = value
+    @show_start_and_end_stops.setter
+    def show_start_and_end_stops(self, value):
+        self._show_start_and_end_stops = value
 
     @property
     def force_short_names(self):
@@ -173,6 +173,12 @@ class TripInfo:
 
 
 class CurrentSystemChosenConfiguraion:
-    def __init__(self, route_number: str | None = None, trip: dict | None = None):
+    def __init__(
+        self,
+        route_number: str | None = None,
+        trip: dict | None = None,
+        no_line_telegram: bool = False,
+    ):
         self.route_number = route_number
         self.trip = TripInfo.trip_from_dict(trip)
+        self.no_line_telegram = no_line_telegram
