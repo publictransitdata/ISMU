@@ -146,11 +146,18 @@ class IBISManager:
     async def send_ibis_telegrams(self):
         self._running = True
         while self._running:
+            current_config = self.config_manager.get_current_configuration()
             if (
-                self.config_manager.get_current_configuration().route_number is not None
-                and self.config_manager.get_current_configuration().trip is not None
+                current_config.route_number is not None
+                and current_config.trip is not None
             ):
                 for code in self.telegramTypes:
+                    if (
+                        code in ("DS001", "DS001neu")
+                        and current_config.no_line_telegram
+                    ):
+                        continue
+
                     handler = self.dispatch.get(code)
                     if handler:
                         try:

@@ -1,7 +1,7 @@
 line=DS001
 destination_number=DS003
 destination=DS003a
-display_start_and_end_stops=true
+show_start_and_end_stops=true
 force_short_names=false
 stop_board_telegram=DS003c
 show_route_on_stop_board=true

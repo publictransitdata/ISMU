@@ -33,5 +33,8 @@ ISMU.code-workspace
 typings/
 .idea/
 
+# Generated files
+*.ndjson
+
 
 

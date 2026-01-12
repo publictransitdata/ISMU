@@ -10,9 +10,9 @@ DB_PATH = "/config/routes_db.ndjson"
 @singleton
 class RoutesManager:
     def __init__(self):
-        self._route_doc_ids = None
         self._route_list = []
         self._db_file_path = DB_PATH
+        self._next_route_id_counter = 0
 
     def load_routes(self, routes_path: str) -> None:
         """
@@ -24,23 +24,46 @@ class RoutesManager:
         except OSError:
             pass
 
+        self._next_route_id_counter = 0
         self.import_routes_from_txt(routes_path)
         self._route_list = self.build_route_list()
         print("Routes was loaded")
 
-    def append_route(self, number: str):
+    def append_route(
+        self, number: str, no_line_telegram: bool = False, note: str | None = None
+    ) -> int:
+        route_id = self._next_route_id_counter
+        self._next_route_id_counter += 1
         try:
-            rec = {"t": "route", "n": number}
+            rec = {"t": "route", "id": route_id, "n": number}
+            if no_line_telegram:
+                rec["nlt"] = True
+            if note:
+                rec["note"] = note
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
         except OSError:
             set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
+        return route_id
 
     def append_direction(
-        self, route_number: str, d_id: str, p_id: str, full_name: str, short_name=None
+        self,
+        route_id: int,
+        route_number: str,
+        d_id: str,
+        p_id: str,
+        full_name: str,
+        short_name=None,
     ):
         try:
-            rec = {"t": "dir", "rn": route_number, "d": d_id, "p": p_id, "f": full_name}
+            rec = {
+                "t": "dir",
+                "rid": route_id,
+                "rn": route_number,
+                "d": d_id,
+                "p": p_id,
+                "f": full_name,
+            }
             if short_name:
                 rec["s"] = short_name
             with open(DB_PATH, "a") as f:
@@ -52,6 +75,7 @@ class RoutesManager:
         try:
             with open(path_txt, "rb") as fh:
                 current_route = None
+                current_route_id = None
                 line_number = 0
                 has_routes = False
                 expecting_route_after_separator = False
@@ -66,28 +90,36 @@ class RoutesManager:
                     if line.startswith("|"):
                         expecting_route_after_separator = True
                         current_route = None
+                        current_route_id = None
                         continue
 
                     if expecting_route_after_separator:
+                        note = None
                         if "#" in line:
-                            num_line = line.split("#", 1)[0].strip()
+                            num_line, note_part = line.split("#", 1)
+                            num_line = num_line.strip()
+                            note = note_part.strip() if note_part.strip() else None
                         else:
                             num_line = line
 
-                        if num_line.endswith("-"):
+                        no_line_telegram = num_line.endswith("-")
+                        if no_line_telegram:
                             num_line = num_line[:-1].strip()
 
                         if not num_line:
                             set_error_and_raise(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
 
                         current_route = num_line
-                        self.append_route(current_route)
+                        current_route_id = self.append_route(
+                            current_route, no_line_telegram, note
+                        )
                         has_routes = True
                         expecting_route_after_separator = False
                         continue
 
-                    if not current_route:
+                    if current_route is None or current_route_id is None:
                         set_error_and_raise(ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE)
+                        return
 
                     parts = [p.strip() for p in line.split(",")]
 
@@ -117,7 +149,12 @@ class RoutesManager:
                             )
 
                     self.append_direction(
-                        current_route, d_id, p_id, full_name, short_name
+                        current_route_id,
+                        current_route,
+                        d_id,
+                        p_id,
+                        full_name,
+                        short_name,
                     )
 
                 if not has_routes:
@@ -140,28 +177,43 @@ class RoutesManager:
                     except Exception:
                         continue
                     if rec.get("t") == "route":
-                        n = rec.get("n")
-                        if n and n not in routes_list:
-                            routes_list.append(n)
+                        routes_list.append(
+                            {
+                                "id": rec.get("id"),
+                                "n": rec.get("n"),
+                                "nlt": rec.get("nlt", False),
+                                "note": rec.get("note"),
+                            }
+                        )
         except OSError:
             set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED)
 
         return routes_list
 
     def get_route_by_index(self, index: int):
-        route_number = self._route_list[index]
+        if index < 0 or index >= len(self._route_list):
+            return {
+                "route_number": "",
+                "dirs": [],
+                "no_line_telegram": False,
+                "note": None,
+            }
+
+        route_info = self._route_list[index]
+        route_id = route_info["id"]
+        route_number = route_info["n"]
+        no_line_telegram = route_info.get("nlt", False)
+        note = route_info.get("note")
         dirs = []
+
         try:
             with open(DB_PATH, "r") as f:
-                while True:
-                    line = f.readline()
-                    if not line:
-                        break
+                for line in f:
                     try:
                         rec = json.loads(line)
                     except Exception:
                         continue
-                    if rec.get("t") == "dir" and rec.get("rn") == route_number:
+                    if rec.get("t") == "dir" and rec.get("rid") == route_id:
                         dirs.append(
                             {
                                 "trip_id": rec.get("d", ""),
@@ -172,7 +224,12 @@ class RoutesManager:
                         )
         except OSError:
             pass
-        return {"route_number": route_number, "dirs": dirs}
+        return {
+            "route_number": route_number,
+            "dirs": dirs,
+            "no_line_telegram": no_line_telegram,
+            "note": note,
+        }
 
     def get_length_of_routes(self) -> int:
         return len(self._route_list)

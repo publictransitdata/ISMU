@@ -15,7 +15,7 @@ ALLOWED_CONFIG_CHARS = set(
 
 
 VALID_CONFIG_KEYS = {
-    "display_start_and_end_stops",
+    "show_start_and_end_stops",
     "force_short_names",
     "show_route_on_stop_board",
     "baudrate",
@@ -35,21 +35,21 @@ VALID_CONFIG_KEYS = {
 BASE_STYLE = """body{font-family:Arial;margin:0;padding:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh}.c{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);max-width:400px;width:90%;text-align:center}h1{font-size:1.5em;margin-bottom:1em}"""
 
 UPLOAD_HTML = (
-    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Upload</title><style>"""
+    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Завантажити</title><style>"""
     + BASE_STYLE
-    + """p{margin:.5em 0 .2em;text-align:left}input[type=file]{width:100%}input[type=submit]{margin-top:1em;width:100%;padding:.7em;font-size:1em;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer}</style></head><body><div class="c"><h1>Upload Mode</h1><form action="/upload" method="post" enctype="multipart/form-data"><p>Upload config.txt:</p><input type="file" name="config_file"><p>Upload routes.txt:</p><input type="file" name="routes_file"><input type="submit" value="Upload"></form></div></body></html>"""
+    + """p{margin:.5em 0 .2em;text-align:left}input[type=file]{width:100%}input[type=submit]{margin-top:1em;width:100%;padding:.7em;font-size:1em;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer}</style></head><body><div class="c"><h1>Режим оновлення</h1><form action="/upload" method="post" enctype="multipart/form-data"><p>Завантажити config.txt:</p><input type="file" name="config_file"><p>Завантажити routes.txt:</p><input type="file" name="routes_file"><input type="submit" value="Завантажити"></form></div></body></html>"""
 )
 
 SUCCESS_HTML = (
-    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Success</title><style>"""
+    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Успіх</title><style>"""
     + BASE_STYLE
-    + """.ok{color:#4CAF50;font-size:3em}p{margin:1em 0}</style></head><body><div class="c"><div class="ok">&#10004;</div><h1>Upload Successful</h1><p>Files saved: {files}</p><p>Device will restart...</p></div></body></html>"""
+    + """.ok{color:#4CAF50;font-size:3em}p{margin:1em 0}</style></head><body><div class="c"><div class="ok">&#10004;</div><h1>Успішно завантажено</h1><p>Збережені файли: {files}</p><p>Пристрій перезавантажиться...</p></div></body></html>"""
 )
 
 ERROR_HTML = (
-    """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Error</title><style>"""
+    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Помилка</title><style>"""
     + BASE_STYLE
-    + """.err{color:#f44336;font-size:3em}p{margin:1em 0}a{display:inline-block;margin-top:1em;padding:.5em 1em;background:#4CAF50;color:#fff;text-decoration:none;border-radius:4px}</style></head><body><div class="c"><div class="err">&#10008;</div><h1>Error</h1><p>{message}</p><a href="/">Try Again</a></div></body></html>"""
+    + """.err{color:#f44336;font-size:3em}p{margin:1em 0}a{display:inline-block;margin-top:1em;padding:.5em 1em;background:#4CAF50;color:#fff;text-decoration:none;border-radius:4px}</style></head><body><div class="c"><div class="err">&#10008;</div><h1>Помилка</h1><p>{message}</p><a href="/">Спробувати ще раз</a></div></body></html>"""
 )
 
 
@@ -58,16 +58,14 @@ def _check_invalid_chars(content: bytes, allowed_chars: set) -> list:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError as e:
-        return [f"Invalid UTF-8 encoding at byte {e.start}"]
+        return [f"Невірне кодування файлу (позиція {e.start})"]
 
     for i, char in enumerate(text):
         if char not in allowed_chars:
             line_num = text[:i].count("\n") + 1
-            errors.append(
-                f"Line {line_num}: Invalid character '{char}' (code: {ord(char)})"
-            )
+            errors.append(f"Рядок {line_num}: Недопустимий символ '{char}'")
             if len(errors) >= 5:
-                errors.append("... (more errors omitted)")
+                errors.append("... (ще є помилки)")
                 break
     return errors
 
@@ -76,7 +74,7 @@ def _check_config_content(content: bytes) -> list:
     errors = []
 
     if not content or not content.strip():
-        return ["config.txt is empty"]
+        return ["Файл налаштувань порожній"]
 
     char_errors = _check_invalid_chars(content, ALLOWED_CONFIG_CHARS)
     if char_errors:
@@ -85,10 +83,10 @@ def _check_config_content(content: bytes) -> list:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
-        return ["Invalid UTF-8 encoding in config.txt"]
+        return ["Невірне кодування файлу налаштувань"]
 
     if not text.strip():
-        return ["config.txt is empty"]
+        return ["Файл налаштувань порожній"]
 
     lines = text.split("\n")
     found_keys = set()
@@ -99,7 +97,7 @@ def _check_config_content(content: bytes) -> list:
             continue
 
         if "=" not in line:
-            errors.append(f"Line {i}: Missing '=' separator: '{line[:30]}'")
+            errors.append(f"Рядок {i}: Відсутній знак '='")
             continue
 
         key, value = line.split("=", 1)
@@ -107,17 +105,22 @@ def _check_config_content(content: bytes) -> list:
         value = value.strip()
 
         if key not in VALID_CONFIG_KEYS:
-            errors.append(f"Line {i}: Unknown config key: '{key}'")
+            errors.append(f"Рядок {i}: Невідомий параметр '{key}'")
         else:
             found_keys.add(key)
 
+            if not value:
+                errors.append(f"Рядок {i}: Параметр '{key}' не має значення")
+
         if len(errors) >= 10:
-            errors.append("... (more errors omitted)")
+            errors.append("... (ще є помилки)")
             break
 
     missing_keys = VALID_CONFIG_KEYS - found_keys
     if missing_keys:
-        errors.append(f"Missing required keys: {', '.join(sorted(missing_keys))}")
+        errors.append(
+            f"Відсутні обов'язкові параметри: {', '.join(sorted(missing_keys))}"
+        )
 
     return errors
 
@@ -126,7 +129,7 @@ def _check_routes_content(content: bytes) -> list:
     errors = []
 
     if not content or not content.strip():
-        return ["routes.txt is empty"]
+        return ["Файл маршрутів порожній"]
 
     char_errors = _check_invalid_chars(content, ALLOWED_CHARS)
     if char_errors:
@@ -136,14 +139,15 @@ def _check_routes_content(content: bytes) -> list:
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
-        return ["Invalid UTF-8 encoding in routes.txt"]
+        return ["Невірне кодування файлу маршрутів"]
 
     if not text.strip():
-        return ["routes.txt is empty"]
+        return ["Файл маршрутів порожній"]
 
     lines = text.split("\n")
     current_route = None
     expecting_route = False
+    expecting_route_line = 0
     has_routes = False
 
     for i, raw_line in enumerate(lines, 1):
@@ -152,7 +156,12 @@ def _check_routes_content(content: bytes) -> list:
             continue
 
         if line.startswith("|"):
+            if expecting_route:
+                errors.append(
+                    f"Рядок {i}: Роздільник '|' без номера маршруту перед ним (рядок {expecting_route_line})"
+                )
             expecting_route = True
+            expecting_route_line = i
             current_route = None
             continue
 
@@ -166,7 +175,7 @@ def _check_routes_content(content: bytes) -> list:
                 route_num_line = route_num_line[:-1].strip()
 
             if not route_num_line:
-                errors.append(f"Line {i}: Empty route number after separator")
+                errors.append(f"Рядок {i}: Порожній номер маршруту після роздільника")
             else:
                 current_route = route_num_line
                 has_routes = True
@@ -174,32 +183,39 @@ def _check_routes_content(content: bytes) -> list:
             continue
 
         if not current_route:
-            errors.append(f"Line {i}: Direction data without route number")
+            errors.append(f"Рядок {i}: Дані напрямку без номера маршруту")
             continue
 
         parts = [p.strip() for p in line.split(",")]
         if len(parts) not in (3, 4):
             errors.append(
-                f"Line {i}: Expected 3 or 4 comma-separated values, got {len(parts)}"
+                f"Рядок {i}: Очікується 3 або 4 значення через кому, отримано {len(parts)}"
             )
             continue
 
         d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
 
         if not d_id or not p_id:
-            errors.append(f"Line {i}: Direction ID or Point ID is empty")
+            errors.append(
+                f"Рядок {i}: Порожній ID напрямку або точки"
+            )  ## direction point or something need to be translated better in ukrainian
 
         if len(parts) == 4:
             short_name_str = parts[3]
             if "^" not in short_name_str:
-                errors.append(f"Line {i}: Short name must contain '^' separator")
+                errors.append(f"Рядок {i}: Коротка назва має містити роздільник '^'")
 
         if len(errors) >= 10:
-            errors.append("... (more errors omitted)")
+            errors.append("... (ще є помилки)")
             break
 
+    if expecting_route:
+        errors.append(
+            f"Рядок {expecting_route_line}: Роздільник '|' без номера маршруту після нього"
+        )
+
     if not has_routes and not errors:
-        errors.append("File contains no valid routes")
+        errors.append("У файлі не знайдено жодного маршруту")
 
     return errors
 
@@ -266,7 +282,7 @@ class WebUpdateServer:
         async def upload(request):
             content_type = request.headers.get("Content-Type", "")
             if "multipart/form-data" not in content_type:
-                return self._error_response("Unsupported Media Type")
+                return self._error_response("Непідтримуваний тип файлу")
 
             boundary = content_type.split("boundary=")[-1]
             parts = request.body.split(b"--" + boundary.encode())
@@ -291,14 +307,14 @@ class WebUpdateServer:
 
                     if not filename.endswith(".txt"):
                         return self._error_response(
-                            f"Only .txt files are allowed: '{filename}'"
+                            f"Дозволені лише .txt файли: '{filename}'"
                         )
 
                     if name == "config_file" and filename == "config.txt":
                         errors = _check_config_content(file_content)
                         if errors:
                             return self._error_response(
-                                f"config.txt validation failed: {'; '.join(errors)}"
+                                f"Помилка у config.txt: {'; '.join(errors)}"
                             )
                         files_to_save["config.txt"] = file_content
 
@@ -306,12 +322,12 @@ class WebUpdateServer:
                         errors = _check_routes_content(file_content)
                         if errors:
                             return self._error_response(
-                                f"routes.txt validation failed: {'; '.join(errors)}"
+                                f"Помилка у routes.txt: {'; '.join(errors)}"
                             )
                         files_to_save["routes.txt"] = file_content
                     else:
                         return self._error_response(
-                            "Invalid file upload: wrong field or filename"
+                            "Невірний файл: очікується config.txt або routes.txt"
                         )
 
             # Save all validated files
@@ -327,7 +343,7 @@ class WebUpdateServer:
                 return self._success_response(", ".join(saved_files))
             else:
                 return self._error_response(
-                    "No valid files uploaded (only config.txt or routes.txt are accepted)"
+                    "Не завантажено жодного файлу (приймаються лише config.txt та routes.txt)"
                 )
 
     async def _delayed_reset(self):

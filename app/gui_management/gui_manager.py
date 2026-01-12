@@ -103,6 +103,7 @@ class GuiManager:
             self._config_manager.update_current_configuration(
                 route["route_number"],
                 route["dirs"][self._trip_menu_state.selected_item_index],
+                route.get("no_line_telegram", False),
             )
 
             self._gui_drawer.draw_status_screen(
@@ -343,7 +344,7 @@ class GuiManager:
 
     def get_route_list_to_display(self, route_file_path) -> list[str]:
         routes = self._routes_manager._route_list
-        needed_routes = set(routes)
+
         labels = {}
 
         try:
@@ -354,25 +355,30 @@ class GuiManager:
                     except Exception:
                         continue
                     if record.get("t") == "dir":
-                        route_number = record.get("rn")
-                        if route_number in needed_routes and route_number not in labels:
-                            labels[route_number] = record.get("s") or record.get(
-                                "f", ""
-                            )
-                            if len(labels) == len(needed_routes):
+                        route_id = record.get("rid")
+                        if route_id is not None and route_id not in labels:
+                            labels[route_id] = record.get("s") or record.get("f", "")
+                            if len(labels) == len(routes):
                                 break
         except OSError:
             pass
 
         result = []
-        for route_number in routes:
-            name_list = labels.get(route_number, "")
-            if not name_list:
-                result.append(route_number)
-            elif len(name_list) == 2:
-                result.append(f"{route_number} {name_list[0]} - {name_list[1]}")
+        for route_info in routes:
+            route_id = route_info["id"]
+            route_number = route_info["n"]
+            note = route_info.get("note")
+
+            if note:
+                result.append(f"{route_number} {note}")
             else:
-                result.append(f"{route_number} {name_list[0]}")
+                name_list = labels.get(route_id, "")
+                if not name_list:
+                    result.append(route_number)
+                elif len(name_list) == 2:
+                    result.append(f"{route_number} {name_list[0]} - {name_list[1]}")
+                else:
+                    result.append(f"{route_number} {name_list[0]}")
         return result
 
     def get_trip_list_to_display(self, route) -> list[str]:
