@@ -67,6 +67,8 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error during loading: {e}")
 
+    config_manager.get_current_configuration().load_from_saved_state()
+
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
     btn_menu = Pin(4, Pin.IN, Pin.PULL_UP)
