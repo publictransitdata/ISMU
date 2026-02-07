@@ -3,6 +3,7 @@ import time
 
 from app.routes_management import RoutesManager
 from app.config_management import ConfigManager
+from app.state_management import StateManager
 from app.web_update import WebUpdateServer
 from .gui_drawer import GuiDrawer
 from .gui_config import (
@@ -35,6 +36,7 @@ class GuiManager:
         self._route_menu_state = RouteMenuState()
         self._trip_menu_state = TripMenuState()
         self._screen_config = screen_config
+        self._state_manager = StateManager()
         self._web_update_server = WebUpdateServer(
             self._config_manager.config.ap_name,
             self._config_manager.config.ap_ip,
@@ -43,11 +45,14 @@ class GuiManager:
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
         self._dirty = True
-
         self._buttons_press_start_time = None
         self._buttons_press_active = False
 
+        self._route_menu_state.load_from_saved_state()
+        self._trip_menu_state.load_from_saved_state()
+
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
+
 
     def draw_current_screen(self):
         if not self._dirty:
@@ -99,12 +104,6 @@ class GuiManager:
                 selected_trip_name = selected_trip_name_list[1]
             else:
                 selected_trip_name = selected_trip_name_list[0]
-
-            self._config_manager.update_current_configuration(
-                route["route_number"],
-                route["dirs"][self._trip_menu_state.selected_item_index],
-                route.get("no_line_telegram", False),
-            )
 
             self._gui_drawer.draw_status_screen(
                 selected_trip_name,
@@ -330,6 +329,18 @@ class GuiManager:
                 self._trip_menu_state.selected_item_index = (
                     self._trip_menu_state.highlighted_item_index
                 )
+
+                route = self._routes_manager.get_route_by_index(
+                    self._route_menu_state.selected_item_index
+                )
+                self._config_manager.update_current_configuration(
+                    route["route_number"],
+                    route["dirs"][self._trip_menu_state.selected_item_index],
+                    route.get("no_line_telegram", False),
+                )
+
+                self._state_manager.save_state(self._route_menu_state.highlighted_item_index, self._trip_menu_state.highlighted_item_index)
+
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
 

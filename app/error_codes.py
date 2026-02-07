@@ -3,6 +3,7 @@ class ErrorCodes:
     # File errors (10X)
     CONFIG_FILE_NOT_FOUND = 100
     CONFIG_IO_ERROR = 101
+    TEMP_STATE_WRITE_ERROR = 102
 
     # Parse errors (11X)
     CONFIG_PARSE_ERROR = 110
@@ -36,6 +37,7 @@ class ErrorCodes:
         # Config
         100: "E100: Config not found",
         101: "E101: Config IO error",
+        102: "E102: Temp state write error",
         # Config - parse
         110: "E110: Config parse fail",
         111: "E111: Missing '=' in line",

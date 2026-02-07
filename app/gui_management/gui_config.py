@@ -1,4 +1,5 @@
 from utils.singleton_decorator import singleton
+from app.state_management import StateManager
 
 
 class ScreenStates:
@@ -146,6 +147,11 @@ class RouteMenuState:
     def highlighted_item_index(self, value):
         self._highlighted_item_index = value
 
+    def load_from_saved_state(self):
+        state = StateManager().get_state()
+        self._selected_item_index = state["route_id"]
+        self._highlighted_item_index = state["route_id"]
+
 
 @singleton
 class TripMenuState:
@@ -172,3 +178,8 @@ class TripMenuState:
     @highlighted_item_index.setter
     def highlighted_item_index(self, value):
         self._highlighted_item_index = value
+
+    def load_from_saved_state(self):
+        state = StateManager().get_state()
+        self._selected_item_index = state["trip_id"]
+        self._highlighted_item_index = state["trip_id"]
