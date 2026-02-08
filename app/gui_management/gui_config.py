@@ -131,6 +131,11 @@ class RouteMenuState:
         self._selected_item_index = 0
         self._highlighted_item_index = 0
 
+    def load_from_saved_state(self):
+        state = StateManager().get_state()
+        self._selected_item_index = state["route_id"]
+        self._highlighted_item_index = state["route_id"]
+
     @property
     def selected_item_index(self):
         return self._selected_item_index
@@ -146,11 +151,6 @@ class RouteMenuState:
     @highlighted_item_index.setter
     def highlighted_item_index(self, value):
         self._highlighted_item_index = value
-
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["route_id"]
-        self._highlighted_item_index = state["route_id"]
 
 
 @singleton
@@ -163,6 +163,11 @@ class TripMenuState:
         self._selected_item_index = trip_selected_item_index
         self._highlighted_item_index = trip_selected_item_index
 
+    def load_from_saved_state(self):
+        state = StateManager().get_state()
+        self._selected_item_index = state["trip_id"]
+        self._highlighted_item_index = state["trip_id"]
+
     @property
     def selected_item_index(self):
         return self._selected_item_index
@@ -178,8 +183,3 @@ class TripMenuState:
     @highlighted_item_index.setter
     def highlighted_item_index(self, value):
         self._highlighted_item_index = value
-
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["trip_id"]
-        self._highlighted_item_index = state["trip_id"]
