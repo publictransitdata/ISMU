@@ -12,9 +12,12 @@ class RoutesManager:
     def __init__(self):
         self._route_list = []
         self._db_file_path = DB_PATH
-        self._next_route_id_counter = 0
 
-    def load_routes(self, routes_path: str) -> None:
+    def load_routes(self) -> None:
+        self._route_list = self.build_route_list()
+        print("Routes was loaded")
+
+    def refresh_db(self, routes_path: str) -> None:
         """
         Args:
             routes_path: The path to the routes.txt file.
@@ -24,16 +27,12 @@ class RoutesManager:
         except OSError:
             pass
 
-        self._next_route_id_counter = 0
         self.import_routes_from_txt(routes_path)
-        self._route_list = self.build_route_list()
-        print("Routes was loaded")
+
 
     def append_route(
-        self, number: str, no_line_telegram: bool = False, note: str | None = None
-    ) -> int:
-        route_id = self._next_route_id_counter
-        self._next_route_id_counter += 1
+        self, route_id: int, number: str, no_line_telegram: bool = False, note: str | None = None
+    ) -> None:
         try:
             rec = {"t": "route", "id": route_id, "n": number}
             if no_line_telegram:
@@ -44,7 +43,6 @@ class RoutesManager:
                 f.write(json.dumps(rec) + "\n")
         except OSError:
             set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
-        return route_id
 
     def append_direction(
         self,
@@ -54,7 +52,7 @@ class RoutesManager:
         p_id: str,
         full_name: str,
         short_name=None,
-    ):
+    ) -> None:
         try:
             rec = {
                 "t": "dir",
@@ -72,6 +70,7 @@ class RoutesManager:
             set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
 
     def import_routes_from_txt(self, path_txt):
+        next_route_id = 0
         try:
             with open(path_txt, "rb") as fh:
                 current_route = None
@@ -110,9 +109,11 @@ class RoutesManager:
                             set_error_and_raise(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
 
                         current_route = num_line
-                        current_route_id = self.append_route(
-                            current_route, no_line_telegram, note
+                        current_route_id = next_route_id 
+                        self.append_route(
+                            current_route_id, current_route, no_line_telegram, note
                         )
+                        next_route_id += 1
                         has_routes = True
                         expecting_route_after_separator = False
                         continue

@@ -57,10 +57,21 @@ class GuiDrawer:
         self._display.fill(0)
 
         self._writer.set_textpos(self._display, 0, left_offset)
-        self._writer.printstring(f"{header_text}{header_suffix}", False)
-        self._display.fill_rect(
-            0, line_height + 1, self._screen_config.screen_height, 1, 1
-        )
+        self._writer.printstring(header_text, False)
+
+        if header_suffix:
+            header_text_width = self._writer.stringlen(header_text)
+            separator_x = left_offset + header_text_width + 7  # 7px offset
+            
+            suffix_x = separator_x + 3 # 3px offset
+            self._writer.set_textpos(self._display, 0, suffix_x)
+            self._writer.printstring(header_suffix, False)
+
+            self._display.vline(separator_x, 0, line_height + 2, 1)
+
+            self._display.fill_rect(
+                separator_x, line_height + 1, self._screen_config.screen_width, 1, 1
+            )
 
         first_visible_menu_item_idx = (
             highlighted_item_index // max_menu_items
@@ -115,7 +126,24 @@ class GuiDrawer:
         bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
         self._writer.printstring(
-            f"М:{selected_route_id}Н:{selected_trip_id:02d}К:{selected_trip_number}",
+            f"М:{selected_route_id}",
+            False,
+        )
+
+        route_text_width = self._writer.stringlen(f"М:{selected_route_id}")
+        trip_text_width = self._writer.stringlen(f"Н:{selected_trip_id:02d}")
+
+        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + 3)
+
+        self._writer.printstring(
+            f"Н:{selected_trip_id:02d}",
+            False,
+        )
+
+        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + trip_text_width + 6)
+
+        self._writer.printstring(
+            f"К:{selected_trip_number}",
             False,
         )
 

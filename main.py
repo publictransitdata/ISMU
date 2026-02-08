@@ -25,6 +25,7 @@ except ImportError:
 
 CONFIG_PATH = "/config/config.txt"
 ROUTES_PATH = "/config/routes.txt"
+COMBO_GRACE_MS = 50
 
 
 def check_required_files(*paths):
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     if screen_config.current_screen is not ScreenStates.INITIAL_SCREEN:
         try:
             config_manager.load_config(CONFIG_PATH)
-            routes_manager.load_routes(ROUTES_PATH)
+            routes_manager.load_routes()
         except Exception as e:
             print(f"Error during loading: {e}")
 
@@ -100,11 +101,25 @@ if __name__ == "__main__":
 
     async def gui_loop(gui: GuiManager):
         while True:
-            gui_manager.handle_buttons(
-                btn_menu.value(), btn_up.value(), btn_down.value(), btn_select.value()
+            m, u, d, s = (
+                btn_menu.value(),
+                btn_up.value(),
+                btn_down.value(),
+                btn_select.value(),
             )
+
+            if (not u) + (not d) + (not m) + (not s) == 1:
+                await asyncio.sleep_ms(COMBO_GRACE_MS)
+                m, u, d, s = (
+                    btn_menu.value(),
+                    btn_up.value(),
+                    btn_down.value(),
+                    btn_select.value(),
+                )
+
+            gui_manager.handle_buttons(m, u, d, s)
             gui_manager.draw_current_screen()
-            await asyncio.sleep(0.01)
+            await asyncio.sleep_ms(30)
 
     async def main_loop():
         if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:

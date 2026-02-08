@@ -10,6 +10,8 @@ import asyncio
 import io
 import re
 import time
+import gc
+import micropython
 
 try:
     import orjson as json
@@ -320,7 +322,7 @@ class Request:
     #: Example::
     #:
     #:    Request.max_body_length = 4 * 1024  # up to 4KB bodies read
-    max_body_length = 16 * 1024
+    max_body_length = 1024
 
     #: Specify the maximum length allowed for a line in the request. Requests
     #: with longer lines will not be correctly interpreted. Applications can
@@ -449,6 +451,7 @@ class Request:
         # body
         body = b""
         if content_length and content_length <= Request.max_body_length:
+            gc.collect()
             body = await client_reader.readexactly(content_length)
             stream = None
         else:
@@ -1507,9 +1510,25 @@ class Microdot:
 
     async def dispatch_request(self, req):
         after_request_handled = False
+        gc.collect()
         if req:
             if req.content_length > req.max_content_length:
                 # the request body is larger than allowed
+                if req._stream is not None:
+                    try:
+                        already_read = len(req._body) if req._body else 0
+                        remaining = req.content_length - already_read
+                        while remaining > 0:
+                            chunk_size = min(remaining, 1024)
+                            chunk = await req._stream.read(chunk_size)
+                            if not chunk:
+                                break
+                            remaining -= len(chunk)
+                            del chunk
+                            gc.collect()
+                    except Exception:
+                        pass
+                gc.collect()
                 res = await self.error_response(req, 413, "Payload too large")
             else:
                 # find the route in the app's URL map
