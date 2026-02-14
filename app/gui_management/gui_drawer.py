@@ -168,6 +168,28 @@ class GuiDrawer:
 
         self._display.show()
 
+    def draw_message_screen(self, message: str) -> None:
+        self._display.fill(0)
+
+        line_height = self._screen_config.font_size + 2
+        screen_width = self._screen_config.screen_width
+        screen_height = self._screen_config.screen_height
+
+        bottom_y = screen_height - line_height
+
+        note_for_user = ">Натисни OK<"
+
+        message_width = self._writer.stringlen(note_for_user)
+        message_offset = (screen_width - message_width) // 2
+
+        self._writer.set_textpos(self._display, 0, 0)
+        self._writer.printstring(message, False)
+
+        self._writer.set_textpos(self._display, bottom_y, message_offset)
+        self._writer.printstring(note_for_user, False)
+
+        self._display.show()
+
     def draw_initial_screen(self) -> None:
         self._display.fill(0)
         self._writer.set_textpos(self._display, 0, 0)
@@ -220,8 +242,12 @@ class GuiDrawer:
 
         self._writer.set_textpos(self._display, 0, 0)
 
+        telegrams_list = [config.line, config.destination_number, config.destination, config.stop_board_telegram]
+        filtered_telegrams = [t for t in telegrams_list if t]
+        telegrams_text = ", ".join(filtered_telegrams)
+
         self._writer.printstring(
-            f"Telegrams: {config.line}, {config.destination_number}, {config.destination}, {config.stop_board_telegram}",
+            f"Telegrams: {telegrams_text}",
             False,
         )
 

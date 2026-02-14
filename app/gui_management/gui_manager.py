@@ -45,7 +45,6 @@ class GuiManager:
         )
         self._gui_drawer = GuiDrawer(display, writer, screen_config)
 
-        self._dirty = True
         self._buttons_press_start_time = None
         self._buttons_press_active = False
         self._last_single_button_time = 0
@@ -57,7 +56,7 @@ class GuiManager:
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 
     def draw_current_screen(self):
-        if not self._dirty:
+        if not self.is_dirty():
             return
 
         current_screen = self._screen_config.current_screen
@@ -95,7 +94,6 @@ class GuiManager:
                 number_of_menu_items,
                 f"M:{route['route_number']}",
             )
-
         elif current_screen == ScreenStates.STATUS_SCREEN:
             route = self._routes_manager.get_route_by_index(
                 self._route_menu_state.selected_item_index
@@ -126,8 +124,10 @@ class GuiManager:
             self._gui_drawer.draw_update_mode_screen(
                 self._config_manager.config.ap_ip, self._config_manager.config.ap_name
             )
-
-        self._dirty = False
+        elif current_screen == ScreenStates.MESSAGE_SCREEN:
+            self._gui_drawer.draw_message_screen(self._screen_config.message_to_display)
+            
+        self._screen_config.mark_clean()
 
     def navigate_up(self, menu_type: str) -> None:
         menu_state = self._get_menu_state(menu_type)
@@ -329,7 +329,7 @@ class GuiManager:
                 self._config_manager.update_current_configuration(
                     route["route_number"],
                     route["dirs"][self._trip_menu_state.selected_item_index],
-                    route.get("no_line_telegram", False),
+                    route.get("no_line_telegram", False)
                 )
                 self._state_manager.save_state(
                     self._route_menu_state.highlighted_item_index,
@@ -337,16 +337,20 @@ class GuiManager:
                 )
                 self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
+            elif self._screen_config.current_screen == ScreenStates.MESSAGE_SCREEN:
+                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+                self.mark_dirty()
+
             self._last_single_button_time = current_time
 
         self._buttons_press_active = False
         self._buttons_press_start_time = None
 
     def mark_dirty(self):
-        self._dirty = True
+        self._screen_config.mark_dirty()
 
     def is_dirty(self) -> bool:
-        return self._dirty
+        return self._screen_config.is_dirty()
 
     def get_route_list_to_display(self, route_file_path) -> list[str]:
         routes = self._routes_manager._route_list

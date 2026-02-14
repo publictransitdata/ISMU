@@ -50,7 +50,11 @@ class ConfigManager:
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
-                setattr(self._config, key, self._convert_value(key, value))
+                if key in {"line", "destination_number", "destination", "stop_board_telegram"}:
+                    converted = value if value else None
+                else:
+                    converted = self._convert_value(key, value)
+                setattr(self._config, key, converted)
             else:
                 set_error_and_raise(ErrorCodes.CONFIG_UNKNOWN_KEY)
 
@@ -62,10 +66,11 @@ class ConfigManager:
         self._current_config.route_number = route_number
         self._current_config.trip = TripInfo.trip_from_dict(trip)
         self._current_config.no_line_telegram = no_line_telegram
+        self._current_config.isUpdated = True
 
     def get_current_configuration(self):
         return self._current_config
 
     def get_telegram_types(self):
         keys = ["line", "destination_number", "destination", "stop_board_telegram"]
-        return [getattr(self._config, k) for k in keys]
+        return {getattr(self._config, k) for k in keys if getattr(self._config, k)}
