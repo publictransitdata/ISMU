@@ -35,6 +35,9 @@ class StateManager:
             return {"route_id": 0, "trip_id": 0}
         return state_info
 
+    def reset_state(self):
+        self.save_state(0, 0)
+
 
     def _load_state(self) -> dict | None:
         try:

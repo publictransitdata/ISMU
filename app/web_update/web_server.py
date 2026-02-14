@@ -1,6 +1,7 @@
 from app.web_update.safe_route_decorator import safe_route
 from microdot import Microdot, Request  # type: ignore
 from app.routes_management import RoutesManager
+from app.state_management import StateManager
 import network
 import uasyncio as asyncio
 import os
@@ -149,7 +150,9 @@ def _check_config_content_file(filepath: str) -> list:
                 errors.append(f"Рядок {line_num}: Невідомий параметр '{key}'")
             else:
                 found_keys.add(key)
-                if not value:
+                nullable_telegram_keys = {"line", "destination_number", "destination", "stop_board_telegram"}
+
+                if not value and key not in nullable_telegram_keys:
                     errors.append(f"Рядок {line_num}: Параметр '{key}' не має значення")
 
             if len(errors) >= 10:
@@ -180,6 +183,7 @@ def _check_routes_content_file(filepath: str) -> list:
     expecting_route_line = 0
     has_routes = False
     line_num = 0
+    seen_p_ids = {}
 
     with open(filepath, "r") as f:
         while True:
@@ -241,6 +245,13 @@ def _check_routes_content_file(filepath: str) -> list:
 
             if not d_id or not p_id:
                 errors.append(f"Рядок {line_num}: Порожній ID напрямку або точки")
+            else:
+                if p_id in seen_p_ids:
+                    errors.append(
+                        f"Рядок {line_num}: Дублікат індексу напрямку '{p_id}' (вже є на рядку {seen_p_ids[p_id]})"
+                    )
+                else:
+                    seen_p_ids[p_id] = line_num
 
             if len(parts) == 4:
                 short_name_str = parts[3]
@@ -508,7 +519,7 @@ class WebUpdateServer:
                 else:
                     _cleanup_tmp()
                     return self._error_response(
-                        "Невірний файл: очікується config.txt або routes.txt"
+                        "Невірний файл: очікується config.txt або routes.txt у відповідних полях форми"
                     )
 
             if files_to_save:
@@ -528,7 +539,10 @@ class WebUpdateServer:
                 if "routes.txt" in saved_files:
                     try:
                         routes_manager = RoutesManager()
+                        state_manager = StateManager()
                         routes_manager.refresh_db("/config/routes.txt")
+                        state_manager.reset_state()
+                        
                     except Exception as e:
                         print(f"Failed to refresh routes DB: {e}")
 

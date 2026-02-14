@@ -117,17 +117,24 @@ if __name__ == "__main__":
                     btn_select.value(),
                 )
 
-            gui_manager.handle_buttons(m, u, d, s)
-            gui_manager.draw_current_screen()
+            gui.handle_buttons(m, u, d, s)
+            gui.draw_current_screen()
             await asyncio.sleep_ms(30)
 
     async def main_loop():
+        gui_task = asyncio.create_task(gui_loop(gui_manager))
+
         if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:
-            gui_task = asyncio.create_task(gui_loop(gui_manager))
             ibis_manager.start()
-            await asyncio.gather(gui_task, ibis_manager.task)
+
+            try:
+                await ibis_manager.task
+                await gui_task
+            except Exception as e:
+                print(f"IBIS crashed: {e}")
+                ibis_manager.stop()
+                await gui_task
         else:
-            gui_task = asyncio.create_task(gui_loop(gui_manager))
-            await asyncio.gather(gui_task)
+            await gui_task
 
     asyncio.run(main_loop())

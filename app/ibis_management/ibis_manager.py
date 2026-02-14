@@ -1,4 +1,7 @@
+from app.error_codes import ErrorCodes
 from utils.singleton_decorator import singleton
+from utils.error_handler import set_error_and_raise
+from utils.message_handler import set_message
 from app.config_management import ConfigManager
 import uasyncio as asyncio
 import ujson as json
@@ -7,7 +10,7 @@ try:
     with open("/config/char_map.json") as f:
         char_map = json.load(f)
 except Exception as e:
-    print(f"Error loading char_map.json: {e}")
+    set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
     char_map = {}
 
 
@@ -33,6 +36,7 @@ class IBISManager:
         self._task = None
         self.telegramTypes = telegramTypes
         self.config_manager = ConfigManager()
+        self._failed_telegrams = set()
 
         self.dispatch = {
             "DS001": self.DS001,
@@ -80,12 +84,13 @@ class IBISManager:
     def DS001(self):
         value = self.config_manager.get_current_configuration().route_number
         format = TELEGRAM_FORMATS["DS001"]
+        if value is None:
+            set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
         try:
-            if value is None:
-                raise ValueError("Route number is None")
             formatted = format.format(int(value))
         except Exception as e:
-            print(f"Error formatting DS001 with value '{value}': {e}")
+            set_message("Номер маршруту не виводиться")
+            self._failed_telegrams.add("DS001")
             formatted = format.format(0)
 
         packet = self.create_ibis_packet(formatted)
@@ -96,25 +101,34 @@ class IBISManager:
         format = TELEGRAM_FORMATS["DS001neu"]
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
+        if value is None:
+            set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
         try:
             formatted = format.format(value)
         except Exception as e:
-            print(f"Error formatting DS001neu with value '{value}': {e}")
+            set_message("Номер маршруту не виводиться")
+            self._failed_telegrams.add("DS001neu")
             formatted = format.format("0000")
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
     def DS003(self):
-        value = self.config_manager.get_current_configuration().route_number
+        trip = self.config_manager.get_current_configuration().trip
+        if trip is None:
+            set_error_and_raise(ErrorCodes.TRIP_INFO_IS_NONE)
+            return
+
+        value = trip.point_id
         format = TELEGRAM_FORMATS["DS003"]
+        if value is None:
+            set_error_and_raise(ErrorCodes.POINT_ID_IS_NONE)
         try:
-            if value is None:
-                raise ValueError("Route number is None")
             formatted = format.format(int(value))
         except Exception as e:
-            print(f"Error formatting DS003 with value '{value}': {e}")
-            formatted = format.format(0)
+            set_message("Код напрямку не відправляється")
+            self._failed_telegrams.add("DS003")
+            formatted = format.format(0000)
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -122,7 +136,7 @@ class IBISManager:
     def DS003a(self):
         trip = self.config_manager.get_current_configuration().trip
         if trip is None:
-            print("Error: Trip information is None for DS003a telegram.")
+            set_error_and_raise(ErrorCodes.TRIP_INFO_IS_NONE)
             return
 
         value = trip.full_name
@@ -137,8 +151,9 @@ class IBISManager:
         try:
             formatted = format.format(value[:32])
         except Exception as e:
-            print(f"Error formatting DS003a with value '{value}': {e}")
-            formatted = "zA2" + ("?" * 32)
+            set_message("Текст на зовнішньому табло не відображається")
+            self._failed_telegrams.add("DS003a")
+            formatted = "zA2" + (" " * 32)
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -147,11 +162,16 @@ class IBISManager:
         self._running = True
         while self._running:
             current_config = self.config_manager.get_current_configuration()
+            if current_config.isUpdated:
+                self._failed_telegrams.clear()
+                current_config.isUpdated = False
             if (
                 current_config.route_number is not None
                 and current_config.trip is not None
             ):
                 for code in self.telegramTypes:
+                    if code in self._failed_telegrams:
+                        continue 
                     if (
                         code in ("DS001", "DS001neu")
                         and current_config.no_line_telegram
@@ -160,13 +180,10 @@ class IBISManager:
 
                     handler = self.dispatch.get(code)
                     if handler:
-                        try:
-                            handler()
-                            await asyncio.sleep_ms(5)
-                        except Exception as e:
-                            print("Error", code, ":", e)
+                        handler()
+                        await asyncio.sleep_ms(5)
                     else:
-                        print("Unknown telegram:", code)
+                        set_error_and_raise(ErrorCodes.UNKNOWN_TELEGRAM)
             await asyncio.sleep(10)
 
     @property

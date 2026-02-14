@@ -14,6 +14,7 @@ def set_error_and_raise(error_code: int, exception=None):
     screen_config = ScreenConfig()
     screen_config.current_screen = ScreenStates.ERROR_SCREEN
     screen_config.error_code = error_code
+    screen_config.mark_dirty()
 
     if exception:
         raise exception

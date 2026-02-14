@@ -33,6 +33,20 @@ class ErrorCodes:
     ROUTES_SHORT_NAME_NO_SEPARATOR = 230
     ROUTES_SHORT_NAME_TOO_FEW_PARTS = 231
 
+    # IBIS errors (3XX)
+    # Code errors (30X)
+    DS001_ERROR = 300
+    DS001NEU_ERROR = 301
+    DS003_ERROR = 302
+    DS003A_ERROR = 303
+    # Data errors (31X)
+    UNKNOWN_TELEGRAM = 310
+    ROUTE_NUMBER_IS_NONE = 311
+    TRIP_INFO_IS_NONE = 312
+    CHAR_MAP_LOAD_ERROR = 313
+    POINT_ID_IS_NONE = 314
+    
+
     MESSAGES = {
         # Config
         100: "E100: Config not found",
@@ -60,7 +74,18 @@ class ErrorCodes:
         223: "E222: Wrong field count",
         # Routes - short name
         230: "E230: Short name no '^'",
-        231: "E231: Short name <2 parts",
+        231: "E231: Short name <2 parts",   
+        # IBIS - codes
+        300: "E300: DS001 error",
+        301: "E301: DS001NEU error",
+        302: "E302: DS003 error, routes numbers should have only numbers(no letters or symbols)",
+        303: "E303: DS003A error",
+        # IBIS - data
+        310: "E310: Unknown telegram type",
+        311: "E311: Route number is None",
+        312: "E312: Trip info is None",
+        313: "E313: Char map load error",
+        314: "E314: Point ID is None",
     }
 
     @classmethod

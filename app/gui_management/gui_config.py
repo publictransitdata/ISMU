@@ -11,6 +11,7 @@ class ScreenStates:
     UPDATE_SCREEN = "update"
     INITIAL_SCREEN = "initial"
     START_SCREEN = "start"
+    MESSAGE_SCREEN = "message"
 
 
 @singleton
@@ -35,6 +36,8 @@ class ScreenConfig:
         self._current_screen = ScreenStates.STATUS_SCREEN
         self._is_system_fresh = False
         self._error_code = 0
+        self._message_to_display = ""
+        self._dirty = True
 
     def set_screen_config(
         self,
@@ -123,6 +126,31 @@ class ScreenConfig:
     @is_system_fresh.setter
     def is_system_fresh(self, value: bool):
         self._is_system_fresh = value
+
+    @property
+    def message_to_display(self):
+        return self._message_to_display
+
+    @message_to_display.setter
+    def message_to_display(self, value: str):
+        self._message_to_display = value
+
+    @property
+    def dirty(self):
+        return self._dirty
+
+    @dirty.setter
+    def dirty(self, value: bool):
+        self._dirty = value
+
+    def mark_dirty(self):
+        self._dirty = True
+
+    def mark_clean(self):
+        self._dirty = False
+
+    def is_dirty(self):
+        return self._dirty
 
 
 @singleton

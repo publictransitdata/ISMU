@@ -184,6 +184,7 @@ class CurrentSystemChosenConfiguraion:
         self.route_number = route_number
         self.trip = TripInfo.trip_from_dict(trip)
         self.no_line_telegram = no_line_telegram
+        self.isUpdated = False
 
 
     def load_from_saved_state(self):
