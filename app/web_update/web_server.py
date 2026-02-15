@@ -150,7 +150,12 @@ def _check_config_content_file(filepath: str) -> list:
                 errors.append(f"Рядок {line_num}: Невідомий параметр '{key}'")
             else:
                 found_keys.add(key)
-                nullable_telegram_keys = {"line", "destination_number", "destination", "stop_board_telegram"}
+                nullable_telegram_keys = {
+                    "line",
+                    "destination_number",
+                    "destination",
+                    "stop_board_telegram",
+                }
 
                 if not value and key not in nullable_telegram_keys:
                     errors.append(f"Рядок {line_num}: Параметр '{key}' не має значення")
@@ -542,7 +547,7 @@ class WebUpdateServer:
                         state_manager = StateManager()
                         routes_manager.refresh_db("/config/routes.txt")
                         state_manager.reset_state()
-                        
+
                     except Exception as e:
                         print(f"Failed to refresh routes DB: {e}")
 

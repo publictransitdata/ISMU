@@ -7,6 +7,7 @@ from utils.error_handler import set_error_and_raise
 STATE_PATH = "app/state_management/state.json"
 TEMP_STATE_PATH = "app/state_management/state.tmp"
 
+
 @singleton
 class StateManager:
     def __init__(self):
@@ -22,7 +23,7 @@ class StateManager:
                 file.write(json.dumps(rec))
                 file.flush()
 
-            os.sync() 
+            os.sync()
             os.rename(TEMP_STATE_PATH, STATE_PATH)
             os.sync()
 
@@ -37,7 +38,6 @@ class StateManager:
 
     def reset_state(self):
         self.save_state(0, 0)
-
 
     def _load_state(self) -> dict | None:
         try:

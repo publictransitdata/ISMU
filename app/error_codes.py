@@ -45,7 +45,6 @@ class ErrorCodes:
     TRIP_INFO_IS_NONE = 312
     CHAR_MAP_LOAD_ERROR = 313
     POINT_ID_IS_NONE = 314
-    
 
     MESSAGES = {
         # Config
@@ -74,7 +73,7 @@ class ErrorCodes:
         223: "E222: Wrong field count",
         # Routes - short name
         230: "E230: Short name no '^'",
-        231: "E231: Short name <2 parts",   
+        231: "E231: Short name <2 parts",
         # IBIS - codes
         300: "E300: DS001 error",
         301: "E301: DS001NEU error",

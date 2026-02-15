@@ -16,7 +16,7 @@ class SystemConfig:
         self._show_start_and_end_stops: bool = False
         self._force_short_names: bool = False
         self._stop_board_telegram: str = ""
-        self._show_route_on_stop_board: bool = False
+        self._show_info_on_stop_board: bool = False
         self._ap_name: str = AP_NAME
         self._ap_password: str = AP_PASSWORD
         self._ap_ip: str = AP_IP
@@ -77,12 +77,12 @@ class SystemConfig:
         self._stop_board_telegram = value
 
     @property
-    def show_route_on_stop_board(self):
-        return self._show_route_on_stop_board
+    def show_info_on_stop_board(self):
+        return self._show_info_on_stop_board
 
-    @show_route_on_stop_board.setter
-    def show_route_on_stop_board(self, value):
-        self._show_route_on_stop_board = value
+    @show_info_on_stop_board.setter
+    def show_info_on_stop_board(self, value):
+        self._show_info_on_stop_board = value
 
     @property
     def ap_name(self):
@@ -186,20 +186,18 @@ class CurrentSystemChosenConfiguraion:
         self.no_line_telegram = no_line_telegram
         self.isUpdated = False
 
-
     def load_from_saved_state(self):
         state = StateManager().get_state()
-        route = RoutesManager().get_route_by_index(state['route_id'])
-        
-        if route and route.get('dirs'):
-            self._route_number = route['route_number']
-            dirs = route['dirs']
-            trip_id = state.get('trip_id', 0)
+        route = RoutesManager().get_route_by_index(state["route_id"])
+
+        if route and route.get("dirs"):
+            self._route_number = route["route_number"]
+            dirs = route["dirs"]
+            trip_id = state.get("trip_id", 0)
             if trip_id < len(dirs):
                 self._trip = TripInfo.trip_from_dict(dirs[trip_id])
-            self._no_line_telegram = route.get('no_line_telegram', False)
+            self._no_line_telegram = route.get("no_line_telegram", False)
 
-        
     @property
     def route_number(self):
         return self._route_number
