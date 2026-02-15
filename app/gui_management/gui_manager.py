@@ -4,6 +4,8 @@ import time
 from app.routes_management import RoutesManager
 from app.config_management import ConfigManager
 from app.state_management import StateManager
+from app.error_codes import ErrorCodes
+from utils.error_handler import set_error_and_raise
 from app.web_update import WebUpdateServer
 from .gui_drawer import GuiDrawer
 import uasyncio as asyncio
@@ -115,7 +117,8 @@ class GuiManager:
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
-            self._gui_drawer.draw_error_screen(str(self._screen_config.error_code))
+            self._gui_drawer.draw_error_screen(str(self._screen_config.error_code), self._screen_config.message_to_display)
+
         elif current_screen == ScreenStates.INITIAL_SCREEN:
             self._gui_drawer.draw_initial_screen()
         elif current_screen == ScreenStates.SETTINGS_SCREEN:
@@ -147,7 +150,7 @@ class GuiManager:
         elif menu_type == ScreenStates.TRIP_MENU:
             return self._trip_menu_state
         else:
-            raise ValueError(f"Unknown menu type: {menu_type}")
+            set_error_and_raise(ErrorCodes.UNKNOWN_MENU_TYPE, ValueError(f"Unknown menu type: {menu_type}"), True)
 
     def _check_buttons_press_timer(
         self,

@@ -46,6 +46,22 @@ class ErrorCodes:
     CHAR_MAP_LOAD_ERROR = 313
     POINT_ID_IS_NONE = 314
 
+    # Files errors (4XX)
+    # File not found (40X)
+    MISSING_LANGUAGE_FILE = 400
+
+    # File loading errors (41X)
+    FILE_LOADING_ERROR = 410
+
+    # GUI errors (5XX)
+    UNKNOWN_MENU_TYPE = 500
+
+    # Web server errors (6XX)
+    WEB_SERVER_SHUTDOWN_ERROR = 600
+    WEB_SERVER_ERROR = 601
+    REFRESH_ROUTES_DB_ERROR = 602
+    
+
     MESSAGES = {
         # Config
         100: "E100: Config not found",
@@ -85,6 +101,18 @@ class ErrorCodes:
         312: "E312: Trip info is None",
         313: "E313: Char map load error",
         314: "E314: Point ID is None",
+
+        # Files
+        400: "E400: Missing language file",
+        410: "E410: File loading error",
+
+        # GUI 
+        500: "E500: Unknown menu type",
+
+        # Web server
+        600: "E600: Web server shutdown error",
+        601: "E601: Web server error",
+        602: "E602: Refresh routes DB error",
     }
 
     @classmethod

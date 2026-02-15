@@ -1,7 +1,7 @@
 from app.error_codes import ErrorCodes
 
 
-def set_error_and_raise(error_code: int, exception=None):
+def set_error_and_raise(error_code: int, exception=None, show_message=False):
     """
     Sets the error screen with the code and raises an exception.
 
@@ -14,6 +14,8 @@ def set_error_and_raise(error_code: int, exception=None):
     screen_config = ScreenConfig()
     screen_config.current_screen = ScreenStates.ERROR_SCREEN
     screen_config.error_code = error_code
+    if show_message:
+        screen_config.message_to_display = str(exception) if exception else None
     screen_config.mark_dirty()
 
     if exception:

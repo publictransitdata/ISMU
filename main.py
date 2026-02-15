@@ -100,16 +100,8 @@ if __name__ == "__main__":
     gui_manager = GuiManager(display, writer, screen_config)
 
     async def gui_loop(gui: GuiManager):
-        while True:
-            m, u, d, s = (
-                btn_menu.value(),
-                btn_up.value(),
-                btn_down.value(),
-                btn_select.value(),
-            )
-
-            if (not u) + (not d) + (not m) + (not s) == 1:
-                await asyncio.sleep_ms(COMBO_GRACE_MS)
+        try:
+            while True:
                 m, u, d, s = (
                     btn_menu.value(),
                     btn_up.value(),
@@ -117,9 +109,22 @@ if __name__ == "__main__":
                     btn_select.value(),
                 )
 
-            gui.handle_buttons(m, u, d, s)
+                if (not u) + (not d) + (not m) + (not s) == 1:
+                    await asyncio.sleep_ms(COMBO_GRACE_MS)
+                    m, u, d, s = (
+                        btn_menu.value(),
+                        btn_up.value(),
+                        btn_down.value(),
+                        btn_select.value(),
+                    )
+
+                gui.handle_buttons(m, u, d, s)
+                gui.draw_current_screen()
+                await asyncio.sleep_ms(30)
+        except Exception as e:
+            print(f"GUI loop error: {e}")
             gui.draw_current_screen()
-            await asyncio.sleep_ms(30)
+            raise
 
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
@@ -131,8 +136,9 @@ if __name__ == "__main__":
                 await ibis_manager.task
                 await gui_task
             except Exception as e:
-                print(f"IBIS crashed: {e}")
-                ibis_manager.stop()
+                print(f"Main loop error: {e}")
+                if ibis_manager.task:
+                    ibis_manager.stop()
                 await gui_task
         else:
             await gui_task
