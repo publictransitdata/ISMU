@@ -21,7 +21,7 @@ TELEGRAM_FORMATS = {
     "DS003": "z{:03d}",
     "DS003a": "zA2{: <32}",
     "DS003b": "zR{:03d}",  # no description in documentation
-    "DS003c": "??{: <32}",
+    "DS003c": "zI6{: <24}",
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
     "DS009": "v{: <16}",
@@ -186,11 +186,11 @@ class IBISManager:
             if isinstance(trip_name, str):
                 trip_name = self.sanitize_ibis_text(trip_name)
             try:
-                formatted = format.format((route_number + " " + trip_name)[:32])
+                formatted = format.format((route_number + " > " + trip_name)[:24])
             except Exception as e:
                 set_message("Текст на внутрішньому табло не відображається")
                 self._failed_telegrams.add("DS003c")
-                formatted = "???" + (" " * 32)
+                formatted = "zI6" + (" " * 24)
 
             packet = self.create_ibis_packet(formatted)
             self.uart.write(packet)
