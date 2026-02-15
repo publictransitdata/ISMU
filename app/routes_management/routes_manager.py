@@ -29,9 +29,12 @@ class RoutesManager:
 
         self.import_routes_from_txt(routes_path)
 
-
     def append_route(
-        self, route_id: int, number: str, no_line_telegram: bool = False, note: str | None = None
+        self,
+        route_id: int,
+        number: str,
+        no_line_telegram: bool = False,
+        note: str | None = None,
     ) -> None:
         try:
             rec = {"t": "route", "id": route_id, "n": number}
@@ -109,7 +112,7 @@ class RoutesManager:
                             set_error_and_raise(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
 
                         current_route = num_line
-                        current_route_id = next_route_id 
+                        current_route_id = next_route_id
                         self.append_route(
                             current_route_id, current_route, no_line_telegram, note
                         )

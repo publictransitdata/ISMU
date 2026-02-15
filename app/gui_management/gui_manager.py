@@ -126,7 +126,7 @@ class GuiManager:
             )
         elif current_screen == ScreenStates.MESSAGE_SCREEN:
             self._gui_drawer.draw_message_screen(self._screen_config.message_to_display)
-            
+
         self._screen_config.mark_clean()
 
     def navigate_up(self, menu_type: str) -> None:
@@ -240,7 +240,10 @@ class GuiManager:
                     return
             return
 
-        if time.ticks_diff(current_time, self._last_single_button_time) < self._single_button_cooldown:
+        if (
+            time.ticks_diff(current_time, self._last_single_button_time)
+            < self._single_button_cooldown
+        ):
             return
 
         if not btn_menu:
@@ -329,7 +332,7 @@ class GuiManager:
                 self._config_manager.update_current_configuration(
                     route["route_number"],
                     route["dirs"][self._trip_menu_state.selected_item_index],
-                    route.get("no_line_telegram", False)
+                    route.get("no_line_telegram", False),
                 )
                 self._state_manager.save_state(
                     self._route_menu_state.highlighted_item_index,

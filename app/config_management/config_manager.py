@@ -14,7 +14,7 @@ class ConfigManager:
         if key in {
             "show_start_and_end_stops",
             "force_short_names",
-            "show_route_on_stop_board",
+            "show_info_on_stop_board",
         }:
             return value.lower() == "true"
 
@@ -50,7 +50,12 @@ class ConfigManager:
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
-                if key in {"line", "destination_number", "destination", "stop_board_telegram"}:
+                if key in {
+                    "line",
+                    "destination_number",
+                    "destination",
+                    "stop_board_telegram",
+                }:
                     converted = value if value else None
                 else:
                     converted = self._convert_value(key, value)

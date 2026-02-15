@@ -62,8 +62,8 @@ class GuiDrawer:
         if header_suffix:
             header_text_width = self._writer.stringlen(header_text)
             separator_x = left_offset + header_text_width + 7  # 7px offset
-            
-            suffix_x = separator_x + 3 # 3px offset
+
+            suffix_x = separator_x + 3  # 3px offset
             self._writer.set_textpos(self._display, 0, suffix_x)
             self._writer.printstring(header_suffix, False)
 
@@ -133,14 +133,20 @@ class GuiDrawer:
         route_text_width = self._writer.stringlen(f"М:{selected_route_id}")
         trip_text_width = self._writer.stringlen(f"Н:{selected_trip_id:02d}")
 
-        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + 3)
+        self._writer.set_textpos(
+            self._display, bottom_y, left_offset + route_text_width + 3
+        )
 
         self._writer.printstring(
             f"Н:{selected_trip_id:02d}",
             False,
         )
 
-        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + trip_text_width + 6)
+        self._writer.set_textpos(
+            self._display,
+            bottom_y,
+            left_offset + route_text_width + trip_text_width + 6,
+        )
 
         self._writer.printstring(
             f"К:{selected_trip_number}",
@@ -242,7 +248,12 @@ class GuiDrawer:
 
         self._writer.set_textpos(self._display, 0, 0)
 
-        telegrams_list = [config.line, config.destination_number, config.destination, config.stop_board_telegram]
+        telegrams_list = [
+            config.line,
+            config.destination_number,
+            config.destination,
+            config.stop_board_telegram,
+        ]
         filtered_telegrams = [t for t in telegrams_list if t]
         telegrams_text = ", ".join(filtered_telegrams)
 

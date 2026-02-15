@@ -2,6 +2,7 @@ from app.error_codes import ErrorCodes
 from utils.singleton_decorator import singleton
 from utils.error_handler import set_error_and_raise
 from utils.message_handler import set_message
+from app.config_management import SystemConfig
 from app.config_management import ConfigManager
 import uasyncio as asyncio
 import ujson as json
@@ -19,8 +20,8 @@ TELEGRAM_FORMATS = {
     "DS001neu": "q{:0>4}",
     "DS003": "z{:03d}",
     "DS003a": "zA2{: <32}",
-    # "DS003b":  "zR{:03d}", no description in documentation
-    "DS003c": None,  # no description in documentation
+    "DS003b": "zR{:03d}",  # no description in documentation
+    "DS003c": "??{: <32}",
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
     "DS009": "v{: <16}",
@@ -36,6 +37,7 @@ class IBISManager:
         self._task = None
         self.telegramTypes = telegramTypes
         self.config_manager = ConfigManager()
+        self._system_config = SystemConfig()
         self._failed_telegrams = set()
 
         self.dispatch = {
@@ -43,6 +45,7 @@ class IBISManager:
             "DS001neu": self.DS001neu,
             "DS003": self.DS003,
             "DS003a": self.DS003a,
+            "DS003c": self.DS003c,
         }
 
     def calculate_ibis_checksum(self, data_bytes):
@@ -158,6 +161,42 @@ class IBISManager:
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
+    def DS003c(self):
+        if self._system_config.show_info_on_stop_board:
+            route_number = self.config_manager.get_current_configuration().route_number
+            trip = self.config_manager.get_current_configuration().trip
+
+            if trip is None:
+                set_error_and_raise(ErrorCodes.TRIP_INFO_IS_NONE)
+                return
+            format = TELEGRAM_FORMATS["DS003c"]
+
+            if isinstance(route_number, str):
+                route_number = self.sanitize_ibis_text(route_number)
+            if route_number is None:
+                set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
+
+            trip_name = trip.full_name
+
+            if len(trip_name) == 2:
+                trip_name = trip_name[1]
+            else:
+                trip_name = trip_name[0]
+
+            if isinstance(trip_name, str):
+                trip_name = self.sanitize_ibis_text(trip_name)
+            try:
+                formatted = format.format((route_number + " " + trip_name)[:32])
+            except Exception as e:
+                set_message("Текст на внутрішньому табло не відображається")
+                self._failed_telegrams.add("DS003c")
+                formatted = "???" + (" " * 32)
+
+            packet = self.create_ibis_packet(formatted)
+            self.uart.write(packet)
+        else:
+            pass
+
     async def send_ibis_telegrams(self):
         self._running = True
         while self._running:
@@ -171,7 +210,7 @@ class IBISManager:
             ):
                 for code in self.telegramTypes:
                     if code in self._failed_telegrams:
-                        continue 
+                        continue
                     if (
                         code in ("DS001", "DS001neu")
                         and current_config.no_line_telegram
