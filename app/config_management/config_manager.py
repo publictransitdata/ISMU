@@ -74,3 +74,26 @@ class ConfigManager:
     def get_telegram_types(self):
         keys = ["line", "destination_number", "destination", "stop_board_telegram"]
         return {getattr(self._config, k) for k in keys if getattr(self._config, k)}
+
+    def get_stop_board_content(self):
+        # Returns the content for internal displayes based on configuration
+        trip = self._current_config.trip
+
+        if trip is None:
+            return None
+
+        destination = trip.full_name
+        if len(destination) == 2:
+            destination = destination[1]
+        else:
+            destination = destination[0]
+
+        # Build content based on show_route_on_stop_board
+        if self._config.show_route_on_stop_board:
+            route_number = self._current_config.route_number
+            if route_number is None:
+                return destination
+            else:
+                return f"{route_number} > {destination}"
+        else:
+            return None
