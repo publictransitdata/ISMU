@@ -173,6 +173,12 @@ class TripInfo:
         else:
             return None
 
+    def get_proper_trip_name(self) -> list[str] | None:
+        if SystemConfig().force_short_names:
+            return self.short_name
+        else:
+            return self.full_name
+
 
 class CurrentSystemChosenConfiguraion:
     def __init__(
@@ -197,6 +203,7 @@ class CurrentSystemChosenConfiguraion:
             if trip_id < len(dirs):
                 self._trip = TripInfo.trip_from_dict(dirs[trip_id])
             self._no_line_telegram = route.get("no_line_telegram", False)
+
 
     @property
     def route_number(self):

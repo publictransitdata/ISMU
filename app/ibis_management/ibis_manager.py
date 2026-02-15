@@ -136,28 +136,30 @@ class IBISManager:
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
-    def DS003a(self):
+    def DS003a(self):        
         trip = self.config_manager.get_current_configuration().trip
         if trip is None:
             set_error_and_raise(ErrorCodes.TRIP_INFO_IS_NONE)
             return
-
-        value = trip.full_name
+        value = trip.get_proper_trip_name()
         if len(value) == 2:
-            value = value[1]
+            if self._system_config.show_start_and_end_stops:
+                end_stop = self.sanitize_ibis_text(value[1][:16])
+                start_stop = self.sanitize_ibis_text(value[0][:16])
+                end_stop = f"{end_stop: <16}"
+                start_stop = f"{start_stop: <16}"
+                value = start_stop + end_stop
+            else: 
+                value = value[1]
         else:
             value = value[0]
-
         format = TELEGRAM_FORMATS["DS003a"]
-        if isinstance(value, str):
-            value = self.sanitize_ibis_text(value)
         try:
             formatted = format.format(value[:32])
         except Exception as e:
             set_message("Текст на зовнішньому табло не відображається")
             self._failed_telegrams.add("DS003a")
             formatted = "zA2" + (" " * 32)
-
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
@@ -176,7 +178,7 @@ class IBISManager:
             if route_number is None:
                 set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
 
-            trip_name = trip.full_name
+            trip_name = trip.get_proper_trip_name()
 
             if len(trip_name) == 2:
                 trip_name = trip_name[1]
