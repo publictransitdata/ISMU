@@ -20,7 +20,7 @@ TELEGRAM_FORMATS = {
     "DS003": "z{:03d}",
     "DS003a": "zA2{: <32}",
     # "DS003b":  "zR{:03d}", no description in documentation
-    "DS003c": None,  # no description in documentation
+    "DS003c": "zI6{: <24}",
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
     "DS009": "v{: <16}",
@@ -43,6 +43,7 @@ class IBISManager:
             "DS001neu": self.DS001neu,
             "DS003": self.DS003,
             "DS003a": self.DS003a,
+            "DS003c": self.DS003c,
         }
 
     def calculate_ibis_checksum(self, data_bytes):
@@ -154,6 +155,25 @@ class IBISManager:
             set_message("Текст на зовнішньому табло не відображається")
             self._failed_telegrams.add("DS003a")
             formatted = "zA2" + (" " * 32)
+
+        packet = self.create_ibis_packet(formatted)
+        self.uart.write(packet)
+
+    def DS003c(self):
+        content = self.config_manager.get_stop_board_content()
+
+        if content is None:
+            return
+
+        content = self.sanitize_ibis_text(content)
+
+        format = TELEGRAM_FORMATS["DS003c"]
+        try:
+            formatted = format.format(content[:24])
+        except Exception as e:
+            set_message("Інформація на внутрішньому табло не відображається")
+            self._failed_telegrams.add("DS003c")
+            formatted = "zI6" + (" " * 24)
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
