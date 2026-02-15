@@ -27,8 +27,8 @@ class StateManager:
             os.rename(TEMP_STATE_PATH, STATE_PATH)
             os.sync()
 
-        except OSError:
-            set_error_and_raise(ErrorCodes.TEMP_STATE_WRITE_ERROR)
+        except OSError as e:
+            set_error_and_raise(ErrorCodes.TEMP_STATE_WRITE_ERROR, e, True)
 
     def get_state(self):
         state_info = self._load_state()

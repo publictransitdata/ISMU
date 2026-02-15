@@ -155,22 +155,39 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_error_screen(self, error_code: str) -> None:
+    def draw_error_screen(self, error_code: str, message: str | None = None) -> None:
         self._display.fill(0)
 
-        line_height = self._screen_config.font_size + 2
-        screen_width = self._screen_config.screen_width
-        screen_height = self._screen_config.screen_height
+        if not message:
+            line_height = self._screen_config.font_size + 2
+            screen_width = self._screen_config.screen_width
+            screen_height = self._screen_config.screen_height
 
-        line1 = f"Помилка: {error_code}"
+            line1 = f"Помилка: {error_code}"
 
-        centrized_top_y = (screen_height - line_height) // 2
+            centrized_top_y = (screen_height - line_height) // 2
 
-        line1_width = self._writer.stringlen(line1)
-        line1_offset = (screen_width - line1_width) // 2
+            line1_width = self._writer.stringlen(line1)
+            line1_offset = (screen_width - line1_width) // 2
 
-        self._writer.set_textpos(self._display, centrized_top_y, line1_offset)
-        self._writer.printstring(line1, False)
+            self._writer.set_textpos(self._display, centrized_top_y, line1_offset)
+            self._writer.printstring(line1, False)
+
+        else:
+            line_height = self._screen_config.font_size + 2
+            screen_width = self._screen_config.screen_width
+
+            line1 = f"Помилка: {error_code}"
+
+            line_height = self._screen_config.font_size + 2
+            line1_width = self._writer.stringlen(line1)
+            line1_offset = (screen_width - line1_width) // 2
+
+            self._writer.set_textpos(self._display, 0, line1_offset)
+            self._writer.printstring(line1, False)
+
+            self._writer.set_textpos(self._display, line_height + 2, 0)
+            self._writer.printstring(message, False)
 
         self._display.show()
 

@@ -36,7 +36,7 @@ class ScreenConfig:
         self._current_screen = ScreenStates.STATUS_SCREEN
         self._is_system_fresh = False
         self._error_code = 0
-        self._message_to_display = ""
+        self._message_to_display = None
         self._dirty = True
 
     def set_screen_config(
@@ -132,7 +132,7 @@ class ScreenConfig:
         return self._message_to_display
 
     @message_to_display.setter
-    def message_to_display(self, value: str):
+    def message_to_display(self, value: str | None):
         self._message_to_display = value
 
     @property

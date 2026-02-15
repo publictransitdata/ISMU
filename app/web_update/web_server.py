@@ -2,6 +2,8 @@ from app.web_update.safe_route_decorator import safe_route
 from microdot import Microdot, Request  # type: ignore
 from app.routes_management import RoutesManager
 from app.state_management import StateManager
+from app.error_codes import ErrorCodes
+from utils.error_handler import set_error_and_raise
 import network
 import uasyncio as asyncio
 import os
@@ -549,7 +551,7 @@ class WebUpdateServer:
                         state_manager.reset_state()
 
                     except Exception as e:
-                        print(f"Failed to refresh routes DB: {e}")
+                        set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, e, True)
 
                 asyncio.create_task(self._delayed_reset())
                 return self._success_response(", ".join(saved_files))
@@ -591,7 +593,7 @@ class WebUpdateServer:
             print("Starting server...")
             await self._app.start_server(host=self.host, port=self.port)
         except Exception as e:
-            print(f"Server error: {e}")
+            set_error_and_raise(ErrorCodes.WEB_SERVER_ERROR, e, True)
         finally:
             self._running = False
             print("Server stopped")
@@ -602,10 +604,9 @@ class WebUpdateServer:
         if self._ap and self._ap.active():
             self._ap.active(False)
             print("Access Point stopped.")
-
         try:
             self._app.shutdown()
         except Exception as e:
-            print(f"Error during shutdown: {e}")
-
+            set_error_and_raise(ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, e, True)
+            
         self._running = False

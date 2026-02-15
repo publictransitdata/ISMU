@@ -44,8 +44,8 @@ class RoutesManager:
                 rec["note"] = note
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
+        except OSError as e:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED, e)
 
     def append_direction(
         self,
@@ -69,8 +69,8 @@ class RoutesManager:
                 rec["s"] = short_name
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED)
+        except OSError as e:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED, e)
 
     def import_routes_from_txt(self, path_txt):
         next_route_id = 0
@@ -189,8 +189,8 @@ class RoutesManager:
                                 "note": rec.get("note"),
                             }
                         )
-        except OSError:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED)
+        except OSError as e:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
 
         return routes_list
 
