@@ -136,7 +136,7 @@ class IBISManager:
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
-    def DS003a(self):        
+    def DS003a(self):
         trip = self.config_manager.get_current_configuration().trip
         if trip is None:
             set_error_and_raise(ErrorCodes.TRIP_INFO_IS_NONE)
@@ -149,7 +149,7 @@ class IBISManager:
                 end_stop = f"{end_stop: <16}"
                 start_stop = f"{start_stop: <16}"
                 value = start_stop + end_stop
-            else: 
+            else:
                 value = value[1]
         else:
             value = value[0]

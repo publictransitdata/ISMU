@@ -22,7 +22,11 @@ class ConfigManager:
             try:
                 return int(value)
             except ValueError:
-                set_error_and_raise(ErrorCodes.CONFIG_INVALID_VALUE, ValueError(f"Could not convert {key}={value} to int"), True)
+                set_error_and_raise(
+                    ErrorCodes.CONFIG_INVALID_VALUE,
+                    ValueError(f"Could not convert {key}={value} to int"),
+                    True,
+                )
 
         return value
 

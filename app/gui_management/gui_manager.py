@@ -117,7 +117,10 @@ class GuiManager:
                 ),
             )
         elif current_screen == ScreenStates.ERROR_SCREEN:
-            self._gui_drawer.draw_error_screen(str(self._screen_config.error_code), self._screen_config.message_to_display)
+            self._gui_drawer.draw_error_screen(
+                str(self._screen_config.error_code),
+                self._screen_config.message_to_display,
+            )
 
         elif current_screen == ScreenStates.INITIAL_SCREEN:
             self._gui_drawer.draw_initial_screen()
@@ -150,7 +153,11 @@ class GuiManager:
         elif menu_type == ScreenStates.TRIP_MENU:
             return self._trip_menu_state
         else:
-            set_error_and_raise(ErrorCodes.UNKNOWN_MENU_TYPE, ValueError(f"Unknown menu type: {menu_type}"), True)
+            set_error_and_raise(
+                ErrorCodes.UNKNOWN_MENU_TYPE,
+                ValueError(f"Unknown menu type: {menu_type}"),
+                True,
+            )
 
     def _check_buttons_press_timer(
         self,
