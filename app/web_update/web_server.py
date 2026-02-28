@@ -506,28 +506,35 @@ class WebUpdateServer:
                         f"Дозволені лише .txt файли: '{filename}'"
                     )
 
-                if name == "config_file" and filename == "config.txt":
-                    errors = _check_config_content_file(tmp_path)
-                    if errors:
+                if name == "config_file":
+                    if "config" in filename.lower():
+                        errors = _check_config_content_file(tmp_path)
+                        if errors:
+                            _cleanup_tmp()
+                            return self._error_response(
+                                f"Помилка у config.txt: {'; '.join(errors)}"
+                            )
+                        files_to_save["config.txt"] = tmp_path
+                    else:
                         _cleanup_tmp()
                         return self._error_response(
-                            f"Помилка у config.txt: {'; '.join(errors)}"
+                            f'Невірна назва файлу. Очікується файл з "config" у назві (замість {filename})'
                         )
-                    files_to_save["config.txt"] = tmp_path
 
-                elif name == "routes_file" and filename == "routes.txt":
-                    errors = _check_routes_content_file(tmp_path)
-                    if errors:
+                elif name == "routes_file":
+                    if "routes" in filename.lower():
+                        errors = _check_routes_content_file(tmp_path)
+                        if errors:
+                            _cleanup_tmp()
+                            return self._error_response(
+                                f"Помилка у routes.txt: {'; '.join(errors)}"
+                            )
+                        files_to_save["routes.txt"] = tmp_path
+                    else:
                         _cleanup_tmp()
                         return self._error_response(
-                            f"Помилка у routes.txt: {'; '.join(errors)}"
+                            f'Невірна назва файлу. Очікується файл з "routes" у назві (замість {filename})'
                         )
-                    files_to_save["routes.txt"] = tmp_path
-                else:
-                    _cleanup_tmp()
-                    return self._error_response(
-                        "Невірний файл: очікується config.txt або routes.txt у відповідних полях форми"
-                    )
 
             if files_to_save:
                 saved_files = []
@@ -557,9 +564,7 @@ class WebUpdateServer:
                 return self._success_response(", ".join(saved_files))
             else:
                 _cleanup_tmp()
-                return self._error_response(
-                    "Не завантажено жодного файлу (приймаються лише config.txt та routes.txt)"
-                )
+                return self._error_response("Не завантажено жодного файлу")
 
     async def _delayed_reset(self):
         await asyncio.sleep(3)

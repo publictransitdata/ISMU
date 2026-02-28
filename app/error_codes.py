@@ -4,6 +4,7 @@ class ErrorCodes:
     CONFIG_FILE_NOT_FOUND = 100
     CONFIG_IO_ERROR = 101
     TEMP_STATE_WRITE_ERROR = 102
+    CONFIG_EXAMPLE_EXIST = 103
 
     # Parse errors (11X)
     CONFIG_PARSE_ERROR = 110
@@ -60,13 +61,13 @@ class ErrorCodes:
     WEB_SERVER_SHUTDOWN_ERROR = 600
     WEB_SERVER_ERROR = 601
     REFRESH_ROUTES_DB_ERROR = 602
-    
 
     MESSAGES = {
         # Config
         100: "E100: Config not found",
         101: "E101: Config IO error",
         102: "E102: Temp state write error",
+        103: "E103: Rename config.example to config.txt and fill keys to start",
         # Config - parse
         110: "E110: Config parse fail",
         111: "E111: Missing '=' in line",
@@ -101,14 +102,11 @@ class ErrorCodes:
         312: "E312: Trip info is None",
         313: "E313: Char map load error",
         314: "E314: Point ID is None",
-
         # Files
         400: "E400: Missing language file",
         410: "E410: File loading error",
-
-        # GUI 
+        # GUI
         500: "E500: Unknown menu type",
-
         # Web server
         600: "E600: Web server shutdown error",
         601: "E601: Web server error",

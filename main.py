@@ -12,6 +12,8 @@ from app.gui_management import (
 from app.routes_management import RoutesManager
 from app.config_management import ConfigManager
 from app.ibis_management import IBISManager
+from app.error_codes import ErrorCodes
+from utils.error_handler import set_error_and_raise
 import uasyncio as asyncio
 import time
 import gc
@@ -25,16 +27,21 @@ except ImportError:
 
 CONFIG_PATH = "/config/config.txt"
 ROUTES_PATH = "/config/routes.txt"
+CONFIG_EXAMPLE_PATH = "/config/config.example"
 COMBO_GRACE_MS = 50
 
 
-def check_required_files(*paths):
+def check_config_related_files(*paths):
     missing = set()
     for path in paths:
         try:
             os.stat(path)
         except OSError:
             missing.add(path)
+
+    if CONFIG_EXAMPLE_PATH not in missing:
+        set_error_and_raise(ErrorCodes.CONFIG_EXAMPLE_EXIST)
+        return
 
     if CONFIG_PATH in missing and ROUTES_PATH in missing:
         screen_config.current_screen = ScreenStates.INITIAL_SCREEN
@@ -59,9 +66,12 @@ if __name__ == "__main__":
     config_manager = ConfigManager()
     routes_manager = RoutesManager()
 
-    check_required_files(CONFIG_PATH, ROUTES_PATH)
+    check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
-    if screen_config.current_screen is not ScreenStates.INITIAL_SCREEN:
+    if screen_config.current_screen not in (
+        ScreenStates.INITIAL_SCREEN,
+        ScreenStates.ERROR_SCREEN,
+    ):
         try:
             config_manager.load_config(CONFIG_PATH)
             routes_manager.load_routes()
@@ -133,8 +143,10 @@ if __name__ == "__main__":
             ibis_manager.start()
 
             try:
-                await ibis_manager.task
-                await gui_task
+                if ibis_manager.task:
+                    await asyncio.gather(ibis_manager.task, gui_task)
+                else:
+                    await gui_task
             except Exception as e:
                 print(f"Main loop error: {e}")
                 if ibis_manager.task:
