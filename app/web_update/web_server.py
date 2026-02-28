@@ -24,7 +24,7 @@ ALLOWED_CONFIG_CHARS = set(
 VALID_CONFIG_KEYS = {
     "show_start_and_end_stops",
     "force_short_names",
-    "show_route_on_stop_board",
+    "show_info_on_stop_board",
     "baudrate",
     "bits",
     "parity",
@@ -608,5 +608,5 @@ class WebUpdateServer:
             self._app.shutdown()
         except Exception as e:
             set_error_and_raise(ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, e, True)
-            
+
         self._running = False
