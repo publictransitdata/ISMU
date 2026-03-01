@@ -1,10 +1,17 @@
 from .gui_manager import GuiManager
-from .gui_config import ScreenConfig, RouteMenuState, DirectionMenuState, ScreenStates
+from .gui_drawer import GuiDrawer
+from .gui_config import (
+    ScreenConfig,
+    RouteMenuState,
+    TripMenuState,
+    ScreenStates,
+)
 
 __all__ = [
     "GuiManager",
     "ScreenConfig",
     "RouteMenuState",
-    "DirectionMenuState",
+    "TripMenuState",
     "ScreenStates",
+    "GuiDrawer",
 ]

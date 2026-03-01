@@ -1,37 +1,19 @@
-### Python template
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-
 # VS Code
 .vscode/
 ISMU.code-workspace
 
-# MicroPico
-.micropico
-
-typings/
+# IntelliJ
 .idea/
 
+# MicroPico
+.micropico
+typings/
 
+# Configuration files
+*.json
+config/lang.py
+config/*.txt
 
+# Generated files
+*.ndjson
+.ruff_cache/
