@@ -23,6 +23,7 @@ class RoutesManager:
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded")
+            return
         except Exception:
             pass
 
