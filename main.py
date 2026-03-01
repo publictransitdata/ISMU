@@ -23,7 +23,7 @@ import os
 try:
     from config import lang  # type: ignore
 except ImportError:
-    print("Language file is missing.")
+    set_error_and_raise(ErrorCodes.MISSING_LANGUAGE_FILE)
 
 CONFIG_PATH = "/config/config.txt"
 ROUTES_PATH = "/config/routes.txt"
