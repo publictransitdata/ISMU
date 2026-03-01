@@ -76,7 +76,7 @@ if __name__ == "__main__":
             config_manager.load_config(CONFIG_PATH)
             routes_manager.load_routes()
         except Exception as e:
-            print(f"Error during loading: {e}")
+            set_error_and_raise(ErrorCodes.FILE_LOADING_ERROR)
 
     config_manager.get_current_configuration().load_from_saved_state()
 
