@@ -10,9 +10,9 @@ import ujson as json
 try:
     with open("/config/char_map.json") as f:
         char_map = json.load(f)
-except Exception as e:
-    set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
+except Exception:
     char_map = {}
+    set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
 
 
 TELEGRAM_FORMATS = {
@@ -131,7 +131,7 @@ class IBISManager:
         except Exception as e:
             set_message("Код напрямку не відправляється")
             self._failed_telegrams.add("DS003")
-            formatted = format.format(0000)
+            formatted = format.format(0)
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)

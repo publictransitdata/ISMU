@@ -6,7 +6,7 @@ def safe_route(server):
             try:
                 return await fn(request, *args, **kwargs)
             except Exception as e:
-                return server._response(
+                return server._error_response(
                     "Internal server error: {}".format(e), 500, "text/plain"
                 )
 

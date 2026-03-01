@@ -452,7 +452,9 @@ class WebUpdateServer:
     def _register_routes(self):
         @self._app.errorhandler(413)
         async def payload_too_large(request):
-            return self._error_response("Файл занадто великий. Максимум: 16KB")
+            return self._error_response(
+                "Файл занадто великий. Максимум: 16KB", code=413
+            )
 
         @safe_route(self)
         @self._app.route("/")
@@ -587,9 +589,9 @@ class WebUpdateServer:
         html = SUCCESS_HTML.replace("{files}", files)
         return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
-    def _error_response(self, message: str):
+    def _error_response(self, message: str, code: int = 400):
         html = ERROR_HTML.replace("{message}", message)
-        return html, 400, {"Content-Type": "text/html; charset=utf-8"}
+        return html, code, {"Content-Type": "text/html; charset=utf-8"}
 
     async def _start_servertask(self):
         try:

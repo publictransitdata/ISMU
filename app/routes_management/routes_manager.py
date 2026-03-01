@@ -5,6 +5,7 @@ import os
 import ujson as json
 
 DB_PATH = "/config/routes_db.ndjson"
+ROUTES_PATH = "/config/routes.txt"
 
 
 @singleton
@@ -14,8 +15,23 @@ class RoutesManager:
         self._db_file_path = DB_PATH
 
     def load_routes(self) -> None:
-        self._route_list = self.build_route_list()
-        print("Routes was loaded")
+        try:
+            os.stat(ROUTES_PATH)
+        except OSError:
+            set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND)
+
+        try:
+            self._route_list = self.build_route_list()
+            print("Routes was loaded")
+        except Exception:
+            pass
+
+        try:
+            self.refresh_db(ROUTES_PATH)
+            self._route_list = self.build_route_list()
+            print("Routes was loaded after refresh db")
+        except Exception as e:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
 
     def refresh_db(self, routes_path: str) -> None:
         """
@@ -168,7 +184,7 @@ class RoutesManager:
             if e.args[0] == 2:
                 set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND, e)
             else:
-                set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
+                set_error_and_raise(ErrorCodes.ROUTES_FILE_OPEN_FAILED, e)
 
     def build_route_list(self):
         routes_list = []
@@ -190,7 +206,10 @@ class RoutesManager:
                             }
                         )
         except OSError as e:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
+            raise RuntimeError(f"Failed to open routes DB: {e}")
+
+        if not routes_list:
+            raise ValueError("Routes DB is empty")
 
         return routes_list
 

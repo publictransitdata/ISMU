@@ -20,6 +20,7 @@ class ErrorCodes:
     ROUTES_FILE_EMPTY = 201
     ROUTES_DB_OPEN_FAILED = 202
     ROUTES_DB_WRITE_FAILED = 203
+    ROUTES_FILE_OPEN_FAILED = 204
 
     # Route number errors (21X)
     ROUTES_EMPTY_ROUTE_NUMBER = 210
@@ -81,13 +82,14 @@ class ErrorCodes:
         201: "E201: Routes file empty",
         202: "E202: Routes DB open fail",
         203: "E203: Routes DB write fail",
+        204: "E204: Routes file open fail",
         # Routes - route number
         210: "E210: Empty route number",
         211: "E211: No routes in file",
         # Routes - direction
         220: "E220: Dir without route",
-        222: "E221: Empty dir/point ID",
-        223: "E222: Wrong field count",
+        221: "E221: Empty dir/point ID",
+        222: "E222: Wrong field count",
         # Routes - short name
         230: "E230: Short name no '^'",
         231: "E231: Short name <2 parts",
