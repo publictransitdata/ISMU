@@ -105,10 +105,10 @@ class ErrorCodes:
         310: "E310: Unknown telegram type",
         311: "E311: Route number is None",
         312: "E312: Trip info is None",
-        313: "E313: Char map load error",
+        313: "E313: Char map load error. There is should be correct char_map.json file in config directory. Look readme for details.",
         314: "E314: Point ID is None",
         # Files
-        400: "E400: Missing language file",
+        400: "E400: Missing language file. There is should be correct lang.py file in config directory. Look readme for details.",
         # GUI
         500: "E500: Unknown menu type",
         # Web server
