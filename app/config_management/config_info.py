@@ -183,7 +183,7 @@ class TripInfo:
             return self.full_name
 
 
-class CurrentSystemChosenConfiguraion:
+class CurrentSystemChosenConfiguration:
     def __init__(
         self,
         route_number: str | None = None,

@@ -45,7 +45,7 @@ def check_config_related_files(*paths):
 
     if CONFIG_PATH in missing and ROUTES_PATH in missing:
         screen_config.current_screen = ScreenStates.INITIAL_SCREEN
-        screen_config._is_system_fresh = True
+        screen_config.is_system_fresh = True
 
 
 if __name__ == "__main__":
@@ -94,17 +94,17 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    uart = UART(
-        0,
-        tx=Pin(0),
-        rx=Pin(1),
-        baudrate=config_manager.config.baudrate,
-        bits=config_manager.config.bits,
-        parity=config_manager.config.parity,
-        stop=config_manager.config.stop,
-    )
+    if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
+        uart = UART(
+            0,
+            tx=Pin(0),
+            rx=Pin(1),
+            baudrate=config_manager.config.baudrate,
+            bits=config_manager.config.bits,
+            parity=config_manager.config.parity,
+            stop=config_manager.config.stop,
+        )
 
-    if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:
         ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
 
     gui_manager = GuiManager(display, writer, screen_config)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
 
-        if screen_config.current_screen is not ScreenStates.ERROR_SCREEN:
+        if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
             ibis_manager.start()
 
             try:

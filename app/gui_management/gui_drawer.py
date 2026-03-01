@@ -298,7 +298,7 @@ class GuiDrawer:
         for i in range(first_visible_menu_item_idx, last_visible_menu_item_idx):
             y = top_offset + (i - first_visible_menu_item_idx) * line_height
             is_highlighted = i == highlighted_item_index
-            available_width = self._screen_config._max_number_of_characters_in_line
+            available_width = self._screen_config.max_number_of_characters_in_line
             string_line = self.trim_text_to_fit(menu_items[i], available_width)
 
             if is_highlighted:

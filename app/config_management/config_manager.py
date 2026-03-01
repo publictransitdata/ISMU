@@ -1,14 +1,14 @@
 from app.error_codes import ErrorCodes
 from utils.singleton_decorator import singleton
 from utils.error_handler import set_error_and_raise
-from .config_info import SystemConfig, CurrentSystemChosenConfiguraion, TripInfo
+from .config_info import SystemConfig, CurrentSystemChosenConfiguration, TripInfo
 
 
 @singleton
 class ConfigManager:
     def __init__(self):
         self._config = SystemConfig()
-        self._current_config = CurrentSystemChosenConfiguraion()
+        self._current_config = CurrentSystemChosenConfiguration()
 
     def _convert_value(self, key: str, value: str):
         if key in {

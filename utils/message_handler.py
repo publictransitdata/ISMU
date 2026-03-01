@@ -1,6 +1,6 @@
 def set_message(message: str):
     """
-    Sets the message screen with the info for usere, user can switch to another state from this state.
+    Sets the message screen with the info for user. User can switch to another state from this state.
 
     Args:
         message: text to display on the message screen
