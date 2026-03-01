@@ -74,9 +74,17 @@ if __name__ == "__main__":
     ):
         try:
             config_manager.load_config(CONFIG_PATH)
+        except Exception:
+            set_error_and_raise(
+                ErrorCodes.CONFIG_FILE_LOAD_ERROR, raise_exception=False
+            )
+
+        try:
             routes_manager.load_routes()
-        except Exception as e:
-            set_error_and_raise(ErrorCodes.FILE_LOADING_ERROR)
+        except Exception:
+            set_error_and_raise(
+                ErrorCodes.ROUTES_FILE_LOAD_ERROR, raise_exception=False
+            )
 
     config_manager.get_current_configuration().load_from_saved_state()
 

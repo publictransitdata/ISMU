@@ -16,6 +16,10 @@ class ConfigManager:
             "force_short_names",
             "show_info_on_stop_board",
         }:
+            if value.lower() not in ("true", "false"):
+                set_error_and_raise(
+                    ErrorCodes.CONFIG_INVALID_VALUE, ValueError(f"Expected 'true' or 'false' for {key}, got '{value}'"), show_message=True
+                )
             return value.lower() == "true"
 
         if key in {"baudrate", "bits", "parity", "stop"}:
@@ -25,7 +29,7 @@ class ConfigManager:
                 set_error_and_raise(
                     ErrorCodes.CONFIG_INVALID_VALUE,
                     ValueError(f"Could not convert {key}={value} to int"),
-                    True,
+                    show_message=True,
                 )
 
         return value
@@ -33,7 +37,16 @@ class ConfigManager:
     def load_config(self, config_path: str) -> None:
         try:
             with open(config_path, "r") as file:
-                lines = file.readlines()
+                content = file.read()
+                
+                if not content.strip():
+                    set_error_and_raise(
+                        ErrorCodes.CONFIG_FILE_EMPTY,
+                        Exception("Config file is empty"),
+                        show_message=True,
+                    )
+                
+                lines = content.splitlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
         except OSError as e:
