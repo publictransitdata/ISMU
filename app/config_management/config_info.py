@@ -171,7 +171,7 @@ class TripInfo:
         else:
             return None
 
-    def get_proper_trip_name(self) -> list[str] | None:
+    def get_proper_trip_name(self) -> list[str]:
         if SystemConfig().force_short_names:
             if self.short_name:
                 return self.short_name

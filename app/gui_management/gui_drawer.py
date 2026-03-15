@@ -191,7 +191,7 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_message_screen(self, message: str) -> None:
+    def draw_message_screen(self, message: str | None) -> None:
         self._display.fill(0)
 
         line_height = self._screen_config.font_size + 2
