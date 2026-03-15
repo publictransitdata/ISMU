@@ -1,5 +1,5 @@
-from utils.singleton_decorator import singleton
 from app.state_management import StateManager
+from utils.singleton_decorator import singleton
 
 
 class ScreenStates:

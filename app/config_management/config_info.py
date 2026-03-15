@@ -1,6 +1,6 @@
-from utils.singleton_decorator import singleton
-from app.state_management import StateManager
 from app.routes_management import RoutesManager
+from app.state_management import StateManager
+from utils.singleton_decorator import singleton
 
 AP_NAME = "ismu-hotspot"
 AP_PASSWORD = "12345678"
@@ -10,9 +10,9 @@ AP_IP = "192.168.4.1"
 @singleton
 class SystemConfig:
     def __init__(self):
-        self._line: str = ""
-        self._destination_number: str = ""
-        self._destination: str = ""
+        self._line_telegram: str = ""
+        self._destination_number_telegram: str = ""
+        self._destination_telegram: str = ""
         self._show_start_and_end_stops: bool = False
         self._force_short_names: bool = False
         self._stop_board_telegram: str = ""
@@ -24,33 +24,31 @@ class SystemConfig:
         self._bits: int = 7
         self._parity: int = 2
         self._stop: int = 2
-
-        ## is that variable need to be here?
         self._version: str = "1.0.0"
 
     @property
-    def line(self):
-        return self._line
+    def line_telegram(self):
+        return self._line_telegram
 
-    @line.setter
-    def line(self, value):
-        self._line = value
-
-    @property
-    def destination_number(self):
-        return self._destination_number
-
-    @destination_number.setter
-    def destination_number(self, value):
-        self._destination_number = value
+    @line_telegram.setter
+    def line_telegram(self, value):
+        self._line_telegram = value
 
     @property
-    def destination(self):
-        return self._destination
+    def destination_number_telegram(self):
+        return self._destination_number_telegram
 
-    @destination.setter
-    def destination(self, value):
-        self._destination = value
+    @destination_number_telegram.setter
+    def destination_number_telegram(self, value):
+        self._destination_number_telegram = value
+
+    @property
+    def destination_telegram(self):
+        return self._destination_telegram
+
+    @destination_telegram.setter
+    def destination_telegram(self, value):
+        self._destination_telegram = value
 
     @property
     def show_start_and_end_stops(self):
@@ -183,7 +181,7 @@ class TripInfo:
             return self.full_name
 
 
-class CurrentSystemChosenConfiguration:
+class CurrentRouteTripSelection:
     def __init__(
         self,
         route_number: str | None = None,
@@ -193,7 +191,7 @@ class CurrentSystemChosenConfiguration:
         self.route_number = route_number
         self.trip = TripInfo.trip_from_dict(trip)
         self.no_line_telegram = no_line_telegram
-        self.isUpdated = False
+        self.is_updated = False
 
     def load_from_saved_state(self):
         state = StateManager().get_state()

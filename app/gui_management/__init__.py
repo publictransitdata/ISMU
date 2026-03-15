@@ -1,11 +1,11 @@
-from .gui_manager import GuiManager
-from .gui_drawer import GuiDrawer
 from .gui_config import (
-    ScreenConfig,
     RouteMenuState,
-    TripMenuState,
+    ScreenConfig,
     ScreenStates,
+    TripMenuState,
 )
+from .gui_drawer import GuiDrawer
+from .gui_manager import GuiManager
 
 __all__ = [
     "GuiManager",
