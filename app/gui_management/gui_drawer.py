@@ -266,9 +266,9 @@ class GuiDrawer:
         self._writer.set_textpos(self._display, 0, 0)
 
         telegrams_list = [
-            config.line,
-            config.destination_number,
-            config.destination,
+            config.line_telegram,
+            config.destination_number_telegram,
+            config.destination_telegram,
             config.stop_board_telegram,
         ]
         filtered_telegrams = [t for t in telegrams_list if t]

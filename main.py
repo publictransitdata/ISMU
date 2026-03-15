@@ -1,12 +1,13 @@
+import os
 from machine import Pin, I2C, UART
+import uasyncio as asyncio
+
 import sh1106  # type: ignore
-from framebuf import FrameBuffer
 import writer  # type: ignore
+
 from app.gui_management import (
     GuiManager,
     ScreenConfig,
-    RouteMenuState,
-    TripMenuState,
     ScreenStates,
 )
 from app.routes_management import RoutesManager
@@ -14,10 +15,6 @@ from app.config_management import ConfigManager
 from app.ibis_management import IBISManager
 from app.error_codes import ErrorCodes
 from utils.error_handler import set_error_and_raise
-import uasyncio as asyncio
-import time
-import gc
-import os
 
 
 try:
@@ -86,7 +83,7 @@ if __name__ == "__main__":
                 ErrorCodes.ROUTES_FILE_LOAD_ERROR, raise_exception=False
             )
 
-    config_manager.get_current_configuration().load_from_saved_state()
+    config_manager.get_current_selection().load_from_saved_state()
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)

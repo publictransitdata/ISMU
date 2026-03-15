@@ -1,8 +1,9 @@
 import os
+
 import ujson as json
-from utils.singleton_decorator import singleton
 from app.error_codes import ErrorCodes
 from utils.error_handler import set_error_and_raise
+from utils.singleton_decorator import singleton
 
 STATE_PATH = "app/state_management/state.json"
 TEMP_STATE_PATH = "app/state_management/state.tmp"
