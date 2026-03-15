@@ -90,7 +90,7 @@ class IBISManager:
             set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
         try:
             formatted = format.format(int(value))
-        except Exception as e:
+        except Exception:
             set_message("Номер маршруту не виводиться")
             self._failed_telegrams.add("DS001")
             formatted = format.format(0)
@@ -107,7 +107,7 @@ class IBISManager:
             set_error_and_raise(ErrorCodes.ROUTE_NUMBER_IS_NONE)
         try:
             formatted = format.format(value)
-        except Exception as e:
+        except Exception:
             set_message("Номер маршруту не виводиться")
             self._failed_telegrams.add("DS001neu")
             formatted = format.format("0000")
@@ -127,7 +127,7 @@ class IBISManager:
             set_error_and_raise(ErrorCodes.POINT_ID_IS_NONE)
         try:
             formatted = format.format(int(value))
-        except Exception as e:
+        except Exception:
             set_message("Код напрямку не відправляється")
             self._failed_telegrams.add("DS003")
             formatted = format.format(0)
@@ -155,7 +155,7 @@ class IBISManager:
         format = TELEGRAM_FORMATS["DS003a"]
         try:
             formatted = format.format(value[:32])
-        except Exception as e:
+        except Exception:
             set_message("Текст на зовнішньому табло не відображається")
             self._failed_telegrams.add("DS003a")
             formatted = "zA2" + (" " * 32)
@@ -188,7 +188,7 @@ class IBISManager:
                 trip_name = self.sanitize_ibis_text(trip_name)
             try:
                 formatted = format.format((route_number + " > " + trip_name)[:24])
-            except Exception as e:
+            except Exception:
                 set_message("Текст на внутрішньому табло не відображається")
                 self._failed_telegrams.add("DS003c")
                 formatted = "zI6" + (" " * 24)
