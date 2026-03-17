@@ -34,7 +34,6 @@ class ScreenConfig:
         self._max_menu_items = 0
         self._max_number_of_characters_in_line = 0
         self._current_screen = ScreenStates.STATUS_SCREEN
-        self._is_system_fresh = False
         self._error_code = 0
         self._message_to_display = None
         self._dirty = True
@@ -118,14 +117,6 @@ class ScreenConfig:
     @error_code.setter
     def error_code(self, value: int):
         self._error_code = value
-
-    @property
-    def is_system_fresh(self):
-        return self._is_system_fresh
-
-    @is_system_fresh.setter
-    def is_system_fresh(self, value: bool):
-        self._is_system_fresh = value
 
     @property
     def message_to_display(self):
