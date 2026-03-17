@@ -194,7 +194,7 @@ class CurrentRouteTripSelection:
         self.is_updated = False
 
     def load_from_saved_selection(self):
-        selection = SelectionManager().get_selection_state()
+        selection = SelectionManager().get_selection()
         route = RoutesManager().get_route_by_index(selection["route_id"])
 
         if route and route.get("dirs"):
