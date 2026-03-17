@@ -1,21 +1,21 @@
 import sys
 import time
 
-from app.routes_management import RoutesManager
-from app.config_management import ConfigManager
-from app.state_management import StateManager
-from app.error_codes import ErrorCodes
-from utils.error_handler import set_error_and_raise
-from app.web_update import WebUpdateServer
-from .gui_drawer import GuiDrawer
-import uasyncio as asyncio
-from .gui_config import (
-    ScreenConfig,
-    RouteMenuState,
-    TripMenuState,
-    ScreenStates,
-)
 import ujson as json
+from app.config_management import ConfigManager
+from app.error_codes import ErrorCodes
+from app.routes_management import RoutesManager
+from app.state_management import StateManager
+from app.web_update import WebUpdateServer
+from utils.error_handler import set_error_and_raise
+
+from .gui_config import (
+    RouteMenuState,
+    ScreenConfig,
+    ScreenStates,
+    TripMenuState,
+)
+from .gui_drawer import GuiDrawer
 
 if sys.platform != "rp2":
     from lib.sh1106 import SH1106_I2C  # for vs code
@@ -280,7 +280,7 @@ class GuiManager:
                         self._web_update_server.stop()
                         self.mark_dirty()
                         return
-                elif self._screen_config.is_system_fresh:
+                elif self._screen_config.current_screen == ScreenStates.INITIAL_SCREEN:
                     if self._check_buttons_press_timer(
                         [btn_menu],
                         ScreenStates.UPDATE_SCREEN,
@@ -339,7 +339,7 @@ class GuiManager:
                 route = self._routes_manager.get_route_by_index(
                     self._route_menu_state.selected_item_index
                 )
-                self._config_manager.update_current_configuration(
+                self._config_manager.update_current_selection(
                     route["route_number"],
                     route["dirs"][self._trip_menu_state.selected_item_index],
                     route.get("no_line_telegram", False),

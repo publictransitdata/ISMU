@@ -191,7 +191,7 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_message_screen(self, message: str) -> None:
+    def draw_message_screen(self, message: str | None) -> None:
         self._display.fill(0)
 
         line_height = self._screen_config.font_size + 2
@@ -266,9 +266,9 @@ class GuiDrawer:
         self._writer.set_textpos(self._display, 0, 0)
 
         telegrams_list = [
-            config.line,
-            config.destination_number,
-            config.destination,
+            config.line_telegram,
+            config.destination_number_telegram,
+            config.destination_telegram,
             config.stop_board_telegram,
         ]
         filtered_telegrams = [t for t in telegrams_list if t]

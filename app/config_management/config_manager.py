@@ -1,14 +1,15 @@
 from app.error_codes import ErrorCodes
-from utils.singleton_decorator import singleton
 from utils.error_handler import set_error_and_raise
-from .config_info import SystemConfig, CurrentSystemChosenConfiguration, TripInfo
+from utils.singleton_decorator import singleton
+
+from .config_info import CurrentRouteTripSelection, SystemConfig, TripInfo
 
 
 @singleton
 class ConfigManager:
     def __init__(self):
         self._config = SystemConfig()
-        self._current_config = CurrentSystemChosenConfiguration()
+        self._current_selection = CurrentRouteTripSelection()
 
     def _convert_value(self, key: str, value: str):
         if key in {
@@ -16,6 +17,12 @@ class ConfigManager:
             "force_short_names",
             "show_info_on_stop_board",
         }:
+            if value.lower() not in ("true", "false"):
+                set_error_and_raise(
+                    ErrorCodes.CONFIG_INVALID_VALUE,
+                    ValueError(f"Expected 'true' or 'false' for {key}, got '{value}'"),
+                    show_message=True,
+                )
             return value.lower() == "true"
 
         if key in {"baudrate", "bits", "parity", "stop"}:
@@ -25,7 +32,7 @@ class ConfigManager:
                 set_error_and_raise(
                     ErrorCodes.CONFIG_INVALID_VALUE,
                     ValueError(f"Could not convert {key}={value} to int"),
-                    True,
+                    show_message=True,
                 )
 
         return value
@@ -33,7 +40,16 @@ class ConfigManager:
     def load_config(self, config_path: str) -> None:
         try:
             with open(config_path, "r") as file:
-                lines = file.readlines()
+                content = file.read()
+
+                if not content.strip():
+                    set_error_and_raise(
+                        ErrorCodes.CONFIG_FILE_EMPTY,
+                        Exception("Config file is empty"),
+                        show_message=True,
+                    )
+
+                lines = content.splitlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
         except OSError as e:
@@ -55,9 +71,9 @@ class ConfigManager:
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
                 if key in {
-                    "line",
-                    "destination_number",
-                    "destination",
+                    "line_telegram",
+                    "destination_number_telegram",
+                    "destination_telegram",
                     "stop_board_telegram",
                 }:
                     converted = value if value else None
@@ -71,15 +87,20 @@ class ConfigManager:
     def config(self):
         return self._config
 
-    def update_current_configuration(self, route_number, trip, no_line_telegram=False):
-        self._current_config.route_number = route_number
-        self._current_config.trip = TripInfo.trip_from_dict(trip)
-        self._current_config.no_line_telegram = no_line_telegram
-        self._current_config.isUpdated = True
+    def update_current_selection(self, route_number, trip, no_line_telegram=False):
+        self._current_selection.route_number = route_number
+        self._current_selection.trip = TripInfo.trip_from_dict(trip)
+        self._current_selection.no_line_telegram = no_line_telegram
+        self._current_selection.is_updated = True
 
-    def get_current_configuration(self):
-        return self._current_config
+    def get_current_selection(self):
+        return self._current_selection
 
     def get_telegram_types(self):
-        keys = ["line", "destination_number", "destination", "stop_board_telegram"]
+        keys = [
+            "line_telegram",
+            "destination_number_telegram",
+            "destination_telegram",
+            "stop_board_telegram",
+        ]
         return {getattr(self._config, k) for k in keys if getattr(self._config, k)}

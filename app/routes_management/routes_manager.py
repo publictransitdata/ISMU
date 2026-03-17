@@ -1,8 +1,9 @@
-from app.error_codes import ErrorCodes
-from utils.singleton_decorator import singleton
-from utils.error_handler import set_error_and_raise
 import os
+
 import ujson as json
+from app.error_codes import ErrorCodes
+from utils.error_handler import set_error_and_raise
+from utils.singleton_decorator import singleton
 
 DB_PATH = "/config/routes_db.ndjson"
 ROUTES_PATH = "/config/routes.txt"
@@ -23,6 +24,7 @@ class RoutesManager:
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded")
+            return
         except Exception:
             pass
 

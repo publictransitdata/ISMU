@@ -5,6 +5,8 @@ class ErrorCodes:
     CONFIG_IO_ERROR = 101
     TEMP_STATE_WRITE_ERROR = 102
     CONFIG_EXAMPLE_EXIST = 103
+    CONFIG_FILE_LOAD_ERROR = 104
+    CONFIG_FILE_EMPTY = 105
 
     # Parse errors (11X)
     CONFIG_PARSE_ERROR = 110
@@ -21,6 +23,7 @@ class ErrorCodes:
     ROUTES_DB_OPEN_FAILED = 202
     ROUTES_DB_WRITE_FAILED = 203
     ROUTES_FILE_OPEN_FAILED = 204
+    ROUTES_FILE_LOAD_ERROR = 205
 
     # Route number errors (21X)
     ROUTES_EMPTY_ROUTE_NUMBER = 210
@@ -52,9 +55,6 @@ class ErrorCodes:
     # File not found (40X)
     MISSING_LANGUAGE_FILE = 400
 
-    # File loading errors (41X)
-    FILE_LOADING_ERROR = 410
-
     # GUI errors (5XX)
     UNKNOWN_MENU_TYPE = 500
 
@@ -69,6 +69,8 @@ class ErrorCodes:
         101: "E101: Config IO error",
         102: "E102: Temp state write error",
         103: "E103: Rename config.example to config.txt and fill keys to start",
+        104: "E104: Config file load error",
+        105: "E105: Config file empty",
         # Config - parse
         110: "E110: Config parse fail",
         111: "E111: Missing '=' in line",
@@ -83,6 +85,7 @@ class ErrorCodes:
         202: "E202: Routes DB open fail",
         203: "E203: Routes DB write fail",
         204: "E204: Routes file open fail",
+        205: "E205: Routes file load error",
         # Routes - route number
         210: "E210: Empty route number",
         211: "E211: No routes in file",
@@ -102,11 +105,10 @@ class ErrorCodes:
         310: "E310: Unknown telegram type",
         311: "E311: Route number is None",
         312: "E312: Trip info is None",
-        313: "E313: Char map load error",
+        313: "E313: Char map load error. There is should be correct char_map.json file in config directory. Look readme for details.",
         314: "E314: Point ID is None",
         # Files
-        400: "E400: Missing language file",
-        410: "E410: File loading error",
+        400: "E400: Missing language file. There is should be correct lang.py file in config directory. Look readme for details.",
         # GUI
         500: "E500: Unknown menu type",
         # Web server
