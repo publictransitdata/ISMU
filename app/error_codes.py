@@ -1,4 +1,5 @@
 class ErrorCodes:
+    NONE = 0
     # Config errors (1XX)
     # File errors (10X)
     CONFIG_FILE_NOT_FOUND = 100
