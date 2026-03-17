@@ -280,7 +280,7 @@ class GuiManager:
                         self._web_update_server.stop()
                         self.mark_dirty()
                         return
-                elif self._screen_config.is_system_fresh:
+                elif self._screen_config.current_screen == ScreenStates.INITIAL_SCREEN:
                     if self._check_buttons_press_timer(
                         [btn_menu],
                         ScreenStates.UPDATE_SCREEN,

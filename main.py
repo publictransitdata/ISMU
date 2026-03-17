@@ -42,7 +42,6 @@ def check_config_related_files(*paths):
 
     if CONFIG_PATH in missing and ROUTES_PATH in missing:
         screen_config.current_screen = ScreenStates.INITIAL_SCREEN
-        screen_config.is_system_fresh = True
 
 
 if __name__ == "__main__":
