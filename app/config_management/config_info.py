@@ -1,5 +1,5 @@
 from app.routes_management import RoutesManager
-from app.state_management import StateManager
+from app.selection_management import SelectionManager
 from utils.singleton_decorator import singleton
 
 AP_NAME = "ismu-hotspot"
@@ -193,14 +193,14 @@ class CurrentRouteTripSelection:
         self.no_line_telegram = no_line_telegram
         self.is_updated = False
 
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        route = RoutesManager().get_route_by_index(state["route_id"])
+    def load_from_saved_selection(self):
+        selection = SelectionManager().get_selection_state()
+        route = RoutesManager().get_route_by_index(selection["route_id"])
 
         if route and route.get("dirs"):
             self._route_number = route["route_number"]
             dirs = route["dirs"]
-            trip_id = state.get("trip_id", 0)
+            trip_id = selection.get("trip_id", 0)
             if trip_id < len(dirs):
                 self._trip = TripInfo.trip_from_dict(dirs[trip_id])
             self._no_line_telegram = route.get("no_line_telegram", False)
