@@ -26,7 +26,7 @@ class ScreenConfig:
         _error_code (int): Error code to display on error screen.
     """
 
-    def __init__(self, state):
+    def __init__(self):
         self._screen_width = 0
         self._screen_height = 0
         self._font_size = 0
