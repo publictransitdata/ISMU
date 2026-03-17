@@ -3,7 +3,7 @@ class ErrorCodes:
     # File errors (10X)
     CONFIG_FILE_NOT_FOUND = 100
     CONFIG_IO_ERROR = 101
-    TEMP_STATE_WRITE_ERROR = 102
+    TEMP_SELECTION_WRITE_ERROR = 102
     CONFIG_EXAMPLE_EXIST = 103
     CONFIG_FILE_LOAD_ERROR = 104
     CONFIG_FILE_EMPTY = 105
@@ -67,7 +67,7 @@ class ErrorCodes:
         # Config
         100: "E100: Config not found",
         101: "E101: Config IO error",
-        102: "E102: Temp state write error",
+        102: "E102: Temp selection write error",
         103: "E103: Rename config.example to config.txt and fill keys to start",
         104: "E104: Config file load error",
         105: "E105: Config file empty",
