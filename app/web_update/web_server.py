@@ -6,7 +6,7 @@ import network
 import uasyncio as asyncio
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
-from app.state_management import StateManager
+from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from microdot import Microdot  # type: ignore
 from utils.error_handler import set_error_and_raise
@@ -554,9 +554,9 @@ class WebUpdateServer:
                 if "routes.txt" in saved_files:
                     try:
                         routes_manager = RoutesManager()
-                        state_manager = StateManager()
+                        selection_manager = SelectionManager()
                         routes_manager.refresh_db("/config/routes.txt")
-                        state_manager.reset_state()
+                        selection_manager.reset_selection()
 
                     except Exception as e:
                         set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, e, True)

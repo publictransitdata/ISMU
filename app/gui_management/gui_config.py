@@ -1,4 +1,4 @@
-from app.state_management import StateManager
+from app.selection_management import SelectionManager
 from utils.singleton_decorator import singleton
 
 
@@ -26,7 +26,7 @@ class ScreenConfig:
         _error_code (int): Error code to display on error screen.
     """
 
-    def __init__(self):
+    def __init__(self, state):
         self._screen_width = 0
         self._screen_height = 0
         self._font_size = 0
@@ -150,10 +150,10 @@ class RouteMenuState:
         self._selected_item_index = 0
         self._highlighted_item_index = 0
 
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["route_id"]
-        self._highlighted_item_index = state["route_id"]
+    def load_from_saved_selection(self):
+        selection = SelectionManager().get_selection()
+        self._selected_item_index = selection["route_id"]
+        self._highlighted_item_index = selection["route_id"]
 
     @property
     def selected_item_index(self):
@@ -182,10 +182,10 @@ class TripMenuState:
         self._selected_item_index = trip_selected_item_index
         self._highlighted_item_index = trip_selected_item_index
 
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["trip_id"]
-        self._highlighted_item_index = state["trip_id"]
+    def load_from_saved_selection(self):
+        selection = SelectionManager().get_selection()
+        self._selected_item_index = selection["trip_id"]
+        self._highlighted_item_index = selection["trip_id"]
 
     @property
     def selected_item_index(self):

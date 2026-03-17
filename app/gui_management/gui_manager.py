@@ -5,7 +5,7 @@ import ujson as json
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
-from app.state_management import StateManager
+from app.selection_management import SelectionManager
 from app.web_update import WebUpdateServer
 from utils.error_handler import set_error_and_raise
 
@@ -39,7 +39,7 @@ class GuiManager:
         self._route_menu_state = RouteMenuState()
         self._trip_menu_state = TripMenuState()
         self._screen_config = screen_config
-        self._state_manager = StateManager()
+        self._selection_manager = SelectionManager()
         self._web_update_server = WebUpdateServer(
             self._config_manager.config.ap_name,
             self._config_manager.config.ap_ip,
@@ -52,8 +52,8 @@ class GuiManager:
         self._last_single_button_time = 0
         self._single_button_cooldown = 150
 
-        self._route_menu_state.load_from_saved_state()
-        self._trip_menu_state.load_from_saved_state()
+        self._route_menu_state.load_from_saved_selection()
+        self._trip_menu_state.load_from_saved_selection()
 
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 
@@ -344,7 +344,7 @@ class GuiManager:
                     route["dirs"][self._trip_menu_state.selected_item_index],
                     route.get("no_line_telegram", False),
                 )
-                self._state_manager.save_state(
+                self._selection_manager.save_selection(
                     self._route_menu_state.highlighted_item_index,
                     self._trip_menu_state.highlighted_item_index,
                 )

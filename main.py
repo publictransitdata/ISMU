@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 ErrorCodes.ROUTES_FILE_LOAD_ERROR, raise_exception=False
             )
 
-    config_manager.get_current_selection().load_from_saved_state()
+    config_manager.get_current_selection().load_from_saved_selection()
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
