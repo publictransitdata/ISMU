@@ -37,11 +37,12 @@ def check_config_related_files(*paths):
             missing.add(path)
 
     if CONFIG_EXAMPLE_PATH not in missing:
-        set_error_and_raise(ErrorCodes.CONFIG_EXAMPLE_EXIST)
+        # set_error_and_raise(ErrorCodes.CONFIG_EXAMPLE_EXIST)
+        is_error = True
         return
 
     if CONFIG_PATH in missing and ROUTES_PATH in missing:
-        screen_config.current_screen = ScreenStates.INITIAL_SCREEN
+        is_initial = True
 
 
 if __name__ == "__main__":
@@ -51,6 +52,8 @@ if __name__ == "__main__":
     arrow_size = 6
     max_menu_items = 2
     max_number_of_characters_in_line = 18
+    is_initial = False
+    is_error = False
 
     i2c = I2C(1, scl=Pin(11), sda=Pin(10))
     display = sh1106.SH1106_I2C(128, 64, i2c)
@@ -64,10 +67,7 @@ if __name__ == "__main__":
 
     check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
-    if screen_config.current_screen not in (
-        ScreenStates.INITIAL_SCREEN,
-        ScreenStates.ERROR_SCREEN,
-    ):
+    if not is_initial and not is_error:
         try:
             config_manager.load_config(CONFIG_PATH)
         except Exception:
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
+    if not is_error:
         uart = UART(
             0,
             tx=Pin(0),
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
         ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
 
-    gui_manager = GuiManager(display, writer, screen_config)
+    gui_manager = GuiManager(display, writer)
 
     async def gui_loop(gui: GuiManager):
         try:
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
 
-        if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
+        if gui_manager.current_screen != ScreenStates.ERROR_SCREEN:
             ibis_manager.start()
 
             try:

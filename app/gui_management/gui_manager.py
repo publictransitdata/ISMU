@@ -11,10 +11,9 @@ from utils.error_handler import set_error_and_raise
 
 from .gui_config import (
     RouteMenuState,
-    ScreenConfig,
-    ScreenStates,
     TripMenuState,
 )
+
 from .gui_drawer import GuiDrawer
 
 if sys.platform != "rp2":
@@ -22,10 +21,62 @@ if sys.platform != "rp2":
     from lib.writer import Writer  # for vs code
 
 
-class GuiManager:
-    def __init__(
-        self, display: SH1106_I2C, writer: Writer, screen_config: ScreenConfig
+class ScreenStates:
+    STATUS_SCREEN = "status"
+    ROUTE_MENU = "route"
+    TRIP_MENU = "trip"
+    ERROR_SCREEN = "error"
+    SETTINGS_SCREEN = "settings"
+    UPDATE_SCREEN = "update"
+    INITIAL_SCREEN = "initial"
+    START_SCREEN = "start"
+    MESSAGE_SCREEN = "message"
+
+
+class State:
+    @property
+    def context(self):
+        return self._context
+
+    @context.setter
+    def context(self, context):
+        self._context = context
+
+    def handle_buttons(
+        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
     ):
+        raise NotImplementedError(
+            "handle_buttons method should be implemented in the subclass"
+        )
+
+    def draw_current_screen(self):
+        raise NotImplementedError(
+            "draw_current_screen method should be implemented in the subclass"
+        )
+
+
+class StatusState(State):
+    def draw_current_screen(self):
+        route = self._routes_manager.get_route_by_index(
+            self._route_menu_state.selected_item_index
+        )
+        selected_trip_name_list = route["dirs"][
+            self._trip_menu_state.selected_item_index
+        ]["full_name"]
+        if len(selected_trip_name_list) == 2:
+            selected_trip_name = selected_trip_name_list[1]
+        else:
+            selected_trip_name = selected_trip_name_list[0]
+        self._gui_drawer.draw_status_screen(
+            selected_trip_name,
+            route["route_number"],
+            self._trip_menu_state.selected_item_index + 1,
+            int(route["dirs"][self._trip_menu_state.selected_item_index]["point_id"]),
+        )
+
+
+class GuiManager:
+    def __init__(self, display: SH1106_I2C, writer: Writer):
         """
         Initializes the GuiManager with the necessary configurations and display components.
 
@@ -38,14 +89,14 @@ class GuiManager:
         self._config_manager = ConfigManager()
         self._route_menu_state = RouteMenuState()
         self._trip_menu_state = TripMenuState()
-        self._screen_config = screen_config
+        # self._state_manager = StateManager()
         self._selection_manager = SelectionManager()
         self._web_update_server = WebUpdateServer(
             self._config_manager.config.ap_name,
             self._config_manager.config.ap_ip,
             self._config_manager.config.ap_password,
         )
-        self._gui_drawer = GuiDrawer(display, writer, screen_config)
+        self._gui_drawer = GuiDrawer(display, writer)
 
         self._buttons_press_start_time = None
         self._buttons_press_active = False
@@ -57,11 +108,72 @@ class GuiManager:
 
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 
+        # temprorary
+        self._state = None
+        self._current_screen = ScreenStates.STATUS_SCREEN
+        self._error_code = ErrorCodes.NONE
+        self._message_to_display = None
+        self._dirty = True
+        self.transition_to(self._state)
+
+    def transition_to(self, state: State):
+        self._state = state
+        self._state.context = self
+
+    @property
+    def current_screen(self):
+        return self._current_screen
+
+    @current_screen.setter
+    def current_screen(self, value: str):
+        self._current_screen = value
+
+    @property
+    def max_number_of_characters_in_line(self):
+        return self._max_number_of_characters_in_line
+
+    @max_number_of_characters_in_line.setter
+    def max_number_of_characters_in_line(self, value: int):
+        self._max_number_of_characters_in_line = value
+
+    @property
+    def error_code(self):
+        return self._error_code
+
+    @error_code.setter
+    def error_code(self, value: int):
+        self._error_code = value
+
+    @property
+    def message_to_display(self):
+        return self._message_to_display
+
+    @message_to_display.setter
+    def message_to_display(self, value: str | None):
+        self._message_to_display = value
+
+    @property
+    def dirty(self):
+        return self._dirty
+
+    @dirty.setter
+    def dirty(self, value: bool):
+        self._dirty = value
+
+    def mark_dirty(self):
+        self._dirty = True
+
+    def mark_clean(self):
+        self._dirty = False
+
+    def is_dirty(self):
+        return self._dirty
+
     def draw_current_screen(self):
         if not self.is_dirty():
             return
 
-        current_screen = self._screen_config.current_screen
+        current_screen = self.current_screen
 
         if current_screen == ScreenStates.ROUTE_MENU:
             if len(self._routes_for_menu_display_list) == 0:
@@ -97,29 +209,11 @@ class GuiManager:
                 f"M:{route['route_number']}",
             )
         elif current_screen == ScreenStates.STATUS_SCREEN:
-            route = self._routes_manager.get_route_by_index(
-                self._route_menu_state.selected_item_index
-            )
-            selected_trip_name_list = route["dirs"][
-                self._trip_menu_state.selected_item_index
-            ]["full_name"]
-            if len(selected_trip_name_list) == 2:
-                selected_trip_name = selected_trip_name_list[1]
-            else:
-                selected_trip_name = selected_trip_name_list[0]
-
-            self._gui_drawer.draw_status_screen(
-                selected_trip_name,
-                route["route_number"],
-                self._trip_menu_state.selected_item_index + 1,
-                int(
-                    route["dirs"][self._trip_menu_state.selected_item_index]["point_id"]
-                ),
-            )
+            self.context.draw_current_screen()
         elif current_screen == ScreenStates.ERROR_SCREEN:
             self._gui_drawer.draw_error_screen(
-                str(self._screen_config.error_code),
-                self._screen_config.message_to_display,
+                str(self.error_code),
+                self.message_to_display,
             )
 
         elif current_screen == ScreenStates.INITIAL_SCREEN:
@@ -131,9 +225,9 @@ class GuiManager:
                 self._config_manager.config.ap_ip, self._config_manager.config.ap_name
             )
         elif current_screen == ScreenStates.MESSAGE_SCREEN:
-            self._gui_drawer.draw_message_screen(self._screen_config.message_to_display)
+            self._gui_drawer.draw_message_screen(self.message_to_display)
 
-        self._screen_config.mark_clean()
+        self.mark_clean()
 
     def navigate_up(self, menu_type: str) -> None:
         menu_state = self._get_menu_state(menu_type)
@@ -187,8 +281,8 @@ class GuiManager:
         duration = time.ticks_diff(current_time, self._buttons_press_start_time)
 
         if duration >= 3000:
-            if self._screen_config.current_screen == current_screen:
-                self._screen_config.current_screen = target_screen
+            if self.current_screen == current_screen:
+                self.current_screen = target_screen
 
                 self._buttons_press_active = False
                 self._buttons_press_start_time = None
@@ -216,7 +310,7 @@ class GuiManager:
             return
 
         if not btn_down and not btn_select:
-            if self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
+            if self.current_screen == ScreenStates.SETTINGS_SCREEN:
                 if self._check_buttons_press_timer(
                     [btn_down, btn_select],
                     ScreenStates.SETTINGS_SCREEN,
@@ -227,7 +321,7 @@ class GuiManager:
                     self.mark_dirty()
                     return
 
-            elif self._screen_config.current_screen == ScreenStates.ERROR_SCREEN:
+            elif self.current_screen == ScreenStates.ERROR_SCREEN:
                 if self._check_buttons_press_timer(
                     [btn_down, btn_select],
                     ScreenStates.ERROR_SCREEN,
@@ -238,7 +332,7 @@ class GuiManager:
                     self.mark_dirty()
                     return
 
-            elif self._screen_config.current_screen == ScreenStates.INITIAL_SCREEN:
+            elif self.current_screen == ScreenStates.INITIAL_SCREEN:
                 if self._check_buttons_press_timer(
                     [btn_down, btn_select],
                     ScreenStates.INITIAL_SCREEN,
@@ -257,20 +351,20 @@ class GuiManager:
             return
 
         if not btn_menu:
-            if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
-                self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+            if self.current_screen == ScreenStates.STATUS_SCREEN:
+                self.current_screen = ScreenStates.ROUTE_MENU
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
-                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            elif self.current_screen == ScreenStates.ROUTE_MENU:
+                self.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.TRIP_MENU:
-                self._screen_config.current_screen = ScreenStates.ROUTE_MENU
+            elif self.current_screen == ScreenStates.TRIP_MENU:
+                self.current_screen = ScreenStates.ROUTE_MENU
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.SETTINGS_SCREEN:
-                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            elif self.current_screen == ScreenStates.SETTINGS_SCREEN:
+                self.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.UPDATE_SCREEN:
-                if self._screen_config.error_code:
+            elif self.current_screen == ScreenStates.UPDATE_SCREEN:
+                if self.error_code:
                     if self._check_buttons_press_timer(
                         [btn_menu],
                         ScreenStates.UPDATE_SCREEN,
@@ -280,7 +374,7 @@ class GuiManager:
                         self._web_update_server.stop()
                         self.mark_dirty()
                         return
-                elif self._screen_config.current_screen == ScreenStates.INITIAL_SCREEN:
+                elif self.current_screen == ScreenStates.INITIAL_SCREEN:
                     if self._check_buttons_press_timer(
                         [btn_menu],
                         ScreenStates.UPDATE_SCREEN,
@@ -304,32 +398,32 @@ class GuiManager:
             self._last_single_button_time = current_time
 
         if not btn_up:
-            if self._screen_config.current_screen in (
+            if self.current_screen in (
                 ScreenStates.ROUTE_MENU,
                 ScreenStates.TRIP_MENU,
             ):
-                self.navigate_up(self._screen_config.current_screen)
+                self.navigate_up(self.current_screen)
                 self.mark_dirty()
-            if self._screen_config.current_screen == ScreenStates.STATUS_SCREEN:
-                self._screen_config.current_screen = ScreenStates.TRIP_MENU
+            if self.current_screen == ScreenStates.STATUS_SCREEN:
+                self.current_screen = ScreenStates.TRIP_MENU
                 self.mark_dirty()
             self._last_single_button_time = current_time
 
         if not btn_down:
-            if self._screen_config.current_screen in (
+            if self.current_screen in (
                 ScreenStates.ROUTE_MENU,
                 ScreenStates.TRIP_MENU,
             ):
-                self.navigate_down(self._screen_config.current_screen)
+                self.navigate_down(self.current_screen)
                 self.mark_dirty()
             self._last_single_button_time = current_time
 
         if not btn_select:
-            if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
-                self._screen_config.current_screen = ScreenStates.TRIP_MENU
+            if self.current_screen == ScreenStates.ROUTE_MENU:
+                self.current_screen = ScreenStates.TRIP_MENU
                 self._trip_menu_state.highlighted_item_index = 0
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.TRIP_MENU:
+            elif self.current_screen == ScreenStates.TRIP_MENU:
                 self._route_menu_state.selected_item_index = (
                     self._route_menu_state.highlighted_item_index
                 )
@@ -348,10 +442,10 @@ class GuiManager:
                     self._route_menu_state.highlighted_item_index,
                     self._trip_menu_state.highlighted_item_index,
                 )
-                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+                self.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
-            elif self._screen_config.current_screen == ScreenStates.MESSAGE_SCREEN:
-                self._screen_config.current_screen = ScreenStates.STATUS_SCREEN
+            elif self.current_screen == ScreenStates.MESSAGE_SCREEN:
+                self.current_screen = ScreenStates.STATUS_SCREEN
                 self.mark_dirty()
 
             self._last_single_button_time = current_time
@@ -360,10 +454,13 @@ class GuiManager:
         self._buttons_press_start_time = None
 
     def mark_dirty(self):
-        self._screen_config.mark_dirty()
+        self.mark_dirty()
 
     def is_dirty(self) -> bool:
-        return self._screen_config.is_dirty()
+        return self.is_dirty()
+
+    def mark_clean(self):
+        self.mark_clean()
 
     def get_route_list_to_display(self, route_file_path) -> list[str]:
         routes = self._routes_manager._route_list
@@ -417,9 +514,9 @@ class GuiManager:
         return menu_items
 
     def get_number_of_menu_items(self) -> int:
-        if self._screen_config.current_screen == ScreenStates.ROUTE_MENU:
+        if self.current_screen == ScreenStates.ROUTE_MENU:
             return self._routes_manager.get_length_of_routes()
-        elif self._screen_config.current_screen == ScreenStates.TRIP_MENU:
+        elif self.current_screen == ScreenStates.TRIP_MENU:
             return self._routes_manager.get_length_of_trips(
                 self._route_menu_state.highlighted_item_index
             )
