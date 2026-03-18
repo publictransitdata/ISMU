@@ -1,4 +1,5 @@
 from app.error_codes import ErrorCodes
+from utils.gui_hooks import trigger_error
 
 
 def set_error_and_raise(
@@ -11,14 +12,8 @@ def set_error_and_raise(
         error_code: code from ErrorCodes
         exception: Optional exception to re-raise
     """
-    from app.gui_management import ScreenConfig, ScreenStates
-
-    screen_config = ScreenConfig()
-    screen_config.current_screen = ScreenStates.ERROR_SCREEN
-    screen_config.error_code = error_code
-    if show_message:
-        screen_config.message_to_display = str(exception) if exception else None
-    screen_config.mark_dirty()
+    message = str(exception) if show_message and exception else None
+    trigger_error(error_code, message)
 
     if not raise_exception:
         return

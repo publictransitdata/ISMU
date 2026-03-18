@@ -8,13 +8,15 @@ import writer  # type: ignore
 from app.gui_management import (
     GuiManager,
     ScreenConfig,
-    ScreenStates,
+    InitialState,
+    ErrorState,
 )
 from app.routes_management import RoutesManager
 from app.config_management import ConfigManager
 from app.ibis_management import IBISManager
 from app.error_codes import ErrorCodes
 from utils.error_handler import set_error_and_raise
+from utils.gui_hooks import trigger_initial
 
 
 try:
@@ -41,7 +43,7 @@ def check_config_related_files(*paths):
         return
 
     if CONFIG_PATH in missing and ROUTES_PATH in missing:
-        screen_config.current_screen = ScreenStates.INITIAL_SCREEN
+        trigger_initial()
 
 
 if __name__ == "__main__":
@@ -57,6 +59,8 @@ if __name__ == "__main__":
 
     writer = writer.Writer(display, lang)
 
+    gui_manager = GuiManager(display, writer)
+
     screen_config = ScreenConfig()
 
     config_manager = ConfigManager()
@@ -64,23 +68,11 @@ if __name__ == "__main__":
 
     check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
-    if screen_config.current_screen not in (
-        ScreenStates.INITIAL_SCREEN,
-        ScreenStates.ERROR_SCREEN,
+    if not isinstance(gui_manager._state, InitialState) and not isinstance(
+        gui_manager._state, ErrorState
     ):
-        try:
-            config_manager.load_config(CONFIG_PATH)
-        except Exception:
-            set_error_and_raise(
-                ErrorCodes.CONFIG_FILE_LOAD_ERROR, raise_exception=False
-            )
-
-        try:
-            routes_manager.load_routes()
-        except Exception:
-            set_error_and_raise(
-                ErrorCodes.ROUTES_FILE_LOAD_ERROR, raise_exception=False
-            )
+        config_manager.load_config(CONFIG_PATH)
+        routes_manager.load_routes()
 
     config_manager.get_current_selection().load_from_saved_selection()
 
@@ -98,7 +90,7 @@ if __name__ == "__main__":
         max_number_of_characters_in_line,
     )
 
-    if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
+    if not isinstance(gui_manager._state, ErrorState):
         uart = UART(
             0,
             tx=Pin(0),
@@ -110,8 +102,6 @@ if __name__ == "__main__":
         )
 
         ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
-
-    gui_manager = GuiManager(display, writer, screen_config)
 
     async def gui_loop(gui: GuiManager):
         try:
@@ -143,12 +133,12 @@ if __name__ == "__main__":
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
 
-        if screen_config.current_screen != ScreenStates.ERROR_SCREEN:
+        if not isinstance(gui_manager._state, ErrorState):
             ibis_manager.start()
 
             try:
                 if ibis_manager.task:
-                    await asyncio.gather(ibis_manager.task, gui_task)
+                    await asyncio.gather(gui_task, ibis_manager.task)
                 else:
                     await gui_task
             except Exception as e:

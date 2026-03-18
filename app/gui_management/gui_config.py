@@ -2,18 +2,6 @@ from app.selection_management import SelectionManager
 from utils.singleton_decorator import singleton
 
 
-class ScreenStates:
-    STATUS_SCREEN = "status"
-    ROUTE_MENU = "route"
-    TRIP_MENU = "trip"
-    ERROR_SCREEN = "error"
-    SETTINGS_SCREEN = "settings"
-    UPDATE_SCREEN = "update"
-    INITIAL_SCREEN = "initial"
-    START_SCREEN = "start"
-    MESSAGE_SCREEN = "message"
-
-
 @singleton
 class ScreenConfig:
     """
@@ -33,10 +21,6 @@ class ScreenConfig:
         self._arrow_size = 0
         self._max_menu_items = 0
         self._max_number_of_characters_in_line = 0
-        self._current_screen = ScreenStates.STATUS_SCREEN
-        self._error_code = 0
-        self._message_to_display = None
-        self._dirty = True
 
     def set_screen_config(
         self,
@@ -95,14 +79,6 @@ class ScreenConfig:
         self._max_menu_items = value
 
     @property
-    def current_screen(self):
-        return self._current_screen
-
-    @current_screen.setter
-    def current_screen(self, value: str):
-        self._current_screen = value
-
-    @property
     def max_number_of_characters_in_line(self):
         return self._max_number_of_characters_in_line
 
@@ -110,42 +86,9 @@ class ScreenConfig:
     def max_number_of_characters_in_line(self, value: int):
         self._max_number_of_characters_in_line = value
 
-    @property
-    def error_code(self):
-        return self._error_code
-
-    @error_code.setter
-    def error_code(self, value: int):
-        self._error_code = value
-
-    @property
-    def message_to_display(self):
-        return self._message_to_display
-
-    @message_to_display.setter
-    def message_to_display(self, value: str | None):
-        self._message_to_display = value
-
-    @property
-    def dirty(self):
-        return self._dirty
-
-    @dirty.setter
-    def dirty(self, value: bool):
-        self._dirty = value
-
-    def mark_dirty(self):
-        self._dirty = True
-
-    def mark_clean(self):
-        self._dirty = False
-
-    def is_dirty(self):
-        return self._dirty
-
 
 @singleton
-class RouteMenuState:
+class RouteMenuData:
     def __init__(self):
         self._selected_item_index = 0
         self._highlighted_item_index = 0
@@ -173,7 +116,7 @@ class RouteMenuState:
 
 
 @singleton
-class TripMenuState:
+class TripMenuData:
     def __init__(self):
         self._selected_item_index = 0
         self._highlighted_item_index = 0

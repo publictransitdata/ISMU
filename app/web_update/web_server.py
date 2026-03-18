@@ -11,6 +11,7 @@ from app.web_update.safe_route_decorator import safe_route
 from microdot import Microdot  # type: ignore
 from utils.error_handler import set_error_and_raise
 
+
 ALLOWED_CHARS = set(
     " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
 )
@@ -559,7 +560,9 @@ class WebUpdateServer:
                         selection_manager.reset_selection()
 
                     except Exception as e:
-                        set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, e, True)
+                        set_error_and_raise(
+                            ErrorCodes.REFRESH_ROUTES_DB_ERROR, e, show_message=True
+                        )
 
                 asyncio.create_task(self._delayed_reset())
                 return self._success_response(", ".join(saved_files))
@@ -599,7 +602,7 @@ class WebUpdateServer:
             print("Starting server...")
             await self._app.start_server(host=self.host, port=self.port)
         except Exception as e:
-            set_error_and_raise(ErrorCodes.WEB_SERVER_ERROR, e, True)
+            set_error_and_raise(ErrorCodes.WEB_SERVER_ERROR, e, show_message=True)
         finally:
             self._running = False
             print("Server stopped")
@@ -613,6 +616,8 @@ class WebUpdateServer:
         try:
             self._app.shutdown()
         except Exception as e:
-            set_error_and_raise(ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, e, True)
+            set_error_and_raise(
+                ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, e, show_message=True
+            )
 
         self._running = False

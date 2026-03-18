@@ -14,7 +14,6 @@ class GuiDrawer:
         self,
         display: SH1106_I2C,
         writer: Writer,
-        screen_config: ScreenConfig,
     ):
         """
         Initializes the GuiDrawer with the necessary configurations and display components.
@@ -22,11 +21,10 @@ class GuiDrawer:
         Args:
             display: The display object used for rendering content on the screen.
             writers: The writer objects used for rendering string_line on the screen.
-            screen_config: Configuration for the screen dimensions and properties.
         """
         self._display = display
         self._writer = writer
-        self._screen_config = screen_config
+        self._screen_config = ScreenConfig()
 
     def _draw_menu(
         self,
@@ -67,10 +65,9 @@ class GuiDrawer:
             self._writer.set_textpos(self._display, 0, suffix_x)
             self._writer.printstring(header_suffix, False)
 
-            self._display.vline(separator_x, 0, line_height + 2, 1)
-
+            self._display.vline(separator_x, 0, line_height, 1)
             self._display.fill_rect(
-                separator_x, line_height + 1, self._screen_config.screen_width, 1, 1
+                separator_x, line_height - 1, self._screen_config.screen_width, 1, 1
             )
 
         first_visible_menu_item_idx = (
@@ -191,24 +188,37 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_message_screen(self, message: str | None) -> None:
+    def draw_message_screen(self, message: str, error_code: int | None) -> None:
         self._display.fill(0)
 
         line_height = self._screen_config.font_size + 2
         screen_width = self._screen_config.screen_width
         screen_height = self._screen_config.screen_height
+        left_offset = 2
 
         bottom_y = screen_height - line_height
-
         note_for_user = ">Натисни OK<"
 
-        message_width = self._writer.stringlen(note_for_user)
-        message_offset = (screen_width - message_width) // 2
+        note_width = self._writer.stringlen(note_for_user)
+        note_offset = (screen_width - note_width) // 2
 
-        self._writer.set_textpos(self._display, 0, 0)
-        self._writer.printstring(message, False)
+        if error_code is not None:
+            line1 = f"E:{error_code}"
+            line1_width = self._writer.stringlen(line1)
 
-        self._writer.set_textpos(self._display, bottom_y, message_offset)
+            self._writer.set_textpos(self._display, 0, 0)
+            self._writer.printstring(line1, False)
+
+            self._writer.set_textpos(self._display, 0, line1_width + 5)
+            self._writer.printstring(message, False)
+
+            self._display.vline(line1_width + 2, 0, line_height, 1)
+            self._display.fill_rect(0, line_height - 1, line1_width + 2, 1, 1)
+        else:
+            self._writer.set_textpos(self._display, 0, 0)
+            self._writer.printstring(message, False)
+
+        self._writer.set_textpos(self._display, bottom_y, note_offset)
         self._writer.printstring(note_for_user, False)
 
         self._display.show()
