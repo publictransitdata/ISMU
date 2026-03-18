@@ -194,7 +194,6 @@ class GuiDrawer:
         line_height = self._screen_config.font_size + 2
         screen_width = self._screen_config.screen_width
         screen_height = self._screen_config.screen_height
-        left_offset = 2
 
         bottom_y = screen_height - line_height
         note_for_user = ">Натисни OK<"

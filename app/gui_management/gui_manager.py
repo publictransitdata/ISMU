@@ -56,7 +56,7 @@ class RouteMenuState(State):
             ctx._routes_for_menu_display_list = ctx.get_route_list_to_display(
                 ctx._routes_manager._db_file_path
             )
-        highlighted_item_index = ctx._get_menu_data(self)._highlighted_item_index
+        highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
         number_of_menu_items = ctx.get_number_of_menu_items()
 
         ctx._gui_drawer._draw_menu(
@@ -111,7 +111,7 @@ class TripMenuState(State):
             ctx._route_menu_data.highlighted_item_index
         )
         menu_items = ctx.get_trip_list_to_display(route)
-        highlighted_item_index = ctx._get_menu_data(self)._highlighted_item_index
+        highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
         number_of_menu_items = ctx.get_number_of_menu_items()
         ctx._gui_drawer._draw_menu(
             menu_items,
