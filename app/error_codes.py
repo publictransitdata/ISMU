@@ -1,4 +1,5 @@
 class ErrorCodes:
+    NONE = 0
     # Config errors (1XX)
     # File errors (10X)
     CONFIG_FILE_NOT_FOUND = 100
@@ -24,6 +25,7 @@ class ErrorCodes:
     ROUTES_DB_WRITE_FAILED = 203
     ROUTES_FILE_OPEN_FAILED = 204
     ROUTES_FILE_LOAD_ERROR = 205
+    ROUTES_DB_DELETE_FAILED = 206
 
     # Route number errors (21X)
     ROUTES_EMPTY_ROUTE_NUMBER = 210
@@ -50,6 +52,11 @@ class ErrorCodes:
     TRIP_INFO_IS_NONE = 312
     CHAR_MAP_LOAD_ERROR = 313
     POINT_ID_IS_NONE = 314
+    ROUTE_VALUE_IS_WRONG = 315
+    POINT_ID_VALUE_IS_WRONG = 316
+    TRIP_NAME_IS_WRONG = 317
+    TRIP_NAME_IS_NONE = 318
+    TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG = 319
 
     # Files errors (4XX)
     # File not found (40X)
@@ -65,56 +72,62 @@ class ErrorCodes:
 
     MESSAGES = {
         # Config
-        100: "E100: Config not found",
-        101: "E101: Config IO error",
-        102: "E102: Temp selection write error",
-        103: "E103: Rename config.example to config.txt and fill keys to start",
-        104: "E104: Config file load error",
-        105: "E105: Config file empty",
+        100: "Файл конфігурації не знайдено",
+        101: "Помилка IO конфігурації",
+        102: "Помилка запису тим. вибору",
+        103: "Перейменуйте config.example на config.txt та заповніть параметри",
+        104: "Помилка завантаження конфігурації",
+        105: "Файл конфігурації порожній",
         # Config - parse
-        110: "E110: Config parse fail",
-        111: "E111: Missing '=' in line",
+        110: "Помилка парсування конфігурації",
+        111: "Відсутній символ '=' у рядку",
         # Config - validation
-        120: "E120: Unknown config key",
-        121: "E121: Invalid config val",
-        122: "E122: Expected integer",
-        123: "E123: Expected true/false",
+        120: "Невідомий ключ конфігурації",
+        121: "Невірне значення конфігурації",
+        122: "Очікується ціле число",
+        123: "Очікується true/false",
         # Routes - file
-        200: "E200: Routes not found",
-        201: "E201: Routes file empty",
-        202: "E202: Routes DB open fail",
-        203: "E203: Routes DB write fail",
-        204: "E204: Routes file open fail",
-        205: "E205: Routes file load error",
+        200: "Файл маршрутів не знайдено",
+        201: "Файл маршрутів порожній",
+        202: "Помилка відкриття БД маршрутів",
+        203: "Помилка запису БД маршрутів",
+        204: "Помилка відкриття файлу маршрутів",
+        205: "Помилка завантаження маршрутів",
+        206: "Помилка видалення БД маршрутів",
         # Routes - route number
-        210: "E210: Empty route number",
-        211: "E211: No routes in file",
+        210: "Порожній номер маршруту",
+        211: "Маршрути у файлі відсутні",
         # Routes - direction
-        220: "E220: Dir without route",
-        221: "E221: Empty dir/point ID",
-        222: "E222: Wrong field count",
+        220: "Напрямок без маршруту",
+        221: "Порожній ID напрямку або зупинки",
+        222: "Неправильна кількість полей",
         # Routes - short name
-        230: "E230: Short name no '^'",
-        231: "E231: Short name <2 parts",
+        230: "Відсутній символ '^' у короткій назві",
+        231: "Коротка назва має менше 2 частин",
         # IBIS - codes
-        300: "E300: DS001 error",
-        301: "E301: DS001NEU error",
-        302: "E302: DS003 error, routes numbers should have only numbers(no letters or symbols)",
-        303: "E303: DS003A error",
+        300: "DS001",
+        301: "DS001NEU",
+        302: "DS003,в номері маршруту лише цифри",
+        303: "DS003A",
         # IBIS - data
-        310: "E310: Unknown telegram type",
-        311: "E311: Route number is None",
-        312: "E312: Trip info is None",
-        313: "E313: Char map load error. There is should be correct char_map.json file in config directory. Look readme for details.",
-        314: "E314: Point ID is None",
+        310: "Невідомий тип телеграми",
+        311: "Номер маршруту відсутній",
+        312: "Інформація про рейс відсутня",
+        313: "Помилка завантаження таблиці символів. Файл char_map.json має бути у папці config. Дивіться readme.",
+        314: "ID зупинки відсутній",
+        315: "Невірне значення маршруту",
+        316: "Невірне значення ID зупинки",
+        317: "Невірна назва рейсу",
+        318: "Назва рейсу відсутня",
+        319: "Невірна код рейсу/номер маршруту",
         # Files
-        400: "E400: Missing language file. There is should be correct lang.py file in config directory. Look readme for details.",
+        400: "Відсутній файл мови. Файл lang.py має бути у папці config. Дивіться readme.",
         # GUI
-        500: "E500: Unknown menu type",
+        500: "Невідомий тип меню",
         # Web server
-        600: "E600: Web server shutdown error",
-        601: "E601: Web server error",
-        602: "E602: Refresh routes DB error",
+        600: "Помилка зупинки веб-сервера",
+        601: "Помилка веб-сервера",
+        602: "Помилка оновлення БД маршрутів",
     }
 
     @classmethod

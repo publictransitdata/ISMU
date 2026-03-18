@@ -1,5 +1,6 @@
 from app.error_codes import ErrorCodes
 from utils.error_handler import set_error_and_raise
+from utils.custom_error import CustomError
 from utils.singleton_decorator import singleton
 
 from .config_info import CurrentRouteTripSelection, SystemConfig, TripInfo
@@ -18,10 +19,9 @@ class ConfigManager:
             "show_info_on_stop_board",
         }:
             if value.lower() not in ("true", "false"):
-                set_error_and_raise(
+                raise CustomError(
                     ErrorCodes.CONFIG_INVALID_VALUE,
-                    ValueError(f"Expected 'true' or 'false' for {key}, got '{value}'"),
-                    show_message=True,
+                    f"Expected 'true' or 'false' for {key}, got '{value}'",
                 )
             return value.lower() == "true"
 
@@ -29,12 +29,10 @@ class ConfigManager:
             try:
                 return int(value)
             except ValueError:
-                set_error_and_raise(
+                raise CustomError(
                     ErrorCodes.CONFIG_INVALID_VALUE,
-                    ValueError(f"Could not convert {key}={value} to int"),
-                    show_message=True,
+                    f"Could not convert {key}={value} to int",
                 )
-
         return value
 
     def load_config(self, config_path: str) -> None:
@@ -43,21 +41,27 @@ class ConfigManager:
                 content = file.read()
 
                 if not content.strip():
-                    set_error_and_raise(
-                        ErrorCodes.CONFIG_FILE_EMPTY,
-                        Exception("Config file is empty"),
-                        show_message=True,
+                    raise CustomError(
+                        ErrorCodes.CONFIG_FILE_EMPTY, "Config file is empty"
                     )
 
                 lines = content.splitlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
+        except CustomError as e:
+            set_error_and_raise(
+                e.error_code, e, show_message=True, raise_exception=False
+            )
         except OSError as e:
             # errno 2 = ENOENT (file not found)
             if e.args[0] == 2:
-                set_error_and_raise(ErrorCodes.CONFIG_FILE_NOT_FOUND, e)
+                set_error_and_raise(
+                    ErrorCodes.CONFIG_FILE_NOT_FOUND, e, raise_exception=False
+                )
             else:
-                set_error_and_raise(ErrorCodes.CONFIG_IO_ERROR, e)
+                set_error_and_raise(
+                    ErrorCodes.CONFIG_IO_ERROR, e, raise_exception=False
+                )
 
     def _parse_config(self, lines: list[str]) -> None:
         for line in lines:
@@ -66,7 +70,9 @@ class ConfigManager:
                 continue
 
             if "=" not in line:
-                set_error_and_raise(ErrorCodes.CONFIG_NO_EQUALS_SIGN)
+                raise CustomError(
+                    ErrorCodes.CONFIG_NO_EQUALS_SIGN, f"Missing '=' in line: {line}"
+                )
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):
@@ -81,7 +87,7 @@ class ConfigManager:
                     converted = self._convert_value(key, value)
                 setattr(self._config, key, converted)
             else:
-                set_error_and_raise(ErrorCodes.CONFIG_UNKNOWN_KEY)
+                raise CustomError(ErrorCodes.CONFIG_UNKNOWN_KEY, f"Unknown key: {key}")
 
     @property
     def config(self):

@@ -5,15 +5,14 @@ from app.error_codes import ErrorCodes
 from utils.error_handler import set_error_and_raise
 from utils.singleton_decorator import singleton
 
-SELECTION_PATH = "app/state_management/selection.json"
-TEMP_SELECTION_PATH = "app/state_management/selection.tmp"
+SELECTION_PATH = "app/selection_management/selection.json"
+TEMP_SELECTION_PATH = "app/selection_management/selection.tmp"
 
 
 @singleton
 class SelectionManager:
     def __init__(self):
         self._selection = {}
-        
 
     def save_selection(self, selected_route_id, selected_trip_id):
         try:
@@ -30,7 +29,9 @@ class SelectionManager:
             os.sync()
 
         except OSError as e:
-            set_error_and_raise(ErrorCodes.TEMP_SELECTION_WRITE_ERROR, e, True)
+            set_error_and_raise(
+                ErrorCodes.TEMP_SELECTION_WRITE_ERROR, e, show_message=True
+            )
 
     def get_selection(self):
         selection_info = self._load_selection()
