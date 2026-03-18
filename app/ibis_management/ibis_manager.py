@@ -253,7 +253,7 @@ class IBISManager:
                         self._running = False
                         set_error_and_raise(
                             ErrorCodes.UNKNOWN_TELEGRAM,
-                            f"Невідомий тип телеграми: {code}",
+                            RuntimeError(f"Невідомий тип телеграми: {code}"),
                             show_message=True,
                             raise_exception=False,
                         )
