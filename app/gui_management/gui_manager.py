@@ -251,7 +251,7 @@ class ErrorState(State):
                 current_time,
             ):
                 ctx._web_update_server.ensure_started()
-                ctx.transition_to(UpdateState())
+                ctx.transition_to(UpdateState(ErrorState()))
                 ctx.mark_dirty()
                 return
             return
@@ -274,7 +274,7 @@ class SettingsState(State):
                 current_time,
             ):
                 ctx._web_update_server.ensure_started()
-                ctx.transition_to(UpdateState())
+                ctx.transition_to(UpdateState(StatusState()))
                 ctx.mark_dirty()
                 return
             return
@@ -293,6 +293,9 @@ class SettingsState(State):
 
 
 class UpdateState(State):
+    def __init__(self, return_state=None):
+        self._return_state = return_state
+
     def draw_current_screen(self):
         ctx = self.context
         ctx._gui_drawer.draw_update_mode_screen(
@@ -312,26 +315,15 @@ class UpdateState(State):
             return
 
         if not btn_menu:
-            if ctx.error_code != ErrorCodes.NONE:
-                if ctx._check_buttons_press_timer(
-                    [btn_menu],
-                    current_time,
-                ):
-                    ctx._web_update_server.stop()
-                    ctx.transition_to(ErrorState())
-                    ctx.mark_dirty()
-                    ctx._last_single_button_time = current_time
-                    return
-            else:
-                if ctx._check_buttons_press_timer(
-                    [btn_menu],
-                    current_time,
-                ):
-                    ctx._web_update_server.stop()
-                    ctx.transition_to(StatusState())
-                    ctx.mark_dirty()
-                    ctx._last_single_button_time = current_time
-                    return
+            if ctx._check_buttons_press_timer(
+                [btn_menu],
+                current_time,
+            ):
+                ctx._web_update_server.stop()
+                ctx.transition_to(self._return_state or StatusState())
+                ctx.mark_dirty()
+                ctx._last_single_button_time = current_time
+                return
 
             return
 
@@ -352,7 +344,7 @@ class InitialState(State):
                 [btn_down, btn_select],
                 current_time,
             ):
-                ctx.transition_to(UpdateState())
+                ctx.transition_to(UpdateState(InitialState()))
                 ctx._web_update_server.ensure_started()
                 ctx.mark_dirty()
                 return
