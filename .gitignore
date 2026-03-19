@@ -17,3 +17,6 @@ config/*.txt
 # Generated files
 *.ndjson
 .ruff_cache/
+
+# Virtual environment
+.venv/

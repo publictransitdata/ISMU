@@ -2,9 +2,7 @@ from app.error_codes import ErrorCodes
 from utils.gui_hooks import trigger_error
 
 
-def set_error_and_raise(
-    error_code: int, exception=None, show_message=False, raise_exception=True
-):
+def set_error_and_raise(error_code: int, exception=None, show_message=False, raise_exception=True):
     """
     Sets the error screen with the code and raises an exception.
 
