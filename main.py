@@ -1,18 +1,20 @@
+# isort: skip_file
 import os
+import gc
 
 import sh1106  # type: ignore
 import uasyncio as asyncio
 import writer  # type: ignore
 from machine import I2C, UART, Pin
 
-from app.config_management import ConfigManager
-from app.error_codes import ErrorCodes
 from app.gui_management import (
     ErrorState,
     GuiManager,
     InitialState,
     ScreenConfig,
 )
+from app.config_management import ConfigManager
+from app.error_codes import ErrorCodes
 from app.ibis_management import IBISManager
 from app.routes_management import RoutesManager
 from utils.error_handler import set_error_and_raise
@@ -59,6 +61,7 @@ if __name__ == "__main__":
     writer = writer.Writer(display, lang)
 
     gui_manager = GuiManager(display, writer)
+    gc.collect()
 
     screen_config = ScreenConfig()
 
@@ -123,7 +126,12 @@ if __name__ == "__main__":
                 gui.draw_current_screen()
                 await asyncio.sleep_ms(30)
         except Exception as err:
-            print(f"GUI loop error: {err}")
+            set_error_and_raise(
+                ErrorCodes.MAIN_LOOP_ERROR,
+                RuntimeError(f"GUI loop error: {err}"),
+                show_message=True,
+                raise_exception=False,
+            )
             gui.draw_current_screen()
             raise
 
@@ -139,7 +147,12 @@ if __name__ == "__main__":
                 else:
                     await gui_task
             except Exception as err:
-                print(f"Main loop error: {err}")
+                set_error_and_raise(
+                    ErrorCodes.MAIN_LOOP_ERROR,
+                    RuntimeError(f"Main loop error: {err}"),
+                    show_message=True,
+                    raise_exception=False,
+                )
                 if ibis_manager.task:
                     ibis_manager.stop()
                 await gui_task

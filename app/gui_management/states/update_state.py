@@ -1,3 +1,4 @@
+import gc
 import time
 
 from .state import State
@@ -27,6 +28,7 @@ class UpdateState(State):
             ):
                 ctx._web_update_server.stop()
                 ctx.transition_to(self._return_state or StatusState())
+                gc.collect()
                 ctx.mark_dirty()
                 ctx._last_single_button_time = current_time
                 return
