@@ -4,13 +4,13 @@ import os
 import machine
 import network
 import uasyncio as asyncio
+from microdot import Microdot  # type: ignore
+
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
 from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
-from microdot import Microdot  # type: ignore
 from utils.error_handler import set_error_and_raise
-
 
 ALLOWED_CHARS = set(
     " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"

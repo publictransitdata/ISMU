@@ -1,23 +1,22 @@
 import os
-from machine import Pin, I2C, UART
-import uasyncio as asyncio
 
 import sh1106  # type: ignore
+import uasyncio as asyncio
 import writer  # type: ignore
+from machine import I2C, UART, Pin
 
-from app.gui_management import (
-    GuiManager,
-    ScreenConfig,
-    InitialState,
-    ErrorState,
-)
-from app.routes_management import RoutesManager
 from app.config_management import ConfigManager
-from app.ibis_management import IBISManager
 from app.error_codes import ErrorCodes
+from app.gui_management import (
+    ErrorState,
+    GuiManager,
+    InitialState,
+    ScreenConfig,
+)
+from app.ibis_management import IBISManager
+from app.routes_management import RoutesManager
 from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import trigger_initial
-
 
 try:
     from config import lang  # type: ignore
