@@ -66,13 +66,9 @@ class GuiDrawer:
             self._writer.printstring(header_suffix, False)
 
             self._display.vline(separator_x, 0, line_height, 1)
-            self._display.fill_rect(
-                separator_x, line_height - 1, self._screen_config.screen_width, 1, 1
-            )
+            self._display.fill_rect(separator_x, line_height - 1, self._screen_config.screen_width, 1, 1)
 
-        first_visible_menu_item_idx = (
-            highlighted_item_index // max_menu_items
-        ) * max_menu_items
+        first_visible_menu_item_idx = (highlighted_item_index // max_menu_items) * max_menu_items
         last_visible_menu_item_idx = min(
             first_visible_menu_item_idx + max_menu_items,
             len(menu_items),
@@ -99,9 +95,7 @@ class GuiDrawer:
 
         self._display.show()
 
-    def trim_text_to_fit(
-        self, string_line: str, max_number_of_characters_in_line: int = 18
-    ) -> str:
+    def trim_text_to_fit(self, string_line: str, max_number_of_characters_in_line: int = 18) -> str:
         return string_line[0:max_number_of_characters_in_line]
 
     def draw_status_screen(
@@ -130,9 +124,7 @@ class GuiDrawer:
         route_text_width = self._writer.stringlen(f"М:{selected_route_id}")
         trip_text_width = self._writer.stringlen(f"Н:{selected_trip_id:02d}")
 
-        self._writer.set_textpos(
-            self._display, bottom_y, left_offset + route_text_width + 3
-        )
+        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + 3)
 
         self._writer.printstring(
             f"Н:{selected_trip_id:02d}",
@@ -225,9 +217,7 @@ class GuiDrawer:
     def draw_initial_screen(self) -> None:
         self._display.fill(0)
         self._writer.set_textpos(self._display, 0, 0)
-        self._writer.printstring(
-            "Потрібно завантажити файли конфігурації та маршрутів", False
-        )
+        self._writer.printstring("Потрібно завантажити файли конфігурації та маршрутів", False)
         self._display.show()
 
     def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
@@ -258,9 +248,7 @@ class GuiDrawer:
         self._writer.set_textpos(self._display, top_y + line_height + 2, line2_offset)
         self._writer.printstring(line2, False)
 
-        self._writer.set_textpos(
-            self._display, top_y + line_height * 2 + 2, line3_offset
-        )
+        self._writer.set_textpos(self._display, top_y + line_height * 2 + 2, line3_offset)
         self._writer.printstring(line3, False)
 
         self._display.show()
@@ -311,9 +299,7 @@ class GuiDrawer:
             string_line = self.trim_text_to_fit(menu_items[i], available_width)
 
             if is_highlighted:
-                self._display.fill_rect(
-                    0, y, self._screen_config.screen_width, line_height, 1
-                )
+                self._display.fill_rect(0, y, self._screen_config.screen_width, line_height, 1)
                 self._writer.set_textpos(self._display, y, left_offset)
                 self._writer.printstring(string_line, True)
             else:

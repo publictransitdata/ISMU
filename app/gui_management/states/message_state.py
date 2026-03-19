@@ -11,10 +11,9 @@ class MessageState(State):
         error_code = ctx.error_code if ctx.error_code != ErrorCodes.NONE else None
         ctx._gui_drawer.draw_message_screen(ctx._message_to_display, error_code)
 
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
+    def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
         from .status_state import StatusState
+
         current_time = time.ticks_ms()
         ctx = self.context
 

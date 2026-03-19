@@ -7,9 +7,7 @@ class RouteMenuState(State):
     def draw_current_screen(self):
         ctx = self.context
         if len(ctx._routes_for_menu_display_list) == 0:
-            ctx._routes_for_menu_display_list = ctx.get_route_list_to_display(
-                ctx._routes_manager._db_file_path
-            )
+            ctx._routes_for_menu_display_list = ctx.get_route_list_to_display(ctx._routes_manager._db_file_path)
         highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
         number_of_menu_items = ctx.get_number_of_menu_items()
 
@@ -20,11 +18,10 @@ class RouteMenuState(State):
             number_of_menu_items,
         )
 
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
+    def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
         from .status_state import StatusState
         from .trip_menu_state import TripMenuState
+
         current_time = time.ticks_ms()
         ctx = self.context
 

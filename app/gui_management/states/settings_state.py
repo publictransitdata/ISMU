@@ -8,11 +8,10 @@ class SettingsState(State):
         ctx = self.context
         ctx._gui_drawer.draw_active_settings_screen(ctx._config_manager.config)
 
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
+    def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
         from .status_state import StatusState
         from .update_state import UpdateState
+
         current_time = time.ticks_ms()
         ctx = self.context
 

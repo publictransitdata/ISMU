@@ -135,9 +135,7 @@ class GuiManager:
         if menu_state.highlighted_item_index < get_number_of_menu_items - 1:
             menu_state.highlighted_item_index += 1
 
-    def _get_menu_data(
-        self, menu_type: RouteMenuState | TripMenuState
-    ) -> RouteMenuData | TripMenuData:
+    def _get_menu_data(self, menu_type: RouteMenuState | TripMenuState) -> RouteMenuData | TripMenuData:
         if isinstance(menu_type, RouteMenuState):
             return self._route_menu_data
         elif isinstance(menu_type, TripMenuState):
@@ -153,17 +151,12 @@ class GuiManager:
         if isinstance(self._state, RouteMenuState):
             return self._routes_manager.get_length_of_routes()
         elif isinstance(self._state, TripMenuState):
-            return self._routes_manager.get_length_of_trips(
-                self._route_menu_data.highlighted_item_index
-            )
+            return self._routes_manager.get_length_of_trips(self._route_menu_data.highlighted_item_index)
         else:
             return 0
 
     def _is_in_cooldown(self, current_time) -> bool:
-        return (
-            time.ticks_diff(current_time, self._last_single_button_time)
-            < self._single_button_cooldown
-        )
+        return time.ticks_diff(current_time, self._last_single_button_time) < self._single_button_cooldown
 
     def _is_long_pressed(
         self,
@@ -197,9 +190,7 @@ class GuiManager:
 
         return False
 
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ) -> None:
+    def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int) -> None:
         self._state.handle_buttons(btn_menu, btn_up, btn_down, btn_select)
 
     def get_route_list_to_display(self, route_file_path) -> list[str]:
@@ -208,7 +199,7 @@ class GuiManager:
         labels = {}
 
         try:
-            with open(route_file_path, "r") as f:
+            with open(route_file_path) as f:
                 for line in f:
                     try:
                         record = json.loads(line)

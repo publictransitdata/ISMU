@@ -17,5 +17,5 @@ __all__ = [
     "UpdateState",
     "ErrorState",
     "MessageState",
-    "InitialState"
+    "InitialState",
 ]

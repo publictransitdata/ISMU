@@ -13,12 +13,11 @@ from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
 
 ALLOWED_CHARS = set(
-    " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
+    " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
+    "ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
 )
 
-ALLOWED_CONFIG_CHARS = set(
-    " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=.-\n\r"
-)
+ALLOWED_CONFIG_CHARS = set(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=.-\n\r")
 
 
 VALID_CONFIG_KEYS = {
@@ -39,25 +38,149 @@ VALID_CONFIG_KEYS = {
 }
 
 
-BASE_STYLE = """body{font-family:Arial;margin:0;padding:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;min-height:100vh}.c{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,.1);max-width:400px;width:90%;text-align:center}h1{font-size:1.5em;margin-bottom:1em}"""
+BASE_STYLE = """body {
+  font-family: Arial;
+  margin: 0;
+  padding: 0;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+.c {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+h1 {
+  font-size: 1.5em;
+  margin-bottom: 1em;
+}
+"""
 
 UPLOAD_HTML = (
-    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Завантажити</title><style>"""
+    """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Завантажити</title>
+    <style>
+      """
     + BASE_STYLE
-    + """p{margin:.5em 0 .2em;text-align:left}input[type=file]{width:100%}input[type=submit]{margin-top:1em;width:100%;padding:.7em;font-size:1em;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer}</style></head><body><div class="c"><h1>Режим оновлення</h1><form action="/upload" method="post" enctype="multipart/form-data"><p>Завантажити config.txt:</p><input type="file" name="config_file"><p>Завантажити routes.txt:</p><input type="file" name="routes_file"><input type="submit" value="Завантажити"></form></div></body></html>"""
+    + """p {
+        margin: 0.5em 0 0.2em;
+        text-align: left;
+      }
+      input[type="file"] {
+        width: 100%;
+      }
+      input[type="submit"] {
+        margin-top: 1em;
+        width: 100%;
+        padding: 0.7em;
+        font-size: 1em;
+        background: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="c">
+      <h1>Режим оновлення</h1>
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <p>Завантажити config.txt:</p>
+        <input type="file" name="config_file" />
+        <p>Завантажити routes.txt:</p>
+        <input type="file" name="routes_file" />
+        <input type="submit" value="Завантажити" />
+      </form>
+    </div>
+  </body>
+</html>
+"""
 )
 
 SUCCESS_HTML = (
-    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Успіх</title><style>"""
+    """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Успіх</title>
+    <style>
+      """
     + BASE_STYLE
-    + """.ok{color:#4CAF50;font-size:3em}p{margin:1em 0}</style></head><body><div class="c"><div class="ok">&#10004;</div><h1>Успішно завантажено</h1><p>Збережені файли: {files}</p><p>Пристрій перезавантажиться...</p></div></body></html>"""
+    + """.ok {
+        color: #4caf50;
+        font-size: 3em;
+      }
+      p {
+        margin: 1em 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="c">
+      <div class="ok">&#10004;</div>
+      <h1>Успішно завантажено</h1>
+      <p>Збережені файли: {files}</p>
+      <p>Пристрій перезавантажиться...</p>
+    </div>
+  </body>
+</html>
+"""
 )
 
+
 ERROR_HTML = (
-    """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Помилка</title><style>"""
+    """<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Помилка</title>
+    <style>
+      """
     + BASE_STYLE
-    + """.err{color:#f44336;font-size:3em}p{margin:1em 0}a{display:inline-block;margin-top:1em;padding:.5em 1em;background:#4CAF50;color:#fff;text-decoration:none;border-radius:4px}</style></head><body><div class="c"><div class="err">&#10008;</div><h1>Помилка</h1><p>{message}</p><a href="/">Спробувати ще раз</a></div></body></html>"""
+    + """.err {
+        color: #f44336;
+        font-size: 3em;
+      }
+      p {
+        margin: 1em 0;
+      }
+      a {
+        display: inline-block;
+        margin-top: 1em;
+        padding: 0.5em 1em;
+        background: #4caf50;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="c">
+      <div class="err">&#10008;</div>
+      <h1>Помилка</h1>
+      <p>{message}</p>
+      <a href="/">Спробувати ще раз</a>
+    </div>
+  </body>
+</html>
+"""
 )
+
 
 TMP_RAW = "/tmp_raw.bin"
 TMP_CONFIG = "/tmp_config.txt"
@@ -78,7 +201,7 @@ def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
     line_num = 1
     char_index = 0
     try:
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             while True:
                 chunk = f.read(128)
                 if not chunk:
@@ -94,8 +217,8 @@ def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
                             errors.append("... (ще є помилки)")
                             return errors
                     char_index += 1
-    except UnicodeDecodeError as e:
-        return [f"Невірне кодування файлу (позиція {e.start})"]
+    except UnicodeDecodeError as err:
+        return [f"Невірне кодування файлу (позиція {err.start})"]
     return errors
 
 
@@ -106,7 +229,7 @@ def _file_is_empty(filepath: str) -> bool:
             return True
     except OSError:
         return True
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         while True:
             chunk = f.read(128)
             if not chunk:
@@ -127,7 +250,7 @@ def _check_config_content_file(filepath: str) -> list:
 
     found_keys = set()
     line_num = 0
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         while True:
             line = f.readline()
             if not line:
@@ -168,9 +291,7 @@ def _check_config_content_file(filepath: str) -> list:
 
     missing_keys = VALID_CONFIG_KEYS - found_keys
     if missing_keys:
-        errors.append(
-            f"Відсутні обов'язкові параметри: {', '.join(sorted(missing_keys))}"
-        )
+        errors.append(f"Відсутні обов'язкові параметри: {', '.join(sorted(missing_keys))}")
 
     return errors
 
@@ -192,7 +313,7 @@ def _check_routes_content_file(filepath: str) -> list:
     line_num = 0
     seen_p_ids = {}
 
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         while True:
             raw_line = f.readline()
             if not raw_line:
@@ -222,9 +343,7 @@ def _check_routes_content_file(filepath: str) -> list:
                     route_num_line = route_num_line[:-1].strip()
 
                 if not route_num_line:
-                    errors.append(
-                        f"Рядок {line_num}: Порожній номер маршруту після роздільника"
-                    )
+                    errors.append(f"Рядок {line_num}: Порожній номер маршруту після роздільника")
                 else:
                     current_route = route_num_line
                     has_routes = True
@@ -240,15 +359,13 @@ def _check_routes_content_file(filepath: str) -> list:
 
             parts = [p.strip() for p in line.split(",")]
             if len(parts) not in (3, 4):
-                errors.append(
-                    f"Рядок {line_num}: Очікується 3 або 4 значення через кому, отримано {len(parts)}"
-                )
+                errors.append(f"Рядок {line_num}: Очікується 3 або 4 значення через кому, отримано {len(parts)}")
                 if len(errors) >= 10:
                     errors.append("... (ще є помилки)")
                     break
                 continue
 
-            d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
+            d_id, p_id, _ = parts[0], parts[1], parts[2]
 
             if not d_id or not p_id:
                 errors.append(f"Рядок {line_num}: Порожній ID напрямку або точки")
@@ -263,18 +380,14 @@ def _check_routes_content_file(filepath: str) -> list:
             if len(parts) == 4:
                 short_name_str = parts[3]
                 if "^" not in short_name_str:
-                    errors.append(
-                        f"Рядок {line_num}: Коротка назва має містити роздільник '^'"
-                    )
+                    errors.append(f"Рядок {line_num}: Коротка назва має містити роздільник '^'")
 
             if len(errors) >= 10:
                 errors.append("... (ще є помилки)")
                 break
 
     if expecting_route:
-        errors.append(
-            f"Рядок {expecting_route_line}: Роздільник '|' без номера маршруту після нього"
-        )
+        errors.append(f"Рядок {expecting_route_line}: Роздільник '|' без номера маршруту після нього")
 
     if not has_routes and not errors:
         errors.append("У файлі не знайдено жодного маршруту")
@@ -452,9 +565,7 @@ class WebUpdateServer:
     def _register_routes(self):
         @self._app.errorhandler(413)
         async def payload_too_large(request):
-            return self._error_response(
-                "Файл занадто великий. Максимум: 16KB", code=413
-            )
+            return self._error_response("Файл занадто великий. Максимум: 16KB", code=413)
 
         @safe_route(self)
         @self._app.route("/")
@@ -475,17 +586,17 @@ class WebUpdateServer:
 
             try:
                 await _stream_body_to_file(request, TMP_RAW)
-            except Exception as e:
+            except Exception as err:
                 _cleanup_tmp()
-                return self._error_response(f"Помилка при отриманні даних: {e}")
+                return self._error_response(f"Помилка при отриманні даних: {err}")
 
             gc.collect()
 
             try:
                 parts = _extract_parts_from_file(TMP_RAW, boundary.encode())
-            except Exception as e:
+            except Exception as err:
                 _cleanup_tmp()
-                return self._error_response(f"Помилка при обробці файлів: {e}")
+                return self._error_response(f"Помилка при обробці файлів: {err}")
 
             try:
                 os.remove(TMP_RAW)
@@ -504,18 +615,14 @@ class WebUpdateServer:
 
                 if not filename.endswith(".txt"):
                     _cleanup_tmp()
-                    return self._error_response(
-                        f"Дозволені лише .txt файли: '{filename}'"
-                    )
+                    return self._error_response(f"Дозволені лише .txt файли: '{filename}'")
 
                 if name == "config_file":
                     if "config" in filename.lower():
                         errors = _check_config_content_file(tmp_path)
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(
-                                f"Помилка у config.txt: {'; '.join(errors)}"
-                            )
+                            return self._error_response(f"Помилка у config.txt: {'; '.join(errors)}")
                         files_to_save["config.txt"] = tmp_path
                     else:
                         _cleanup_tmp()
@@ -528,9 +635,7 @@ class WebUpdateServer:
                         errors = _check_routes_content_file(tmp_path)
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(
-                                f"Помилка у routes.txt: {'; '.join(errors)}"
-                            )
+                            return self._error_response(f"Помилка у routes.txt: {'; '.join(errors)}")
                         files_to_save["routes.txt"] = tmp_path
                     else:
                         _cleanup_tmp()
@@ -559,10 +664,8 @@ class WebUpdateServer:
                         routes_manager.refresh_db("/config/routes.txt")
                         selection_manager.reset_selection()
 
-                    except Exception as e:
-                        set_error_and_raise(
-                            ErrorCodes.REFRESH_ROUTES_DB_ERROR, e, show_message=True
-                        )
+                    except Exception as err:
+                        set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, err, show_message=True)
 
                 asyncio.create_task(self._delayed_reset())
                 return self._success_response(", ".join(saved_files))
@@ -601,8 +704,8 @@ class WebUpdateServer:
             self._running = True
             print("Starting server...")
             await self._app.start_server(host=self.host, port=self.port)
-        except Exception as e:
-            set_error_and_raise(ErrorCodes.WEB_SERVER_ERROR, e, show_message=True)
+        except Exception as err:
+            set_error_and_raise(ErrorCodes.WEB_SERVER_ERROR, err, show_message=True)
         finally:
             self._running = False
             print("Server stopped")
@@ -615,9 +718,7 @@ class WebUpdateServer:
             print("Access Point stopped.")
         try:
             self._app.shutdown()
-        except Exception as e:
-            set_error_and_raise(
-                ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, e, show_message=True
-            )
+        except Exception as err:
+            set_error_and_raise(ErrorCodes.WEB_SERVER_SHUTDOWN_ERROR, err, show_message=True)
 
         self._running = False
