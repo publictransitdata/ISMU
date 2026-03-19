@@ -38,7 +38,8 @@ VALID_CONFIG_KEYS = {
 }
 
 
-BASE_STYLE = """body {
+def _get_base_style():
+    return """body {
   font-family: Arial;
   margin: 0;
   padding: 0;
@@ -63,8 +64,10 @@ h1 {
 }
 """
 
-UPLOAD_HTML = (
-    """<!DOCTYPE html>
+
+def _get_upload_html():
+    return (
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -72,8 +75,8 @@ UPLOAD_HTML = (
     <title>Завантажити</title>
     <style>
       """
-    + BASE_STYLE
-    + """p {
+        + _get_base_style()
+        + """p {
         margin: 0.5em 0 0.2em;
         text-align: left;
       }
@@ -107,10 +110,12 @@ UPLOAD_HTML = (
   </body>
 </html>
 """
-)
+    )
 
-SUCCESS_HTML = (
-    """<!DOCTYPE html>
+
+def _get_success_html(files: str):
+    return (
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -118,8 +123,8 @@ SUCCESS_HTML = (
     <title>Успіх</title>
     <style>
       """
-    + BASE_STYLE
-    + """.ok {
+        + _get_base_style()
+        + """.ok {
         color: #4caf50;
         font-size: 3em;
       }
@@ -138,11 +143,12 @@ SUCCESS_HTML = (
   </body>
 </html>
 """
-)
+    )
 
 
-ERROR_HTML = (
-    """<!DOCTYPE html>
+def _get_error_html(message: str):
+    return (
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -150,8 +156,8 @@ ERROR_HTML = (
     <title>Помилка</title>
     <style>
       """
-    + BASE_STYLE
-    + """.err {
+        + _get_base_style()
+        + """.err {
         color: #f44336;
         font-size: 3em;
       }
@@ -179,7 +185,7 @@ ERROR_HTML = (
   </body>
 </html>
 """
-)
+    )
 
 
 TMP_RAW = "/tmp_raw.bin"
@@ -561,7 +567,7 @@ class WebUpdateServer:
         asyncio.create_task(self._stop_servertask())
 
     def _upload_page(self):
-        return UPLOAD_HTML, 200, {"Content-Type": "text/html; charset=utf-8"}
+        return _get_upload_html(), 200, {"Content-Type": "text/html; charset=utf-8"}
 
     def _register_routes(self):
         @self._app.errorhandler(413)
@@ -692,12 +698,10 @@ class WebUpdateServer:
         print("IP address:", self._ap.ifconfig()[0])
 
     def _success_response(self, files: str):
-        html = SUCCESS_HTML.replace("{files}", files)
-        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+        return _get_success_html(files), 200, {"Content-Type": "text/html; charset=utf-8"}
 
     def _error_response(self, message: str, code: int = 400):
-        html = ERROR_HTML.replace("{message}", message)
-        return html, code, {"Content-Type": "text/html; charset=utf-8"}
+        return _get_error_html(message), code, {"Content-Type": "text/html; charset=utf-8"}
 
     async def _start_servertask(self):
         try:
