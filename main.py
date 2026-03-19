@@ -67,9 +67,7 @@ if __name__ == "__main__":
 
     check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
-    if not isinstance(gui_manager._state, InitialState) and not isinstance(
-        gui_manager._state, ErrorState
-    ):
+    if not isinstance(gui_manager._state, InitialState) and not isinstance(gui_manager._state, ErrorState):
         config_manager.load_config(CONFIG_PATH)
         routes_manager.load_routes()
 
@@ -124,8 +122,8 @@ if __name__ == "__main__":
                 gui.handle_buttons(m, u, d, s)
                 gui.draw_current_screen()
                 await asyncio.sleep_ms(30)
-        except Exception as e:
-            print(f"GUI loop error: {e}")
+        except Exception as err:
+            print(f"GUI loop error: {err}")
             gui.draw_current_screen()
             raise
 
@@ -140,8 +138,8 @@ if __name__ == "__main__":
                     await asyncio.gather(gui_task, ibis_manager.task)
                 else:
                     await gui_task
-            except Exception as e:
-                print(f"Main loop error: {e}")
+            except Exception as err:
+                print(f"Main loop error: {err}")
                 if ibis_manager.task:
                     ibis_manager.stop()
                 await gui_task

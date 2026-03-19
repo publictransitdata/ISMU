@@ -33,20 +33,16 @@ class RoutesManager:
 
         try:
             self.refresh_db(ROUTES_PATH)
-        except CustomError as e:
+        except CustomError as err:
             self.remove_db()
-            set_error_and_raise(
-                e.error_code, e, show_message=True, raise_exception=False
-            )
+            set_error_and_raise(err.error_code, err, show_message=True, raise_exception=False)
             return
 
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded after refresh db")
-        except (ValueError, RuntimeError) as e:
-            set_error_and_raise(
-                ErrorCodes.ROUTES_DB_OPEN_FAILED, e, raise_exception=False
-            )
+        except (ValueError, RuntimeError) as err:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, err, raise_exception=False)
 
     def refresh_db(self, routes_path: str) -> None:
         """
@@ -60,11 +56,11 @@ class RoutesManager:
         try:
             os.remove(DB_PATH)
             self._route_list = []
-        except OSError as e:
-            if e.args[0] == 2:
+        except OSError as err:
+            if err.args[0] == 2:
                 self._route_list = []
             else:
-                raise CustomError(ErrorCodes.ROUTES_DB_DELETE_FAILED, str(e))
+                raise CustomError(ErrorCodes.ROUTES_DB_DELETE_FAILED, str(err)) from err
 
     def append_route(
         self,
@@ -81,8 +77,8 @@ class RoutesManager:
                 rec["note"] = note
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError as e:
-            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(e))
+        except OSError as err:
+            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
     def append_direction(
         self,
@@ -106,8 +102,8 @@ class RoutesManager:
                 rec["s"] = short_name
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError as e:
-            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(e))
+        except OSError as err:
+            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
     def import_routes_from_txt(self, path_txt):
         next_route_id = 0
@@ -148,18 +144,14 @@ class RoutesManager:
                         if not num_line:
                             raise CustomError(
                                 ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER,
-                                ErrorCodes.get_message(
-                                    ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER
-                                )
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
                                 + "."
                                 + f"Рядок:{line_number}",
                             )
 
                         current_route = num_line
                         current_route_id = next_route_id
-                        self.append_route(
-                            current_route_id, current_route, no_line_telegram, note
-                        )
+                        self.append_route(current_route_id, current_route, no_line_telegram, note)
                         next_route_id += 1
                         has_routes = True
                         expecting_route_after_separator = False
@@ -168,9 +160,7 @@ class RoutesManager:
                     if current_route is None or current_route_id is None:
                         raise CustomError(
                             ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE,
-                            ErrorCodes.get_message(
-                                ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE
-                            )
+                            ErrorCodes.get_message(ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE)
                             + "."
                             + f"Рядок:{line_number}",
                         )
@@ -181,9 +171,7 @@ class RoutesManager:
                     if len(parts) not in (3, 4):
                         raise CustomError(
                             ErrorCodes.ROUTES_DIRECTION_WRONG_PARTS_COUNT,
-                            ErrorCodes.get_message(ErrorCodes.DS003_ERROR)
-                            + "."
-                            + f"Рядок:{line_number}",
+                            ErrorCodes.get_message(ErrorCodes.DS003_ERROR) + "." + f"Рядок:{line_number}",
                         )
 
                     d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
@@ -191,9 +179,7 @@ class RoutesManager:
                     if not d_id or not p_id:
                         raise CustomError(
                             ErrorCodes.ROUTES_DIRECTION_EMPTY_ID,
-                            ErrorCodes.get_message(ErrorCodes.ROUTES_DIRECTION_EMPTY_ID)
-                            + "."
-                            + f"Рядок:{line_number}",
+                            ErrorCodes.get_message(ErrorCodes.ROUTES_DIRECTION_EMPTY_ID) + "." + f"Рядок:{line_number}",
                         )
 
                     full_name = full_name_str.split("^")
@@ -204,9 +190,7 @@ class RoutesManager:
                         if "^" not in short_name_str:
                             raise CustomError(
                                 ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR,
-                                ErrorCodes.get_message(
-                                    ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR
-                                )
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR)
                                 + "."
                                 + f"Рядок:{line_number}",
                             )
@@ -214,9 +198,7 @@ class RoutesManager:
                         if len(short_name) < 2:
                             raise CustomError(
                                 ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS,
-                                ErrorCodes.get_message(
-                                    ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS
-                                )
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS)
                                 + "."
                                 + f"Рядок:{line_number}",
                             )
@@ -233,22 +215,20 @@ class RoutesManager:
                 if not has_routes:
                     raise CustomError(
                         ErrorCodes.ROUTES_NO_ROUTES_FOUND,
-                        ErrorCodes.get_message(ErrorCodes.ROUTES_NO_ROUTES_FOUND)
-                        + "."
-                        + f"Рядок:{line_number}",
+                        ErrorCodes.get_message(ErrorCodes.ROUTES_NO_ROUTES_FOUND) + "." + f"Рядок:{line_number}",
                     )
 
-        except OSError as e:
-            if e.args[0] == 2:
-                raise CustomError(ErrorCodes.ROUTES_FILE_NOT_FOUND, str(e))
+        except OSError as err:
+            if err.args[0] == 2:
+                raise CustomError(ErrorCodes.ROUTES_FILE_NOT_FOUND, str(err)) from err
             else:
-                raise CustomError(ErrorCodes.ROUTES_FILE_OPEN_FAILED, str(e))
+                raise CustomError(ErrorCodes.ROUTES_FILE_OPEN_FAILED, str(err)) from err
 
     def build_route_list(self):
         routes_list = []
 
         try:
-            with open(DB_PATH, "r") as f:
+            with open(DB_PATH) as f:
                 for line in f:
                     try:
                         rec = json.loads(line)
@@ -263,8 +243,8 @@ class RoutesManager:
                                 "note": rec.get("note"),
                             }
                         )
-        except OSError as e:
-            raise RuntimeError(f"Failed to open routes DB: {e}")
+        except OSError as err:
+            raise RuntimeError(f"Failed to open routes DB: {err}") from err
 
         if not routes_list:
             raise ValueError("Routes DB is empty")
@@ -288,7 +268,7 @@ class RoutesManager:
         dirs = []
 
         try:
-            with open(DB_PATH, "r") as f:
+            with open(DB_PATH) as f:
                 for line in f:
                     try:
                         rec = json.loads(line)

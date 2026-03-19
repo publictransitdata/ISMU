@@ -89,15 +89,11 @@ class IBISManager:
         value = self.config_manager.get_current_selection().route_number
         format = TELEGRAM_FORMATS["DS001"]
         if value is None:
-            raise CustomError(
-                ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться"
-            )
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться")
         try:
             formatted = format.format(int(value))
-        except Exception:
-            raise CustomError(
-                ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться"
-            )
+        except Exception as err:
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться") from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -108,15 +104,11 @@ class IBISManager:
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
         if value is None:
-            raise CustomError(
-                ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться"
-            )
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться")
         try:
             formatted = format.format(value)
-        except Exception:
-            raise CustomError(
-                ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться"
-            )
+        except Exception as err:
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться") from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -124,22 +116,16 @@ class IBISManager:
     def DS003(self):
         trip = self.config_manager.get_current_selection().trip
         if trip is None:
-            raise CustomError(
-                ErrorCodes.TRIP_INFO_IS_NONE, "Код напрямку не відправляється"
-            )
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, "Код напрямку не відправляється")
 
         value = trip.point_id
         format = TELEGRAM_FORMATS["DS003"]
         if value is None:
-            raise CustomError(
-                ErrorCodes.POINT_ID_IS_NONE, "Код напрямку не відправляється"
-            )
+            raise CustomError(ErrorCodes.POINT_ID_IS_NONE, "Код напрямку не відправляється")
         try:
             formatted = format.format(int(value))
-        except Exception:
-            raise CustomError(
-                ErrorCodes.POINT_ID_VALUE_IS_WRONG, "Код напрямку не відправляється"
-            )
+        except Exception as err:
+            raise CustomError(ErrorCodes.POINT_ID_VALUE_IS_WRONG, "Код напрямку не відправляється") from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -166,11 +152,11 @@ class IBISManager:
         format = TELEGRAM_FORMATS["DS003a"]
         try:
             formatted = format.format(value[:32])
-        except Exception:
+        except Exception as err:
             raise CustomError(
                 ErrorCodes.TRIP_NAME_IS_WRONG,
                 "Текст на зовнішньому табло не відображається",
-            )
+            ) from err
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
 
@@ -210,11 +196,11 @@ class IBISManager:
                 trip_name = self.sanitize_ibis_text(trip_name)
             try:
                 formatted = format.format((route_number + " > " + trip_name)[:24])
-            except Exception:
+            except Exception as err:
                 raise CustomError(
                     ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
                     "Текст на внутрішньому табло не відображається",
-                )
+                ) from err
 
             packet = self.create_ibis_packet(formatted)
             self.uart.write(packet)
@@ -228,26 +214,20 @@ class IBISManager:
             if current_selection.is_updated:
                 self._failed_telegrams.clear()
                 current_selection.is_updated = False
-            if (
-                current_selection.route_number is not None
-                and current_selection.trip is not None
-            ):
+            if current_selection.route_number is not None and current_selection.trip is not None:
                 for code in self.telegramTypes:
                     if code in self._failed_telegrams:
                         continue
-                    if (
-                        code in ("DS001", "DS001neu")
-                        and current_selection.no_line_telegram
-                    ):
+                    if code in ("DS001", "DS001neu") and current_selection.no_line_telegram:
                         continue
 
                     handler = self.dispatch.get(code)
                     if handler:
                         try:
                             handler()
-                        except CustomError as e:
+                        except CustomError as err:
                             self._failed_telegrams.add(code)
-                            trigger_message(e.detail, e.error_code)
+                            trigger_message(err.detail, err.error_code)
                         await asyncio.sleep_ms(5)
                     else:
                         self._running = False

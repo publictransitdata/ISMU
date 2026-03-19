@@ -5,10 +5,8 @@ def safe_route(server):
         async def inner(request, *args, **kwargs):
             try:
                 return await fn(request, *args, **kwargs)
-            except Exception as e:
-                return server._error_response(
-                    "Internal server error: {}".format(e), 500, "text/plain"
-                )
+            except Exception as err:
+                return server._error_response(f"Internal server error: {err}", 500, "text/plain")
 
         return inner
 
