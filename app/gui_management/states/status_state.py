@@ -6,12 +6,8 @@ from .state import State
 class StatusState(State):
     def draw_current_screen(self):
         ctx = self.context
-        route = ctx._routes_manager.get_route_by_index(
-            ctx._route_menu_data.selected_item_index
-        )
-        selected_trip_name_list = route["dirs"][
-            ctx._trip_menu_data.selected_item_index
-        ]["full_name"]
+        route = ctx._routes_manager.get_route_by_index(ctx._route_menu_data.selected_item_index)
+        selected_trip_name_list = route["dirs"][ctx._trip_menu_data.selected_item_index]["full_name"]
         if len(selected_trip_name_list) == 2:
             selected_trip_name = selected_trip_name_list[1]
         else:
@@ -23,12 +19,11 @@ class StatusState(State):
             int(route["dirs"][ctx._trip_menu_data.selected_item_index]["point_id"]),
         )
 
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
+    def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
         from .route_menu_state import RouteMenuState
         from .settings_state import SettingsState
         from .trip_menu_state import TripMenuState
+
         current_time = time.ticks_ms()
         ctx = self.context
 

@@ -28,40 +28,32 @@ class ConfigManager:
         if key in {"baudrate", "bits", "parity", "stop"}:
             try:
                 return int(value)
-            except ValueError:
+            except ValueError as err:
                 raise CustomError(
                     ErrorCodes.CONFIG_INVALID_VALUE,
                     f"Could not convert {key}={value} to int",
-                )
+                ) from err
         return value
 
     def load_config(self, config_path: str) -> None:
         try:
-            with open(config_path, "r") as file:
+            with open(config_path) as file:
                 content = file.read()
 
                 if not content.strip():
-                    raise CustomError(
-                        ErrorCodes.CONFIG_FILE_EMPTY, "Config file is empty"
-                    )
+                    raise CustomError(ErrorCodes.CONFIG_FILE_EMPTY, "Config file is empty")
 
                 lines = content.splitlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
-        except CustomError as e:
-            set_error_and_raise(
-                e.error_code, e, show_message=True, raise_exception=False
-            )
-        except OSError as e:
+        except CustomError as err:
+            set_error_and_raise(err.error_code, err, show_message=True, raise_exception=False)
+        except OSError as err:
             # errno 2 = ENOENT (file not found)
-            if e.args[0] == 2:
-                set_error_and_raise(
-                    ErrorCodes.CONFIG_FILE_NOT_FOUND, e, raise_exception=False
-                )
+            if err.args[0] == 2:
+                set_error_and_raise(ErrorCodes.CONFIG_FILE_NOT_FOUND, err, raise_exception=False)
             else:
-                set_error_and_raise(
-                    ErrorCodes.CONFIG_IO_ERROR, e, raise_exception=False
-                )
+                set_error_and_raise(ErrorCodes.CONFIG_IO_ERROR, err, raise_exception=False)
 
     def _parse_config(self, lines: list[str]) -> None:
         for line in lines:
@@ -70,9 +62,7 @@ class ConfigManager:
                 continue
 
             if "=" not in line:
-                raise CustomError(
-                    ErrorCodes.CONFIG_NO_EQUALS_SIGN, f"Missing '=' in line: {line}"
-                )
+                raise CustomError(ErrorCodes.CONFIG_NO_EQUALS_SIGN, f"Missing '=' in line: {line}")
 
             key, value = map(str.strip, line.split("=", 1))
             if hasattr(self._config, key):

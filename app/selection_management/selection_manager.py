@@ -29,10 +29,8 @@ class SelectionManager:
             os.rename(TEMP_SELECTION_PATH, SELECTION_PATH)
             os.sync()
 
-        except OSError as e:
-            set_error_and_raise(
-                ErrorCodes.TEMP_SELECTION_WRITE_ERROR, e, show_message=True
-            )
+        except OSError as err:
+            set_error_and_raise(ErrorCodes.TEMP_SELECTION_WRITE_ERROR, err, show_message=True)
 
     def get_selection(self):
         selection_info = self._load_selection()
@@ -45,13 +43,13 @@ class SelectionManager:
 
     def _load_selection(self) -> dict | None:
         try:
-            with open(SELECTION_PATH, "r") as file:
+            with open(SELECTION_PATH) as file:
                 return json.loads(file.read())
         except OSError:
             pass
 
         try:
-            with open(TEMP_SELECTION_PATH, "r") as file:
+            with open(TEMP_SELECTION_PATH) as file:
                 return json.loads(file.read())
         except OSError:
             return None
