@@ -70,6 +70,10 @@ class ErrorCodes:
     WEB_SERVER_ERROR = 601
     REFRESH_ROUTES_DB_ERROR = 602
 
+    # Main loop errors (7XX)
+    MAIN_LOOP_ERROR = 700
+    GUI_LOOP_ERROR = 701
+
     MESSAGES = {
         # Config
         100: "Файл конфігурації не знайдено",
@@ -128,6 +132,9 @@ class ErrorCodes:
         600: "Помилка зупинки веб-сервера",
         601: "Помилка веб-сервера",
         602: "Помилка оновлення БД маршрутів",
+        # Main loop
+        700: "Помилка в головному циклі",
+        701: "Помилка в циклі GUI",
     }
 
     @classmethod

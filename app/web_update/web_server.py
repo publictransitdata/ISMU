@@ -547,6 +547,7 @@ class WebUpdateServer:
         if self._running or self._task or self._start_guard:
             print("Already starting/running.")
             return
+        gc.collect()
         self._start_guard = True
         try:
             self._task = asyncio.create_task(self._start_servertask())

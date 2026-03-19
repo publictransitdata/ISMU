@@ -1,13 +1,15 @@
+# isort: skip_file
+import gc
 import sys
 import time
 
 import ujson as json
 
+from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
 from app.selection_management import SelectionManager
-from app.web_update import WebUpdateServer
 from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import (
     register_error_hook,
@@ -121,6 +123,7 @@ class GuiManager:
             return
 
         self._state.draw_current_screen()
+        gc.collect()
         self.mark_clean()
 
     def navigate_up(self, menu_type: RouteMenuState | TripMenuState) -> None:

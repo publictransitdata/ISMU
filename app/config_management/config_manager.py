@@ -1,3 +1,5 @@
+import gc
+
 from app.error_codes import ErrorCodes
 from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
@@ -46,6 +48,7 @@ class ConfigManager:
                 lines = content.splitlines()
                 self._parse_config(lines)
                 print("Config was loaded.")
+                gc.collect()
         except CustomError as err:
             set_error_and_raise(err.error_code, err, show_message=True, raise_exception=False)
         except OSError as err:

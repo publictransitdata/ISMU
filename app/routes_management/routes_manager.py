@@ -1,3 +1,4 @@
+import gc
 import os
 
 import ujson as json
@@ -27,6 +28,7 @@ class RoutesManager:
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded")
+            gc.collect()
             return
         except (ValueError, RuntimeError):
             pass
@@ -41,6 +43,7 @@ class RoutesManager:
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded after refresh db")
+            gc.collect()
         except (ValueError, RuntimeError) as err:
             set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, err, raise_exception=False)
 
