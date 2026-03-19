@@ -4,7 +4,7 @@ from .gui_config import (
     TripMenuData,
 )
 from .gui_drawer import GuiDrawer
-from .gui_manager import GuiManager, InitialState, ErrorState
+from .gui_manager import ErrorState, GuiManager, InitialState
 
 __all__ = [
     "GuiManager",

@@ -3,377 +3,36 @@ import time
 
 import ujson as json
 
-from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
 from app.selection_management import SelectionManager
+from app.web_update import WebUpdateServer
 from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import (
     register_error_hook,
-    register_message_hook,
     register_initial_hook,
+    register_message_hook,
 )
 
 from .gui_config import (
     RouteMenuData,
     TripMenuData,
 )
-
 from .gui_drawer import GuiDrawer
+from .states import (
+    ErrorState,
+    InitialState,
+    MessageState,
+    RouteMenuState,
+    State,
+    StatusState,
+    TripMenuState,
+)
 
 if sys.platform != "rp2":
     from lib.sh1106 import SH1106_I2C  # for vs code
     from lib.writer import Writer  # for vs code
-
-
-class State:
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, context):
-        self._context = context
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        raise NotImplementedError(
-            "handle_buttons method should be implemented in the subclass"
-        )
-
-    def draw_current_screen(self):
-        raise NotImplementedError(
-            "draw_current_screen method should be implemented in the subclass"
-        )
-
-
-class RouteMenuState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        if len(ctx._routes_for_menu_display_list) == 0:
-            ctx._routes_for_menu_display_list = ctx.get_route_list_to_display(
-                ctx._routes_manager._db_file_path
-            )
-        highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
-        number_of_menu_items = ctx.get_number_of_menu_items()
-
-        ctx._gui_drawer._draw_menu(
-            ctx._routes_for_menu_display_list,
-            "Маршрут:",
-            highlighted_item_index,
-            number_of_menu_items,
-        )
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_menu:
-            ctx.transition_to(StatusState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_up:
-            ctx.navigate_up(self)
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_down:
-            ctx.navigate_down(self)
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_select:
-            ctx.transition_to(TripMenuState())
-            ctx._trip_menu_data.highlighted_item_index = 0
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-
-class TripMenuState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        route = ctx._routes_manager.get_route_by_index(
-            ctx._route_menu_data.highlighted_item_index
-        )
-        menu_items = ctx.get_trip_list_to_display(route)
-        highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
-        number_of_menu_items = ctx.get_number_of_menu_items()
-        ctx._gui_drawer._draw_menu(
-            menu_items,
-            "Напрямок:",
-            highlighted_item_index,
-            number_of_menu_items,
-            f"M:{route['route_number']}",
-        )
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_menu:
-            ctx.transition_to(RouteMenuState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_up:
-            ctx.navigate_up(self)
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_down:
-            ctx.navigate_down(self)
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_select:
-            ctx._route_menu_data.selected_item_index = (
-                ctx._route_menu_data.highlighted_item_index
-            )
-            ctx._trip_menu_data.selected_item_index = (
-                ctx._trip_menu_data.highlighted_item_index
-            )
-            route = ctx._routes_manager.get_route_by_index(
-                ctx._route_menu_data.selected_item_index
-            )
-            ctx._config_manager.update_current_selection(
-                route["route_number"],
-                route["dirs"][ctx._trip_menu_data.selected_item_index],
-                route.get("no_line_telegram", False),
-            )
-            ctx._selection_manager.save_selection(
-                ctx._route_menu_data.highlighted_item_index,
-                ctx._trip_menu_data.highlighted_item_index,
-            )
-            ctx.transition_to(StatusState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-
-class StatusState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        route = ctx._routes_manager.get_route_by_index(
-            ctx._route_menu_data.selected_item_index
-        )
-        selected_trip_name_list = route["dirs"][
-            ctx._trip_menu_data.selected_item_index
-        ]["full_name"]
-        if len(selected_trip_name_list) == 2:
-            selected_trip_name = selected_trip_name_list[1]
-        else:
-            selected_trip_name = selected_trip_name_list[0]
-        ctx._gui_drawer.draw_status_screen(
-            selected_trip_name,
-            route["route_number"],
-            ctx._trip_menu_data.selected_item_index + 1,
-            int(route["dirs"][ctx._trip_menu_data.selected_item_index]["point_id"]),
-        )
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if not btn_up and not btn_down:
-            if ctx._check_buttons_press_timer(
-                [btn_up, btn_down],
-                current_time,
-            ):
-                ctx.transition_to(SettingsState())
-                ctx.mark_dirty()
-                return
-            return
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_menu:
-            ctx.transition_to(RouteMenuState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-        if not btn_up:
-            ctx.transition_to(TripMenuState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-
-class ErrorState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        ctx._gui_drawer.draw_error_screen(
-            str(ctx.error_code),
-            ctx._message_to_display,
-        )
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if not btn_down and not btn_select:
-            if ctx._check_buttons_press_timer(
-                [btn_down, btn_select],
-                current_time,
-            ):
-                ctx._web_update_server.ensure_started()
-                ctx.transition_to(UpdateState(ErrorState()))
-                ctx.mark_dirty()
-                return
-            return
-
-
-class SettingsState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        ctx._gui_drawer.draw_active_settings_screen(ctx._config_manager.config)
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if not btn_down and not btn_select:
-            if ctx._check_buttons_press_timer(
-                [btn_down, btn_select],
-                current_time,
-            ):
-                ctx._web_update_server.ensure_started()
-                ctx.transition_to(UpdateState(StatusState()))
-                ctx.mark_dirty()
-                return
-            return
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_menu:
-            ctx.transition_to(StatusState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
-
-
-class UpdateState(State):
-    def __init__(self, return_state=None):
-        self._return_state = return_state
-
-    def draw_current_screen(self):
-        ctx = self.context
-        ctx._gui_drawer.draw_update_mode_screen(
-            ctx._config_manager.config.ap_ip, ctx._config_manager.config.ap_name
-        )
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_menu:
-            if ctx._check_buttons_press_timer(
-                [btn_menu],
-                current_time,
-            ):
-                ctx._web_update_server.stop()
-                ctx.transition_to(self._return_state or StatusState())
-                ctx.mark_dirty()
-                ctx._last_single_button_time = current_time
-                return
-
-            return
-
-
-class InitialState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        ctx._gui_drawer.draw_initial_screen()
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if not btn_down and not btn_select:
-            if ctx._check_buttons_press_timer(
-                [btn_down, btn_select],
-                current_time,
-            ):
-                ctx.transition_to(UpdateState(InitialState()))
-                ctx._web_update_server.ensure_started()
-                ctx.mark_dirty()
-                return
-            return
-
-
-class MessageState(State):
-    def draw_current_screen(self):
-        ctx = self.context
-        error_code = ctx.error_code if ctx.error_code != ErrorCodes.NONE else None
-        ctx._gui_drawer.draw_message_screen(ctx._message_to_display, error_code)
-
-    def handle_buttons(
-        self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int
-    ):
-        current_time = time.ticks_ms()
-        ctx = self.context
-
-        if (
-            time.ticks_diff(current_time, ctx._last_single_button_time)
-            < ctx._single_button_cooldown
-        ):
-            return
-
-        if not btn_select:
-            ctx.transition_to(StatusState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
 
 
 class GuiManager:
@@ -500,7 +159,13 @@ class GuiManager:
         else:
             return 0
 
-    def _check_buttons_press_timer(
+    def _is_in_cooldown(self, current_time) -> bool:
+        return (
+            time.ticks_diff(current_time, self._last_single_button_time)
+            < self._single_button_cooldown
+        )
+
+    def _is_long_pressed(
         self,
         buttons_pressed: list[int],
         current_time,
