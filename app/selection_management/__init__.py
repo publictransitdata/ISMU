@@ -1,3 +1,4 @@
-from .selection_manager import SelectionManager
+from .selection_manager import SelectionManager, TripInfo, ActiveSelection
 
-__all__ = ["SelectionManager"]
+
+__all__ = ["SelectionManager", "TripInfo", "ActiveSelection"]

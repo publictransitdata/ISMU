@@ -74,8 +74,6 @@ if __name__ == "__main__":
         config_manager.load_config(CONFIG_PATH)
         routes_manager.load_routes()
 
-    config_manager.get_current_selection().load_from_saved_selection()
-
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
     btn_menu = Pin(4, Pin.IN, Pin.PULL_UP)

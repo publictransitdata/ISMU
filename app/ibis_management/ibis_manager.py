@@ -1,7 +1,8 @@
 import uasyncio as asyncio
 import ujson as json
 
-from app.config_management import ConfigManager, SystemConfig
+from app.config_management import SystemConfig
+from app.selection_management import SelectionManager
 from app.error_codes import ErrorCodes
 from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
@@ -35,9 +36,9 @@ class IBISManager:
     def __init__(self, uart, telegramTypes):
         self.uart = uart
         self._running = False
-        self._task = None
+        self.task = None
         self.telegramTypes = telegramTypes
-        self.config_manager = ConfigManager()
+        self.selection_manager = SelectionManager()
         self._system_config = SystemConfig()
         self._failed_telegrams = set()
 
@@ -86,7 +87,7 @@ class IBISManager:
         return sanitized
 
     def DS001(self):
-        value = self.config_manager.get_current_selection().route_number
+        value = self.selection_manager.get_active_selection().route_number
         format = TELEGRAM_FORMATS["DS001"]
         if value is None:
             raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться")
@@ -99,7 +100,7 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS001neu(self):
-        value = self.config_manager.get_current_selection().route_number
+        value = self.selection_manager.get_active_selection().route_number
         format = TELEGRAM_FORMATS["DS001neu"]
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
@@ -114,7 +115,7 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS003(self):
-        trip = self.config_manager.get_current_selection().trip
+        trip = self.selection_manager.get_active_selection().trip
         if trip is None:
             raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, "Код напрямку не відправляється")
 
@@ -131,7 +132,7 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS003a(self):
-        trip = self.config_manager.get_current_selection().trip
+        trip = self.selection_manager.get_active_selection().trip
         if trip is None:
             raise CustomError(
                 ErrorCodes.TRIP_INFO_IS_NONE,
@@ -162,8 +163,8 @@ class IBISManager:
 
     def DS003c(self):
         if self._system_config.show_info_on_stop_board:
-            route_number = self.config_manager.get_current_selection().route_number
-            trip = self.config_manager.get_current_selection().trip
+            route_number = self.selection_manager.get_active_selection().route_number
+            trip = self.selection_manager.get_active_selection().trip
 
             if trip is None:
                 raise CustomError(
@@ -210,15 +211,15 @@ class IBISManager:
     async def send_ibis_telegrams(self):
         self._running = True
         while self._running:
-            current_selection = self.config_manager.get_current_selection()
-            if current_selection.is_updated:
+            active_selection = self.selection_manager.get_active_selection()
+            if active_selection.is_updated:
                 self._failed_telegrams.clear()
-                current_selection.is_updated = False
-            if current_selection.route_number is not None and current_selection.trip is not None:
+                active_selection.is_updated = False
+            if active_selection.route_number is not None and active_selection.trip is not None:
                 for code in self.telegramTypes:
                     if code in self._failed_telegrams:
                         continue
-                    if code in ("DS001", "DS001neu") and current_selection.no_line_telegram:
+                    if code in ("DS001", "DS001neu") and active_selection.no_line_telegram:
                         continue
 
                     handler = self.dispatch.get(code)
@@ -240,18 +241,14 @@ class IBISManager:
                         break
             await asyncio.sleep(10)
 
-    @property
-    def task(self):
-        return self._task
-
     def start(self):
         """Start async loop as a task"""
-        if not self._task:
-            self._task = asyncio.create_task(self.send_ibis_telegrams())
+        if not self.task:
+            self.task = asyncio.create_task(self.send_ibis_telegrams())
 
     def stop(self):
         """Stop async loop"""
         self._running = False
-        if self._task:
-            self._task.cancel()
-            self._task = None
+        if self.task:
+            self.task.cancel()
+            self.task = None
