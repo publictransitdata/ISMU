@@ -69,7 +69,7 @@ class ActiveSelection:
 @singleton
 class SelectionManager:
     def __init__(self):
-        self._active_selection = None
+        self._active_selection = ActiveSelection()
 
     def get_selection_ids(self):
         selection_info = self._load_from_file()
@@ -78,8 +78,8 @@ class SelectionManager:
         return selection_info
 
     def get_active_selection(self) -> ActiveSelection:
-        if self._active_selection is None:
-            ids = self._load_from_file()
+        if self._active_selection.route_number is None:
+            ids = self.get_selection_ids()
             self._enrich_from_routes(ids["route_id"], ids["trip_id"])
         return self._active_selection
 
