@@ -49,13 +49,7 @@ class TripMenuState(State):
         if not btn_select:
             ctx._route_menu_data.selected_item_index = ctx._route_menu_data.highlighted_item_index
             ctx._trip_menu_data.selected_item_index = ctx._trip_menu_data.highlighted_item_index
-            route = ctx._routes_manager.get_route_by_index(ctx._route_menu_data.selected_item_index)
-            ctx._config_manager.update_current_selection(
-                route["route_number"],
-                route["dirs"][ctx._trip_menu_data.selected_item_index],
-                route.get("no_line_telegram", False),
-            )
-            ctx._selection_manager.save_selection(
+            ctx._selection_manager.update_selection(
                 ctx._route_menu_data.highlighted_item_index,
                 ctx._trip_menu_data.highlighted_item_index,
             )

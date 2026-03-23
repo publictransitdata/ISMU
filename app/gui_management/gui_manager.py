@@ -64,13 +64,10 @@ class GuiManager:
         self._last_single_button_time = 0
         self._single_button_cooldown = 150
 
-        self._route_menu_data.load_from_saved_selection()
-        self._trip_menu_data.load_from_saved_selection()
-
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 
         self._state = StatusState()
-        self._error_code = ErrorCodes.NONE
+        self.error_code = ErrorCodes.NONE
         self._message_to_display = None
         self._dirty = True
         self.transition_to(self._state)
@@ -84,29 +81,19 @@ class GuiManager:
         self._state.context = self
 
     def _handle_error(self, error_code: int, message: str | None):
-        self._error_code = error_code
+        self.error_code = error_code
         self._message_to_display = message
         self.transition_to(ErrorState())
         self.mark_dirty()
 
     def _handle_message(self, message: str, error_code: int | None):
-        self._error_code = error_code if error_code is not None else ErrorCodes.NONE
+        self.error_code = error_code if error_code is not None else ErrorCodes.NONE
         self._message_to_display = message
         self.transition_to(MessageState())
         self.mark_dirty()
 
     def _handle_initial(self):
         self.transition_to(InitialState())
-        self.mark_dirty()
-
-    @property
-    def error_code(self):
-        return self._error_code
-
-    @error_code.setter
-    def error_code(self, value: int):
-        self.transition_to(ErrorState())
-        self._error_code = value
         self.mark_dirty()
 
     def mark_dirty(self):

@@ -38,29 +38,48 @@ class ScreenConfig:
         self.max_number_of_characters_in_line = max_number_of_characters_in_line
 
 
+class MenuData:
+    def __init__(self, selection_key: str):
+        self._selection_key = selection_key
+        self._selected_item_index: int | None = None
+        self._highlighted_item_index: int | None = None
+
+    def _load_from_selection(self) -> int:
+        selection = SelectionManager().get_selection_ids()
+        return selection[self._selection_key]
+
+    @property
+    def selected_item_index(self) -> int:
+        if self._selected_item_index is None:
+            value = self._load_from_selection()
+            self._selected_item_index = value
+            self._highlighted_item_index = value
+        return self._selected_item_index
+
+    @selected_item_index.setter
+    def selected_item_index(self, value: int):
+        self._selected_item_index = value
+
+    @property
+    def highlighted_item_index(self) -> int:
+        if self._highlighted_item_index is None:
+            value = self._load_from_selection()
+            self._selected_item_index = value
+            self._highlighted_item_index = value
+        return self._highlighted_item_index
+
+    @highlighted_item_index.setter
+    def highlighted_item_index(self, value: int):
+        self._highlighted_item_index = value
+
+
 @singleton
-class RouteMenuData:
+class RouteMenuData(MenuData):
     def __init__(self):
-        self.selected_item_index = 0
-        self.highlighted_item_index = 0
-
-    def load_from_saved_selection(self):
-        selection = SelectionManager().get_selection()
-        self.selected_item_index = selection["route_id"]
-        self.highlighted_item_index = selection["route_id"]
+        super().__init__(selection_key="route_id")
 
 
 @singleton
-class TripMenuData:
+class TripMenuData(MenuData):
     def __init__(self):
-        self.selected_item_index = 0
-        self.highlighted_item_index = 0
-
-    def set_trip_state(self, trip_selected_item_index: int = 0):
-        self.selected_item_index = trip_selected_item_index
-        self.highlighted_item_index = trip_selected_item_index
-
-    def load_from_saved_selection(self):
-        selection = SelectionManager().get_selection()
-        self.selected_item_index = selection["trip_id"]
-        self.highlighted_item_index = selection["trip_id"]
+        super().__init__(selection_key="trip_id")

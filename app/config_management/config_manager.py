@@ -5,14 +5,13 @@ from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
 from utils.singleton_decorator import singleton
 
-from .config_info import CurrentRouteTripSelection, SystemConfig, TripInfo
+from .config_info import SystemConfig
 
 
 @singleton
 class ConfigManager:
     def __init__(self):
-        self._config = SystemConfig()
-        self._current_selection = CurrentRouteTripSelection()
+        self.config = SystemConfig()
 
     def _convert_value(self, key: str, value: str):
         if key in {
@@ -68,7 +67,7 @@ class ConfigManager:
                 raise CustomError(ErrorCodes.CONFIG_NO_EQUALS_SIGN, f"Missing '=' in line: {line}")
 
             key, value = map(str.strip, line.split("=", 1))
-            if hasattr(self._config, key):
+            if hasattr(self.config, key):
                 if key in {
                     "line_telegram",
                     "destination_number_telegram",
@@ -78,22 +77,9 @@ class ConfigManager:
                     converted = value if value else None
                 else:
                     converted = self._convert_value(key, value)
-                setattr(self._config, key, converted)
+                setattr(self.config, key, converted)
             else:
                 raise CustomError(ErrorCodes.CONFIG_UNKNOWN_KEY, f"Unknown key: {key}")
-
-    @property
-    def config(self):
-        return self._config
-
-    def update_current_selection(self, route_number, trip, no_line_telegram=False):
-        self._current_selection.route_number = route_number
-        self._current_selection.trip = TripInfo.trip_from_dict(trip)
-        self._current_selection.no_line_telegram = no_line_telegram
-        self._current_selection.is_updated = True
-
-    def get_current_selection(self):
-        return self._current_selection
 
     def get_telegram_types(self):
         keys = [
@@ -102,4 +88,4 @@ class ConfigManager:
             "destination_telegram",
             "stop_board_telegram",
         ]
-        return {getattr(self._config, k) for k in keys if getattr(self._config, k)}
+        return {getattr(self.config, k) for k in keys if getattr(self.config, k)}
