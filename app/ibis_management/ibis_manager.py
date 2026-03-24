@@ -2,8 +2,8 @@ import uasyncio as asyncio
 import ujson as json
 
 from app.config_management import SystemConfig
-from app.selection_management import SelectionManager
 from app.error_codes import ErrorCodes
+from app.selection_management import SelectionManager
 from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import trigger_message
