@@ -21,20 +21,20 @@ ALLOWED_CONFIG_CHARS = set(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY
 
 
 VALID_CONFIG_KEYS = {
+    "line_telegram",
+    "destination_number_telegram",
+    "destination_telegram",
     "show_start_and_end_stops",
     "force_short_names",
+    "stop_board_telegram",
     "show_info_on_stop_board",
+    "ap_name",
+    "ap_password",
+    "ap_ip",
     "baudrate",
     "bits",
     "parity",
     "stop",
-    "line",
-    "destination_number",
-    "destination",
-    "stop_board_telegram",
-    "ap_name",
-    "ap_password",
-    "ap_ip",
 }
 
 
@@ -137,7 +137,9 @@ def _get_success_html(files: str):
     <div class="c">
       <div class="ok">&#10004;</div>
       <h1>Успішно завантажено</h1>
-      <p>Збережені файли: {files}</p>
+      <p>Збережені файли: """
+        + files
+        + """</p>
       <p>Пристрій перезавантажиться...</p>
     </div>
   </body>
@@ -179,7 +181,9 @@ def _get_error_html(message: str):
     <div class="c">
       <div class="err">&#10008;</div>
       <h1>Помилка</h1>
-      <p>{message}</p>
+      <p>"""
+        + message
+        + """</p>
       <a href="/">Спробувати ще раз</a>
     </div>
   </body>
