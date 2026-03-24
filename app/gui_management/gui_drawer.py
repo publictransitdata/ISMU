@@ -272,13 +272,13 @@ class GuiDrawer:
         telegrams_text = ", ".join(filtered_telegrams)
 
         self._writer.printstring(
-            f"Telegrams: {telegrams_text}",
+            f"Телеграми: {telegrams_text}",
             False,
         )
 
         bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
-        self._writer.printstring(f"ver:{config.version}", False)
+        self._writer.printstring(f"вер:{config.version}", False)
 
         self._display.show()
 
