@@ -6,6 +6,7 @@ exclude = [
     "config/",
     "typings/",
 ]
+preview = true
 
 
 [tool.ruff.lint]

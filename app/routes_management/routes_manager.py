@@ -238,14 +238,12 @@ class RoutesManager:
                     except Exception:
                         continue
                     if rec.get("t") == "route":
-                        routes_list.append(
-                            {
-                                "id": rec.get("id"),
-                                "n": rec.get("n"),
-                                "nlt": rec.get("nlt", False),
-                                "note": rec.get("note"),
-                            }
-                        )
+                        routes_list.append({
+                            "id": rec.get("id"),
+                            "n": rec.get("n"),
+                            "nlt": rec.get("nlt", False),
+                            "note": rec.get("note"),
+                        })
         except OSError as err:
             raise RuntimeError(f"Failed to open routes DB: {err}") from err
 
@@ -278,14 +276,12 @@ class RoutesManager:
                     except Exception:
                         continue
                     if rec.get("t") == "dir" and rec.get("rid") == route_id:
-                        dirs.append(
-                            {
-                                "trip_id": rec.get("d", ""),
-                                "point_id": rec.get("p", ""),
-                                "full_name": rec.get("f", ""),
-                                "short_name": rec.get("s", None),
-                            }
-                        )
+                        dirs.append({
+                            "trip_id": rec.get("d", ""),
+                            "point_id": rec.get("p", ""),
+                            "full_name": rec.get("f", ""),
+                            "short_name": rec.get("s", None),
+                        })
         except OSError:
             pass
         return {
