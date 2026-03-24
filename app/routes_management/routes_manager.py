@@ -1,7 +1,10 @@
+import gc
 import os
 
 import ujson as json
+
 from app.error_codes import ErrorCodes
+from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
 from utils.singleton_decorator import singleton
 
@@ -19,33 +22,48 @@ class RoutesManager:
         try:
             os.stat(ROUTES_PATH)
         except OSError:
-            set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND)
+            set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND, raise_exception=False)
+            return
 
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded")
+            gc.collect()
             return
-        except Exception:
+        except (ValueError, RuntimeError):
             pass
 
         try:
             self.refresh_db(ROUTES_PATH)
+        except CustomError as err:
+            self.remove_db()
+            set_error_and_raise(err.error_code, err, show_message=True, raise_exception=False)
+            return
+
+        try:
             self._route_list = self.build_route_list()
             print("Routes was loaded after refresh db")
-        except Exception as e:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, e)
+            gc.collect()
+        except (ValueError, RuntimeError) as err:
+            set_error_and_raise(ErrorCodes.ROUTES_DB_OPEN_FAILED, err, raise_exception=False)
 
     def refresh_db(self, routes_path: str) -> None:
         """
         Args:
             routes_path: The path to the routes.txt file.
         """
+        self.remove_db()
+        self.import_routes_from_txt(routes_path)
+
+    def remove_db(self) -> None:
         try:
             os.remove(DB_PATH)
-        except OSError:
-            pass
-
-        self.import_routes_from_txt(routes_path)
+            self._route_list = []
+        except OSError as err:
+            if err.args[0] == 2:
+                self._route_list = []
+            else:
+                raise CustomError(ErrorCodes.ROUTES_DB_DELETE_FAILED, str(err)) from err
 
     def append_route(
         self,
@@ -62,8 +80,8 @@ class RoutesManager:
                 rec["note"] = note
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError as e:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED, e)
+        except OSError as err:
+            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
     def append_direction(
         self,
@@ -87,8 +105,8 @@ class RoutesManager:
                 rec["s"] = short_name
             with open(DB_PATH, "a") as f:
                 f.write(json.dumps(rec) + "\n")
-        except OSError as e:
-            set_error_and_raise(ErrorCodes.ROUTES_DB_WRITE_FAILED, e)
+        except OSError as err:
+            raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
     def import_routes_from_txt(self, path_txt):
         next_route_id = 0
@@ -127,33 +145,45 @@ class RoutesManager:
                             num_line = num_line[:-1].strip()
 
                         if not num_line:
-                            set_error_and_raise(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
+                            raise CustomError(
+                                ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER,
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_EMPTY_ROUTE_NUMBER)
+                                + "."
+                                + f"Рядок:{line_number}",
+                            )
 
                         current_route = num_line
                         current_route_id = next_route_id
-                        self.append_route(
-                            current_route_id, current_route, no_line_telegram, note
-                        )
+                        self.append_route(current_route_id, current_route, no_line_telegram, note)
                         next_route_id += 1
                         has_routes = True
                         expecting_route_after_separator = False
                         continue
 
                     if current_route is None or current_route_id is None:
-                        set_error_and_raise(ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE)
+                        raise CustomError(
+                            ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE,
+                            ErrorCodes.get_message(ErrorCodes.ROUTES_DIRECTION_WITHOUT_ROUTE)
+                            + "."
+                            + f"Рядок:{line_number}",
+                        )
                         return
 
                     parts = [p.strip() for p in line.split(",")]
 
                     if len(parts) not in (3, 4):
-                        set_error_and_raise(
-                            ErrorCodes.ROUTES_DIRECTION_WRONG_PARTS_COUNT
+                        raise CustomError(
+                            ErrorCodes.ROUTES_DIRECTION_WRONG_PARTS_COUNT,
+                            ErrorCodes.get_message(ErrorCodes.DS003_ERROR) + "." + f"Рядок:{line_number}",
                         )
 
                     d_id, p_id, full_name_str = parts[0], parts[1], parts[2]
 
                     if not d_id or not p_id:
-                        set_error_and_raise(ErrorCodes.ROUTES_DIRECTION_EMPTY_ID)
+                        raise CustomError(
+                            ErrorCodes.ROUTES_DIRECTION_EMPTY_ID,
+                            ErrorCodes.get_message(ErrorCodes.ROUTES_DIRECTION_EMPTY_ID) + "." + f"Рядок:{line_number}",
+                        )
 
                     full_name = full_name_str.split("^")
 
@@ -161,13 +191,19 @@ class RoutesManager:
                     if len(parts) == 4:
                         short_name_str = parts[3]
                         if "^" not in short_name_str:
-                            set_error_and_raise(
-                                ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR
+                            raise CustomError(
+                                ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR,
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_SHORT_NAME_NO_SEPARATOR)
+                                + "."
+                                + f"Рядок:{line_number}",
                             )
                         short_name = short_name_str.split("^")
                         if len(short_name) < 2:
-                            set_error_and_raise(
-                                ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS
+                            raise CustomError(
+                                ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS,
+                                ErrorCodes.get_message(ErrorCodes.ROUTES_SHORT_NAME_TOO_FEW_PARTS)
+                                + "."
+                                + f"Рядок:{line_number}",
                             )
 
                     self.append_direction(
@@ -180,35 +216,36 @@ class RoutesManager:
                     )
 
                 if not has_routes:
-                    set_error_and_raise(ErrorCodes.ROUTES_NO_ROUTES_FOUND)
+                    raise CustomError(
+                        ErrorCodes.ROUTES_NO_ROUTES_FOUND,
+                        ErrorCodes.get_message(ErrorCodes.ROUTES_NO_ROUTES_FOUND) + "." + f"Рядок:{line_number}",
+                    )
 
-        except OSError as e:
-            if e.args[0] == 2:
-                set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND, e)
+        except OSError as err:
+            if err.args[0] == 2:
+                raise CustomError(ErrorCodes.ROUTES_FILE_NOT_FOUND, str(err)) from err
             else:
-                set_error_and_raise(ErrorCodes.ROUTES_FILE_OPEN_FAILED, e)
+                raise CustomError(ErrorCodes.ROUTES_FILE_OPEN_FAILED, str(err)) from err
 
     def build_route_list(self):
         routes_list = []
 
         try:
-            with open(DB_PATH, "r") as f:
+            with open(DB_PATH) as f:
                 for line in f:
                     try:
                         rec = json.loads(line)
                     except Exception:
                         continue
                     if rec.get("t") == "route":
-                        routes_list.append(
-                            {
-                                "id": rec.get("id"),
-                                "n": rec.get("n"),
-                                "nlt": rec.get("nlt", False),
-                                "note": rec.get("note"),
-                            }
-                        )
-        except OSError as e:
-            raise RuntimeError(f"Failed to open routes DB: {e}")
+                        routes_list.append({
+                            "id": rec.get("id"),
+                            "n": rec.get("n"),
+                            "nlt": rec.get("nlt", False),
+                            "note": rec.get("note"),
+                        })
+        except OSError as err:
+            raise RuntimeError(f"Failed to open routes DB: {err}") from err
 
         if not routes_list:
             raise ValueError("Routes DB is empty")
@@ -232,21 +269,19 @@ class RoutesManager:
         dirs = []
 
         try:
-            with open(DB_PATH, "r") as f:
+            with open(DB_PATH) as f:
                 for line in f:
                     try:
                         rec = json.loads(line)
                     except Exception:
                         continue
                     if rec.get("t") == "dir" and rec.get("rid") == route_id:
-                        dirs.append(
-                            {
-                                "trip_id": rec.get("d", ""),
-                                "point_id": rec.get("p", ""),
-                                "full_name": rec.get("f", ""),
-                                "short_name": rec.get("s", None),
-                            }
-                        )
+                        dirs.append({
+                            "trip_id": rec.get("d", ""),
+                            "point_id": rec.get("p", ""),
+                            "full_name": rec.get("f", ""),
+                            "short_name": rec.get("s", None),
+                        })
         except OSError:
             pass
         return {

@@ -1,42 +1,25 @@
-from app.state_management import StateManager
+from app.selection_management import SelectionManager
 from utils.singleton_decorator import singleton
-
-
-class ScreenStates:
-    STATUS_SCREEN = "status"
-    ROUTE_MENU = "route"
-    TRIP_MENU = "trip"
-    ERROR_SCREEN = "error"
-    SETTINGS_SCREEN = "settings"
-    UPDATE_SCREEN = "update"
-    INITIAL_SCREEN = "initial"
-    START_SCREEN = "start"
-    MESSAGE_SCREEN = "message"
 
 
 @singleton
 class ScreenConfig:
     """
     Attributes:
-        _screen_width (int): in pixels.
-        _screen_height (int): in pixels.
-        _font_size (int): Font size used for rendering text.
-        _max_menu_items (int): Maximum number of items visible at once on screen.
-        _current_screen (str): Identifier of the current active screen.
-        _error_code (int): Error code to display on error screen.
+        screen_width (int): in pixels.
+        screen_height (int): in pixels.
+        font_size (int): Font size used for rendering text.
+        arrow_size (int): Size of the arrow used for navigation.
+        max_menu_items (int): Maximum number of items visible at once on screens of menu(route/trip).
     """
 
     def __init__(self):
-        self._screen_width = 0
-        self._screen_height = 0
-        self._font_size = 0
-        self._arrow_size = 0
-        self._max_menu_items = 0
-        self._max_number_of_characters_in_line = 0
-        self._current_screen = ScreenStates.STATUS_SCREEN
-        self._error_code = 0
-        self._message_to_display = None
-        self._dirty = True
+        self.screen_width = 0
+        self.screen_height = 0
+        self.font_size = 0
+        self.arrow_size = 0
+        self.max_menu_items = 0
+        self.max_number_of_characters_in_line = 0
 
     def set_screen_config(
         self,
@@ -47,158 +30,56 @@ class ScreenConfig:
         max_menu_items: int = 2,
         max_number_of_characters_in_line: int = 18,
     ):
-        self._screen_width = screen_width
-        self._screen_height = screen_height
-        self._font_size = font_size
-        self._arrow_size = arrow_size
-        self._max_menu_items = max_menu_items
-        self._max_number_of_characters_in_line = max_number_of_characters_in_line
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.font_size = font_size
+        self.arrow_size = arrow_size
+        self.max_menu_items = max_menu_items
+        self.max_number_of_characters_in_line = max_number_of_characters_in_line
+
+
+class MenuData:
+    def __init__(self, selection_key: str):
+        self._selection_key = selection_key
+        self._selected_item_index: int | None = None
+        self._highlighted_item_index: int | None = None
+
+    def _load_from_selection(self) -> int:
+        selection = SelectionManager().get_selection_ids()
+        return selection[self._selection_key]
 
     @property
-    def screen_width(self):
-        return self._screen_width
-
-    @screen_width.setter
-    def screen_width(self, value: int):
-        self._screen_width = value
-
-    @property
-    def screen_height(self):
-        return self._screen_height
-
-    @screen_height.setter
-    def screen_height(self, value: int):
-        self._screen_height = value
-
-    @property
-    def font_size(self):
-        return self._font_size
-
-    @font_size.setter
-    def font_size(self, value: int):
-        self._font_size = value
-
-    @property
-    def arrow_size(self):
-        return self._arrow_size
-
-    @arrow_size.setter
-    def arrow_size(self, value: int):
-        self._arrow_size = value
-
-    @property
-    def max_menu_items(self):
-        return self._max_menu_items
-
-    @max_menu_items.setter
-    def max_menu_items(self, value: int):
-        self._max_menu_items = value
-
-    @property
-    def current_screen(self):
-        return self._current_screen
-
-    @current_screen.setter
-    def current_screen(self, value: str):
-        self._current_screen = value
-
-    @property
-    def max_number_of_characters_in_line(self):
-        return self._max_number_of_characters_in_line
-
-    @max_number_of_characters_in_line.setter
-    def max_number_of_characters_in_line(self, value: int):
-        self._max_number_of_characters_in_line = value
-
-    @property
-    def error_code(self):
-        return self._error_code
-
-    @error_code.setter
-    def error_code(self, value: int):
-        self._error_code = value
-
-    @property
-    def message_to_display(self):
-        return self._message_to_display
-
-    @message_to_display.setter
-    def message_to_display(self, value: str | None):
-        self._message_to_display = value
-
-    @property
-    def dirty(self):
-        return self._dirty
-
-    @dirty.setter
-    def dirty(self, value: bool):
-        self._dirty = value
-
-    def mark_dirty(self):
-        self._dirty = True
-
-    def mark_clean(self):
-        self._dirty = False
-
-    def is_dirty(self):
-        return self._dirty
-
-
-@singleton
-class RouteMenuState:
-    def __init__(self):
-        self._selected_item_index = 0
-        self._highlighted_item_index = 0
-
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["route_id"]
-        self._highlighted_item_index = state["route_id"]
-
-    @property
-    def selected_item_index(self):
+    def selected_item_index(self) -> int:
+        if self._selected_item_index is None:
+            value = self._load_from_selection()
+            self._selected_item_index = value
+            self._highlighted_item_index = value
         return self._selected_item_index
 
     @selected_item_index.setter
-    def selected_item_index(self, value):
+    def selected_item_index(self, value: int):
         self._selected_item_index = value
 
     @property
-    def highlighted_item_index(self):
+    def highlighted_item_index(self) -> int:
+        if self._highlighted_item_index is None:
+            value = self._load_from_selection()
+            self._selected_item_index = value
+            self._highlighted_item_index = value
         return self._highlighted_item_index
 
     @highlighted_item_index.setter
-    def highlighted_item_index(self, value):
+    def highlighted_item_index(self, value: int):
         self._highlighted_item_index = value
 
 
 @singleton
-class TripMenuState:
+class RouteMenuData(MenuData):
     def __init__(self):
-        self._selected_item_index = 0
-        self._highlighted_item_index = 0
+        super().__init__(selection_key="route_id")
 
-    def set_trip_state(self, trip_selected_item_index: int = 0):
-        self._selected_item_index = trip_selected_item_index
-        self._highlighted_item_index = trip_selected_item_index
 
-    def load_from_saved_state(self):
-        state = StateManager().get_state()
-        self._selected_item_index = state["trip_id"]
-        self._highlighted_item_index = state["trip_id"]
-
-    @property
-    def selected_item_index(self):
-        return self._selected_item_index
-
-    @selected_item_index.setter
-    def selected_item_index(self, value):
-        self._selected_item_index = value
-
-    @property
-    def highlighted_item_index(self):
-        return self._highlighted_item_index
-
-    @highlighted_item_index.setter
-    def highlighted_item_index(self, value):
-        self._highlighted_item_index = value
+@singleton
+class TripMenuData(MenuData):
+    def __init__(self):
+        super().__init__(selection_key="trip_id")

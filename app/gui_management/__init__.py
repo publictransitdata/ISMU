@@ -1,17 +1,17 @@
 from .gui_config import (
-    RouteMenuState,
+    RouteMenuData,
     ScreenConfig,
-    ScreenStates,
-    TripMenuState,
+    TripMenuData,
 )
 from .gui_drawer import GuiDrawer
-from .gui_manager import GuiManager
+from .gui_manager import ErrorState, GuiManager, InitialState
 
 __all__ = [
     "GuiManager",
     "ScreenConfig",
-    "RouteMenuState",
-    "TripMenuState",
-    "ScreenStates",
+    "RouteMenuData",
+    "TripMenuData",
     "GuiDrawer",
+    "InitialState",
+    "ErrorState",
 ]
