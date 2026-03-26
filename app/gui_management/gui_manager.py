@@ -195,19 +195,18 @@ class GuiManager:
                         record = json.loads(line)
                     except Exception:
                         continue
-                    if record.get("t") == "dir":
-                        route_id = record.get("rid")
-                        if route_id is not None and route_id not in labels:
-                            labels[route_id] = record.get("s") or record.get("f", "")
-                            if len(labels) == len(routes):
-                                break
+                    if "rid" not in record or record["rid"] in labels:
+                        continue
+                    labels[record["rid"]] = record.get("s") or record.get("f", "")
+                    if len(labels) == len(routes):
+                        break
         except OSError:
             pass
 
         result = []
         for route_info in routes:
             route_id = route_info["id"]
-            route_number = route_info["n"]
+            route_number = route_info["r"]
             note = route_info.get("note")
 
             if note:

@@ -73,20 +73,20 @@ class RoutesManager:
         note: str | None = None,
     ) -> None:
         try:
-            rec = {"t": "route", "id": route_id, "n": number}
+            rec = {"id": route_id, "r": number}
             if no_line_telegram:
                 rec["nlt"] = True
             if note:
                 rec["note"] = note
             with open(DB_PATH, "a") as f:
-                f.write(json.dumps(rec) + "\n")
+                line = json.dumps(rec).replace(": ", ":").replace(", ", ",")
+                f.write(line + "\n")
         except OSError as err:
             raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
     def append_direction(
         self,
         route_id: int,
-        route_number: str,
         d_id: str,
         p_id: str,
         full_name: str,
@@ -94,9 +94,7 @@ class RoutesManager:
     ) -> None:
         try:
             rec = {
-                "t": "dir",
                 "rid": route_id,
-                "rn": route_number,
                 "d": d_id,
                 "p": p_id,
                 "f": full_name,
@@ -104,7 +102,8 @@ class RoutesManager:
             if short_name:
                 rec["s"] = short_name
             with open(DB_PATH, "a") as f:
-                f.write(json.dumps(rec) + "\n")
+                line = json.dumps(rec).replace(": ", ":").replace(", ", ",")
+                f.write(line + "\n")
         except OSError as err:
             raise CustomError(ErrorCodes.ROUTES_DB_WRITE_FAILED, str(err)) from err
 
@@ -208,7 +207,6 @@ class RoutesManager:
 
                     self.append_direction(
                         current_route_id,
-                        current_route,
                         d_id,
                         p_id,
                         full_name,
@@ -237,10 +235,10 @@ class RoutesManager:
                         rec = json.loads(line)
                     except Exception:
                         continue
-                    if rec.get("t") == "route":
+                    if "id" in rec:
                         routes_list.append({
                             "id": rec.get("id"),
-                            "n": rec.get("n"),
+                            "r": rec.get("r"),
                             "nlt": rec.get("nlt", False),
                             "note": rec.get("note"),
                         })
@@ -263,7 +261,7 @@ class RoutesManager:
 
         route_info = self._route_list[index]
         route_id = route_info["id"]
-        route_number = route_info["n"]
+        route_number = route_info["r"]
         no_line_telegram = route_info.get("nlt", False)
         note = route_info.get("note")
         dirs = []
@@ -275,7 +273,7 @@ class RoutesManager:
                         rec = json.loads(line)
                     except Exception:
                         continue
-                    if rec.get("t") == "dir" and rec.get("rid") == route_id:
+                    if rec.get("rid") == route_id:
                         dirs.append({
                             "trip_id": rec.get("d", ""),
                             "point_id": rec.get("p", ""),
