@@ -21,11 +21,8 @@ class ErrorCodes:
     # File errors (20X)
     ROUTES_FILE_NOT_FOUND = 200
     ROUTES_FILE_EMPTY = 201
-    ROUTES_DB_OPEN_FAILED = 202
-    ROUTES_DB_WRITE_FAILED = 203
-    ROUTES_FILE_OPEN_FAILED = 204
-    ROUTES_FILE_LOAD_ERROR = 205
-    ROUTES_DB_DELETE_FAILED = 206
+    ROUTES_FILE_OPEN_FAILED = 202
+    ROUTES_FILE_LOAD_ERROR = 203
 
     # Route number errors (21X)
     ROUTES_EMPTY_ROUTE_NUMBER = 210
@@ -68,7 +65,6 @@ class ErrorCodes:
     # Web server errors (6XX)
     WEB_SERVER_SHUTDOWN_ERROR = 600
     WEB_SERVER_ERROR = 601
-    REFRESH_ROUTES_DB_ERROR = 602
 
     # Main loop errors (7XX)
     MAIN_LOOP_ERROR = 700
@@ -97,11 +93,8 @@ class ErrorCodes:
             # Routes - file
             200: "Файл маршрутів не знайдено",
             201: "Файл маршрутів порожній",
-            202: "Помилка відкриття БД маршрутів",
-            203: "Помилка запису БД маршрутів",
-            204: "Помилка відкриття файлу маршрутів",
-            205: "Помилка завантаження маршрутів",
-            206: "Помилка видалення БД маршрутів",
+            202: "Помилка відкриття файлу маршрутів",
+            203: "Помилка завантаження маршрутів",
             # Routes - route number
             210: "Порожній номер маршруту",
             211: "Маршрути у файлі відсутні",
@@ -135,7 +128,6 @@ class ErrorCodes:
             # Web server
             600: "Помилка зупинки веб-сервера",
             601: "Помилка веб-сервера",
-            602: "Помилка оновлення БД маршрутів",
             # Main loop
             700: "Помилка в головному циклі",
             701: "Помилка в циклі GUI",

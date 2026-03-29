@@ -26,7 +26,7 @@ except ImportError:
     set_error_and_raise(ErrorCodes.MISSING_LANGUAGE_FILE)
 
 CONFIG_PATH = "/config/config.txt"
-ROUTES_PATH = "/config/routes.txt"
+ROUTES_PATH = "/config/routes.ndjson"
 CONFIG_EXAMPLE_PATH = "/config/config.example"
 COMBO_GRACE_MS = 50
 

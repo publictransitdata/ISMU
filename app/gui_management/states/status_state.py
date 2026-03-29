@@ -16,7 +16,7 @@ class StatusState(State):
             selected_trip_name,
             route["route_number"],
             ctx._trip_menu_data.selected_item_index + 1,
-            int(route["dirs"][ctx._trip_menu_data.selected_item_index]["point_id"]),
+            route["dirs"][ctx._trip_menu_data.selected_item_index]["point_id"],
         )
 
     def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):

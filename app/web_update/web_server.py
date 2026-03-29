@@ -4,16 +4,16 @@ import os
 import machine
 import network
 import uasyncio as asyncio
+import ujson as json
 from microdot import Microdot  # type: ignore
 
 from app.error_codes import ErrorCodes
-from app.routes_management import RoutesManager
 from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
 
-ALLOWED_CHARS = set(
-    " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
+ALLOWED_ROUTES_CHARS = set(
+    " []{}!\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
     "ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
 )
 
@@ -102,7 +102,7 @@ def _get_upload_html():
       <form action="/upload" method="post" enctype="multipart/form-data">
         <p>Завантажити config.txt:</p>
         <input type="file" name="config_file" />
-        <p>Завантажити routes.txt:</p>
+        <p>Завантажити routes.ndjson:</p>
         <input type="file" name="routes_file" />
         <input type="submit" value="Завантажити" />
       </form>
@@ -192,9 +192,9 @@ def _get_error_html(message: str):
     )
 
 
-TMP_RAW = "/tmp_raw.bin"
-TMP_CONFIG = "/tmp_config.txt"
-TMP_ROUTES = "/tmp_routes.txt"
+TMP_RAW = "config/tmp_raw.bin"
+TMP_CONFIG = "config/tmp_config.txt"
+TMP_ROUTES = "config/tmp_routes.ndjson"
 STREAM_CHUNK = 1024
 
 
@@ -312,92 +312,118 @@ def _check_routes_content_file(filepath: str) -> list:
     if _file_is_empty(filepath):
         return ["Файл маршрутів порожній"]
 
-    char_errors = _check_invalid_chars_file(filepath, ALLOWED_CHARS)
+    char_errors = _check_invalid_chars_file(filepath, ALLOWED_ROUTES_CHARS)
     if char_errors:
         return char_errors
 
-    current_route = None
-    expecting_route = False
-    expecting_route_line = 0
+    current_route_id = None
+    current_route_has_dirs = False
+    current_route_line = None
     has_routes = False
     line_num = 0
-    seen_p_ids = {}
+    seen_route_ids = set()
+    seen_p_ids = set()
+
+    def _check_type(value, expected_type: type, field: str):
+        if value is None:
+            return
+        if not isinstance(value, expected_type):
+            errors.append(f"Рядок {line_num}: Поле '{field}' має неправильні дані")
+
+    def _require_field(rec, field: str):
+        if field not in rec:
+            errors.append(f"Рядок {line_num}: Відсутній '{field}'")
+            return None
+        return rec[field]
+
+    def _check_list_of_str(value, field: str):
+        if value is None:
+            return
+        if not isinstance(value, list):
+            errors.append(f"Рядок {line_num}: Поле '{field}' має бути списком")
+            return
+        for item in value:
+            if not isinstance(item, str):
+                errors.append(f"Рядок {line_num}: Поле '{field}' має містити лише рядки")
+                return
 
     with open(filepath) as f:
-        while True:
-            raw_line = f.readline()
-            if not raw_line:
-                break
+        for line in f:
             line_num += 1
-            line = raw_line.strip()
-            if not line:
+            try:
+                rec = json.loads(line)
+            except Exception:
                 continue
 
-            if line.startswith("|"):
-                if expecting_route:
-                    errors.append(
-                        f"Рядок {line_num}: Роздільник '|' без номера маршруту перед ним (рядок {expecting_route_line})"
-                    )
-                expecting_route = True
-                expecting_route_line = line_num
-                current_route = None
-                continue
-
-            if expecting_route:
-                if "#" in line:
-                    route_num_line = line.split("#", 1)[0].strip()
-                else:
-                    route_num_line = line
-
-                if route_num_line.endswith("-"):
-                    route_num_line = route_num_line[:-1].strip()
-
-                if not route_num_line:
-                    errors.append(f"Рядок {line_num}: Порожній номер маршруту після роздільника")
-                else:
-                    current_route = route_num_line
-                    has_routes = True
-                expecting_route = False
-                continue
-
-            if not current_route:
-                errors.append(f"Рядок {line_num}: Дані напрямку без номера маршруту")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
+            for key in rec:
+                if line.count('"' + key + '":') > 1:
+                    errors.append(f"Рядок {line_num}: Дублікат ключа '{key}'")
                     break
-                continue
 
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) not in (3, 4):
-                errors.append(f"Рядок {line_num}: Очікується 3 або 4 значення через кому, отримано {len(parts)}")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
-                    break
-                continue
+            if "id" in rec and "did" in rec:
+                errors.append(f"Рядок {line_num}: Запис містить одночасно 'id' та 'did'")
+                break
+            elif "id" not in rec and "did" not in rec:
+                errors.append(f"Рядок {line_num}: Невідомий тип запису (немає 'id' або 'did')")
+                break
 
-            d_id, p_id, _ = parts[0], parts[1], parts[2]
-
-            if not d_id or not p_id:
-                errors.append(f"Рядок {line_num}: Порожній ID напрямку або точки")
-            else:
-                if p_id in seen_p_ids:
-                    errors.append(
-                        f"Рядок {line_num}: Дублікат індексу напрямку '{p_id}' (вже є на рядку {seen_p_ids[p_id]})"
-                    )
+            if "id" in rec:
+                unknown = set(rec) - {"id", "r", "nlt", "note"}
+                if unknown:
+                    errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
+                if current_route_id is not None and not current_route_has_dirs:
+                    errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
+                _check_type(rec["id"], int, "id")
+                _check_type(_require_field(rec, "r"), str, "r")
+                if "nlt" in rec:
+                    _check_type(rec["nlt"], bool, "nlt")
+                if "note" in rec:
+                    _check_type(rec["note"], str, "note")
+                if rec["id"] in seen_route_ids:
+                    errors.append(f"Рядок {line_num}: Дублікат id маршруту '{rec['id']}'")
                 else:
-                    seen_p_ids[p_id] = line_num
+                    seen_route_ids.add(rec["id"])
+                current_route_id = rec["id"]
+                current_route_has_dirs = False
+                current_route_line = line_num
 
-            if len(parts) == 4:
-                short_name_str = parts[3]
-                if "^" not in short_name_str:
-                    errors.append(f"Рядок {line_num}: Коротка назва має містити роздільник '^'")
+            if "did" in rec:
+                unknown = set(rec) - {"did", "p", "f", "s"}
+                if unknown:
+                    errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
+                _check_type(rec["did"], int, "did")
+
+                _check_type(_require_field(rec, "p"), int, "p")
+
+                _check_list_of_str(_require_field(rec, "f"), "f")
+                if "s" in rec:
+                    _check_list_of_str(rec["s"], "s")
+
+                if "p" in rec:
+                    if rec["p"] in seen_p_ids:
+                        errors.append(f"Рядок {line_num}: Дублікат індексу напрямку '{rec['p']}'")
+                    else:
+                        seen_p_ids.add(rec["p"])
+
+                if current_route_id is None:
+                    errors.append(f"Рядок {line_num}: Напрямок без заголовку маршруту")
+                elif current_route_id != rec["did"]:
+                    errors.append(
+                        f"Рядок {line_num}: Напрямок не належить маршруту над ним (очікується did={current_route_id})"
+                    )
+                    if len(errors) >= 10:
+                        errors.append("... (ще є помилки)")
+                        break
+
+                current_route_has_dirs = True
+                has_routes = True
 
             if len(errors) >= 10:
                 errors.append("... (ще є помилки)")
                 break
 
-    if expecting_route:
-        errors.append(f"Рядок {expecting_route_line}: Роздільник '|' без номера маршруту після нього")
+    if current_route_id is not None and not current_route_has_dirs:
+        errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
 
     if not has_routes and not errors:
         errors.append("У файлі не знайдено жодного маршруту")
@@ -576,7 +602,7 @@ class WebUpdateServer:
     def _register_routes(self):
         @self._app.errorhandler(413)
         async def payload_too_large(request):
-            return self._error_response("Файл занадто великий. Максимум: 16KB", code=413)
+            return self._error_response("Файл занадто великий. Максимум: 24KB", code=413)
 
         @safe_route(self)
         @self._app.route("/")
@@ -624,9 +650,9 @@ class WebUpdateServer:
                 if not filename:
                     continue
 
-                if not filename.endswith(".txt"):
+                if not filename.endswith((".txt", ".ndjson")):
                     _cleanup_tmp()
-                    return self._error_response(f"Дозволені лише .txt файли: '{filename}'")
+                    return self._error_response(f"Дозволені лише .txt і .ndjson файли: '{filename}'")
 
                 if name == "config_file":
                     if "config" in filename.lower():
@@ -646,8 +672,8 @@ class WebUpdateServer:
                         errors = _check_routes_content_file(tmp_path)
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у routes.txt: {'; '.join(errors)}")
-                        files_to_save["routes.txt"] = tmp_path
+                            return self._error_response(f"Помилка у routes.ndjson: {'; '.join(errors)}")
+                        files_to_save["routes.ndjson"] = tmp_path
                     else:
                         _cleanup_tmp()
                         return self._error_response(
@@ -668,15 +694,9 @@ class WebUpdateServer:
                 _cleanup_tmp()
                 gc.collect()
 
-                if "routes.txt" in saved_files:
-                    try:
-                        routes_manager = RoutesManager()
-                        selection_manager = SelectionManager()
-                        routes_manager.refresh_db("/config/routes.txt")
-                        selection_manager.reset_selection()
-
-                    except Exception as err:
-                        set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, err, show_message=True)
+                if "routes.ndjson" in saved_files:
+                    selection_manager = SelectionManager()
+                    selection_manager.reset_selection()
 
                 asyncio.create_task(self._delayed_reset())
                 return self._success_response(", ".join(saved_files))

@@ -30,10 +30,9 @@ try:
         if iscoroutinefunction(handler):
             ret = await handler(*args, **kwargs)
         else:
-            ret = await asyncio.get_running_loop().run_in_executor(
-                None, partial(handler, *args, **kwargs)
-            )
+            ret = await asyncio.get_running_loop().run_in_executor(None, partial(handler, *args, **kwargs))
         return ret
+
 except ImportError:  # pragma: no cover
 
     def iscoroutine(coro):
@@ -311,7 +310,7 @@ class Request:
     #: Example::
     #:
     #:    Request.max_content_length = 1 * 1024 * 1024  # 1MB requests allowed
-    max_content_length = 16 * 1024
+    max_content_length = 24 * 1024
 
     #: Specify the maximum payload size that can be stored in ``body``.
     #: Requests with payloads that are larger than this size and up to
@@ -475,14 +474,10 @@ class Request:
         data = MultiDict()
         if len(urlencoded) > 0:  # pragma: no branch
             if isinstance(urlencoded, str):
-                for kv in [
-                    pair.split("=", 1) for pair in urlencoded.split("&") if pair
-                ]:
+                for kv in [pair.split("=", 1) for pair in urlencoded.split("&") if pair]:
                     data[urldecode(kv[0])] = urldecode(kv[1]) if len(kv) > 1 else ""
             elif isinstance(urlencoded, bytes):  # pragma: no branch
-                for kv in [
-                    pair.split(b"=", 1) for pair in urlencoded.split(b"&") if pair
-                ]:
+                for kv in [pair.split(b"=", 1) for pair in urlencoded.split(b"&") if pair]:
                     data[urldecode(kv[0])] = urldecode(kv[1]) if len(kv) > 1 else b""
         return data
 
@@ -668,9 +663,7 @@ class Response:
             if isinstance(expires, str):
                 http_cookie += "; Expires=" + expires
             else:  # pragma: no cover
-                http_cookie += "; Expires=" + time.strftime(
-                    "%a, %d %b %Y %H:%M:%S GMT", expires.timetuple()
-                )
+                http_cookie += "; Expires=" + time.strftime("%a, %d %b %Y %H:%M:%S GMT", expires.timetuple())
         if max_age is not None:
             http_cookie += "; Max-Age=" + str(max_age)
         if secure:
@@ -695,9 +688,7 @@ class Response:
         """
         kwargs.pop("expires", None)
         kwargs.pop("max_age", None)
-        self.set_cookie(
-            cookie, "", expires="Thu, 01 Jan 1970 00:00:01 GMT", max_age=0, **kwargs
-        )
+        self.set_cookie(cookie, "", expires="Thu, 01 Jan 1970 00:00:01 GMT", max_age=0, **kwargs)
 
     def complete(self):
         if isinstance(self.body, bytes) and "Content-Length" not in self.headers:
@@ -712,26 +703,16 @@ class Response:
 
         try:
             # status code
-            reason = (
-                self.reason
-                if self.reason is not None
-                else ("OK" if self.status_code == 200 else "N/A")
-            )
+            reason = self.reason if self.reason is not None else ("OK" if self.status_code == 200 else "N/A")
             await stream.awrite(
-                "HTTP/1.0 {status_code} {reason}\r\n".format(
-                    status_code=self.status_code, reason=reason
-                ).encode()
+                "HTTP/1.0 {status_code} {reason}\r\n".format(status_code=self.status_code, reason=reason).encode()
             )
 
             # headers
             for header, value in self.headers.items():
                 values = value if isinstance(value, list) else [value]
                 for value in values:
-                    await stream.awrite(
-                        "{header}: {value}\r\n".format(
-                            header=header, value=value
-                        ).encode()
-                    )
+                    await stream.awrite("{header}: {value}\r\n".format(header=header, value=value).encode())
             await stream.awrite(b"\r\n")
 
             # body
@@ -743,10 +724,7 @@ class Response:
                     try:
                         await stream.awrite(body)
                     except OSError as exc:  # pragma: no cover
-                        if (
-                            exc.errno in MUTED_SOCKET_ERRORS
-                            or exc.args[0] == "Connection lost"
-                        ):
+                        if exc.errno in MUTED_SOCKET_ERRORS or exc.args[0] == "Connection lost":
                             if hasattr(iter, "aclose"):
                                 await iter.aclose()
                         raise
@@ -884,9 +862,7 @@ class Response:
             headers["Cache-Control"] = "max-age={}".format(max_age)
 
         if compressed:
-            headers["Content-Encoding"] = (
-                compressed if isinstance(compressed, str) else "gzip"
-            )
+            headers["Content-Encoding"] = compressed if isinstance(compressed, str) else "gzip"
 
         f = stream or open(filename + file_extension, "rb")
         return cls(body=f, status_code=status_code, headers=headers)
@@ -1058,15 +1034,13 @@ class Microdot:
         """
 
         def decorated(f):
-            self.url_map.append(
-                (
-                    [m.upper() for m in (methods or ["GET"])],
-                    URLPattern(url_pattern),
-                    f,
-                    "",
-                    None,
-                )
-            )
+            self.url_map.append((
+                [m.upper() for m in (methods or ["GET"])],
+                URLPattern(url_pattern),
+                f,
+                "",
+                None,
+            ))
             return f
 
         return decorated
@@ -1248,15 +1222,13 @@ class Microdot:
                       application. The default is ``False``.
         """
         for methods, pattern, handler, _prefix, _subapp in subapp.url_map:
-            self.url_map.append(
-                (
-                    methods,
-                    URLPattern(url_prefix + pattern.url_pattern),
-                    handler,
-                    url_prefix + _prefix,
-                    _subapp or subapp,
-                )
-            )
+            self.url_map.append((
+                methods,
+                URLPattern(url_prefix + pattern.url_pattern),
+                handler,
+                url_prefix + _prefix,
+                _subapp or subapp,
+            ))
         if not local:
             for handler in subapp.before_request_handlers:
                 self.before_request_handlers.append(handler)
@@ -1353,9 +1325,7 @@ class Microdot:
             await self.handle_request(reader, writer)
 
         if self.debug:  # pragma: no cover
-            print(
-                "Starting async server on {host}:{port}...".format(host=host, port=port)
-            )
+            print("Starting async server on {host}:{port}...".format(host=host, port=port))
 
         try:
             self.server = await asyncio.start_server(serve, host, port, ssl=ssl)
@@ -1407,9 +1377,7 @@ class Microdot:
 
             app.run(debug=True)
         """
-        asyncio.run(
-            self.start_server(host=host, port=port, debug=debug, ssl=ssl)
-        )  # pragma: no cover
+        asyncio.run(self.start_server(host=host, port=port, debug=debug, ssl=ssl))  # pragma: no cover
 
     def shutdown(self):
         """Request a server shutdown. The server will then exit its request
@@ -1466,9 +1434,7 @@ class Microdot:
     async def handle_request(self, reader, writer):
         req = None
         try:
-            req = await Request.create(
-                self, reader, writer, writer.get_extra_info("peername")
-            )
+            req = await Request.create(self, reader, writer, writer.get_extra_info("peername"))
         except OSError as exc:  # pragma: no cover
             if exc.errno in MUTED_SOCKET_ERRORS:
                 pass
@@ -1488,17 +1454,11 @@ class Microdot:
             else:
                 raise
         if self.debug and req:  # pragma: no cover
-            print(
-                "{method} {path} {status_code}".format(
-                    method=req.method, path=req.path, status_code=res.status_code
-                )
-            )
+            print("{method} {path} {status_code}".format(method=req.method, path=req.path, status_code=res.status_code))
 
     def get_request_handlers(self, req, attr, local_first=True):
         handlers = getattr(self, attr + "_handlers")
-        local_handlers = (
-            getattr(req.subapp, attr + "_handlers") if req and req.subapp else []
-        )
+        local_handlers = getattr(req.subapp, attr + "_handlers") if req and req.subapp else []
         return local_handlers + handlers if local_first else handlers + local_handlers
 
     async def error_response(self, req, status_code, reason=None):
@@ -1540,9 +1500,7 @@ class Microdot:
                         req.route = f
 
                         # invoke the before request handlers
-                        for handler in self.get_request_handlers(
-                            req, "before_request", False
-                        ):
+                        for handler in self.get_request_handlers(req, "before_request", False):
                             res = await invoke_handler(handler, req)
                             if res:
                                 break
@@ -1579,9 +1537,7 @@ class Microdot:
                             res = Response(res)
 
                         # invoke the after request handlers
-                        for handler in self.get_request_handlers(
-                            req, "after_request", True
-                        ):
+                        for handler in self.get_request_handlers(req, "after_request", True):
                             res = await invoke_handler(handler, req, res) or res
                         for handler in req.after_request_handlers:
                             res = await invoke_handler(handler, req, res) or res
@@ -1627,9 +1583,7 @@ class Microdot:
                             print_exception(exc2)
                     if res is None:
                         # if there is still no response, issue a 500 error
-                        res = await self.error_response(
-                            req, 500, "Internal server error"
-                        )
+                        res = await self.error_response(req, 500, "Internal server error")
         else:
             # if the request could not be parsed, issue a 400 error
             res = await self.error_response(req, 400, "Bad request")

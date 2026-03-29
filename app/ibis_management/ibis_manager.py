@@ -124,7 +124,7 @@ class IBISManager:
         if value is None:
             raise CustomError(ErrorCodes.POINT_ID_IS_NONE, "Код напрямку не відправляється")
         try:
-            formatted = format.format(int(value))
+            formatted = format.format(value)
         except Exception as err:
             raise CustomError(ErrorCodes.POINT_ID_VALUE_IS_WRONG, "Код напрямку не відправляється") from err
 
