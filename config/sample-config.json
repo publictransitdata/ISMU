@@ -1,0 +1,16 @@
+{
+  "line_telegram": null,
+  "destination_number_telegram": null,
+  "destination_telegram": null,
+  "show_start_and_end_stops": false,
+  "force_short_names": false,
+  "stop_board_telegram": null,
+  "show_info_on_stop_board": false,
+  "ap_name": "your_wifi_name",
+  "ap_password": "your_password",
+  "ap_ip": "192.168.4.1",
+  "baudrate": 1200,
+  "bits": 7,
+  "parity": 2,
+  "stop": 2
+}

@@ -30,7 +30,7 @@ VALID_CONFIG_KEYS = {
 }
 
 
-def check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
+def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
     errors = []
     line_num = 1
     char_index = 0
@@ -56,7 +56,7 @@ def check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
     return errors
 
 
-def file_is_empty(filepath: str) -> bool:
+def _file_is_empty(filepath: str) -> bool:
     try:
         s = os.stat(filepath)
         if s[6] == 0:
@@ -305,10 +305,10 @@ def _check_routes_ndjson_line_structure(s):
 def check_config_content_file(filepath: str) -> list:
     errors = []
 
-    if file_is_empty(filepath):
+    if _file_is_empty(filepath):
         return ["Файл налаштувань порожній"]
 
-    char_errors = check_invalid_chars_file(filepath, ALLOWED_CONFIG_CHARS)
+    char_errors = _check_invalid_chars_file(filepath, ALLOWED_CONFIG_CHARS)
     if char_errors:
         return char_errors
 
@@ -379,10 +379,10 @@ def check_config_content_file(filepath: str) -> list:
 def check_routes_content_file(filepath: str) -> list:
     errors = []
 
-    if file_is_empty(filepath):
+    if _file_is_empty(filepath):
         return ["Файл маршрутів порожній"]
 
-    char_errors = check_invalid_chars_file(filepath, ALLOWED_ROUTES_CHARS)
+    char_errors = _check_invalid_chars_file(filepath, ALLOWED_ROUTES_CHARS)
     if char_errors:
         return char_errors
 

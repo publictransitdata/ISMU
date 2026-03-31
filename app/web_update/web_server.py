@@ -407,6 +407,7 @@ class WebUpdateServer:
                 if name == "config_file":
                     if "config" in filename.lower():
                         errors = check_config_content_file(tmp_path)
+                        gc.collect()
                         if errors:
                             _cleanup_tmp()
                             return self._error_response(f"Помилка у config.json: {'; '.join(errors)}")
@@ -420,6 +421,7 @@ class WebUpdateServer:
                 elif name == "routes_file":
                     if "routes" in filename.lower():
                         errors = check_routes_content_file(tmp_path)
+                        gc.collect()
                         if errors:
                             _cleanup_tmp()
                             return self._error_response(f"Помилка у routes.ndjson: {'; '.join(errors)}")
