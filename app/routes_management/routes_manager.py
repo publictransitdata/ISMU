@@ -6,6 +6,7 @@ import ujson as json
 from app.error_codes import ErrorCodes
 from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
+from utils.file_checker import check_routes_content_file
 from utils.singleton_decorator import singleton
 
 ROUTES_PATH = "/config/routes.ndjson"
@@ -15,7 +16,6 @@ ROUTES_PATH = "/config/routes.ndjson"
 class RoutesManager:
     def __init__(self):
         self._route_list = []
-        self._file_path = ROUTES_PATH
 
     def load_routes(self) -> None:
         try:
@@ -24,23 +24,20 @@ class RoutesManager:
             set_error_and_raise(ErrorCodes.ROUTES_FILE_NOT_FOUND, raise_exception=False)
             return
 
+        errors = check_routes_content_file(ROUTES_PATH)
+        if errors:
+            set_error_and_raise(
+                ErrorCodes.ROUTES_CHECKER_FAILED, exception=errors[0], show_message=True, raise_exception=False
+            )
+            return
+
         try:
             self._route_list = self.build_route_list()
             print("Routes was loaded")
             gc.collect()
             return
-        except (ValueError, RuntimeError):
-            pass
-
-    def remove_routes(self) -> None:
-        try:
-            os.remove(ROUTES_PATH)
-            self._route_list = []
-        except OSError as err:
-            if err.args[0] == 2:
-                self._route_list = []
-            else:
-                raise CustomError(ErrorCodes.ROUTES_FILE_DELETE_FAILED, str(err)) from err
+        except CustomError as err:
+            set_error_and_raise(err.error_code, exception=err.detail, show_message=True, raise_exception=False)
 
     def build_route_list(self):
         routes_list = []
@@ -60,10 +57,10 @@ class RoutesManager:
                             "note": rec.get("note"),
                         })
         except OSError as err:
-            raise RuntimeError(f"Failed to open routes file: {err}") from err
+            raise CustomError(ErrorCodes.ROUTES_FILE_OPEN_FAILED, err) from err
 
         if not routes_list:
-            raise ValueError("Routes file is empty")
+            raise CustomError(ErrorCodes.ROUTES_FILE_EMPTY)
 
         return routes_list
 
@@ -117,8 +114,13 @@ class RoutesManager:
                             "full_name": rec.get("f", ""),
                             "short_name": rec.get("s", None),
                         })
-        except OSError:
-            pass
+        except OSError as err:
+            set_error_and_raise(
+                ErrorCodes.ROUTES_FILE_OPEN_FAILED,
+                exception=err,
+                show_message=True,
+                raise_exception=False,
+            )
         return {
             "route_number": route_number,
             "dirs": dirs,

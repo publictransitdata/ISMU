@@ -4,38 +4,13 @@ import os
 import machine
 import network
 import uasyncio as asyncio
-import ujson as json
 from microdot import Microdot  # type: ignore
 
 from app.error_codes import ErrorCodes
 from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
-
-ALLOWED_ROUTES_CHARS = set(
-    " []{}!\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
-    "ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
-)
-
-ALLOWED_CONFIG_CHARS = set(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=.-\n\r")
-
-
-VALID_CONFIG_KEYS = {
-    "line_telegram",
-    "destination_number_telegram",
-    "destination_telegram",
-    "show_start_and_end_stops",
-    "force_short_names",
-    "stop_board_telegram",
-    "show_info_on_stop_board",
-    "ap_name",
-    "ap_password",
-    "ap_ip",
-    "baudrate",
-    "bits",
-    "parity",
-    "stop",
-}
+from utils.file_checker import check_config_content_file, check_routes_content_file
 
 
 def _get_base_style():
@@ -100,7 +75,7 @@ def _get_upload_html():
     <div class="c">
       <h1>Режим оновлення</h1>
       <form action="/upload" method="post" enctype="multipart/form-data">
-        <p>Завантажити config.txt:</p>
+        <p>Завантажити config.json:</p>
         <input type="file" name="config_file" />
         <p>Завантажити routes.ndjson:</p>
         <input type="file" name="routes_file" />
@@ -193,7 +168,7 @@ def _get_error_html(message: str):
 
 
 TMP_RAW = "config/tmp_raw.bin"
-TMP_CONFIG = "config/tmp_config.txt"
+TMP_CONFIG = "config/tmp_config.json"
 TMP_ROUTES = "config/tmp_routes.ndjson"
 STREAM_CHUNK = 1024
 
@@ -204,231 +179,6 @@ def _cleanup_tmp():
             os.remove(p)
         except OSError:
             pass
-
-
-def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
-    errors = []
-    line_num = 1
-    char_index = 0
-    try:
-        with open(filepath) as f:
-            while True:
-                chunk = f.read(128)
-                if not chunk:
-                    break
-                for ch in chunk:
-                    if ch == "\n":
-                        line_num += 1
-                    elif ch == "\r":
-                        pass
-                    elif ch not in allowed_chars:
-                        errors.append(f"Рядок {line_num}: Недопустимий символ '{ch}'")
-                        if len(errors) >= 5:
-                            errors.append("... (ще є помилки)")
-                            return errors
-                    char_index += 1
-    except UnicodeDecodeError as err:
-        return [f"Невірне кодування файлу (позиція {err.start})"]
-    return errors
-
-
-def _file_is_empty(filepath: str) -> bool:
-    try:
-        s = os.stat(filepath)
-        if s[6] == 0:
-            return True
-    except OSError:
-        return True
-    with open(filepath) as f:
-        while True:
-            chunk = f.read(128)
-            if not chunk:
-                return True
-            if chunk.strip():
-                return False
-
-
-def _check_config_content_file(filepath: str) -> list:
-    errors = []
-
-    if _file_is_empty(filepath):
-        return ["Файл налаштувань порожній"]
-
-    char_errors = _check_invalid_chars_file(filepath, ALLOWED_CONFIG_CHARS)
-    if char_errors:
-        return char_errors
-
-    found_keys = set()
-    line_num = 0
-    with open(filepath) as f:
-        while True:
-            line = f.readline()
-            if not line:
-                break
-            line_num += 1
-            line = line.strip()
-            if not line:
-                continue
-
-            if "=" not in line:
-                errors.append(f"Рядок {line_num}: Відсутній знак '='")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
-                    break
-                continue
-
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip()
-
-            if key not in VALID_CONFIG_KEYS:
-                errors.append(f"Рядок {line_num}: Невідомий параметр '{key}'")
-            else:
-                found_keys.add(key)
-                nullable_telegram_keys = {
-                    "line",
-                    "destination_number",
-                    "destination",
-                    "stop_board_telegram",
-                }
-
-                if not value and key not in nullable_telegram_keys:
-                    errors.append(f"Рядок {line_num}: Параметр '{key}' не має значення")
-
-            if len(errors) >= 10:
-                errors.append("... (ще є помилки)")
-                break
-
-    missing_keys = VALID_CONFIG_KEYS - found_keys
-    if missing_keys:
-        errors.append(f"Відсутні обов'язкові параметри: {', '.join(sorted(missing_keys))}")
-
-    return errors
-
-
-def _check_routes_content_file(filepath: str) -> list:
-    errors = []
-
-    if _file_is_empty(filepath):
-        return ["Файл маршрутів порожній"]
-
-    char_errors = _check_invalid_chars_file(filepath, ALLOWED_ROUTES_CHARS)
-    if char_errors:
-        return char_errors
-
-    current_route_id = None
-    current_route_has_dirs = False
-    current_route_line = None
-    has_routes = False
-    line_num = 0
-    seen_route_ids = set()
-    seen_p_ids = set()
-
-    def _check_type(value, expected_type: type, field: str):
-        if value is None:
-            return
-        if not isinstance(value, expected_type):
-            errors.append(f"Рядок {line_num}: Поле '{field}' має неправильні дані")
-
-    def _require_field(rec, field: str):
-        if field not in rec:
-            errors.append(f"Рядок {line_num}: Відсутній '{field}'")
-            return None
-        return rec[field]
-
-    def _check_list_of_str(value, field: str):
-        if value is None:
-            return
-        if not isinstance(value, list):
-            errors.append(f"Рядок {line_num}: Поле '{field}' має бути списком")
-            return
-        for item in value:
-            if not isinstance(item, str):
-                errors.append(f"Рядок {line_num}: Поле '{field}' має містити лише рядки")
-                return
-
-    with open(filepath) as f:
-        for line in f:
-            line_num += 1
-            try:
-                rec = json.loads(line)
-            except Exception:
-                continue
-
-            for key in rec:
-                if line.count('"' + key + '":') > 1:
-                    errors.append(f"Рядок {line_num}: Дублікат ключа '{key}'")
-                    break
-
-            if "id" in rec and "did" in rec:
-                errors.append(f"Рядок {line_num}: Запис містить одночасно 'id' та 'did'")
-                break
-            elif "id" not in rec and "did" not in rec:
-                errors.append(f"Рядок {line_num}: Невідомий тип запису (немає 'id' або 'did')")
-                break
-
-            if "id" in rec:
-                unknown = set(rec) - {"id", "r", "nlt", "note"}
-                if unknown:
-                    errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
-                if current_route_id is not None and not current_route_has_dirs:
-                    errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
-                _check_type(rec["id"], int, "id")
-                _check_type(_require_field(rec, "r"), str, "r")
-                if "nlt" in rec:
-                    _check_type(rec["nlt"], bool, "nlt")
-                if "note" in rec:
-                    _check_type(rec["note"], str, "note")
-                if rec["id"] in seen_route_ids:
-                    errors.append(f"Рядок {line_num}: Дублікат id маршруту '{rec['id']}'")
-                else:
-                    seen_route_ids.add(rec["id"])
-                current_route_id = rec["id"]
-                current_route_has_dirs = False
-                current_route_line = line_num
-
-            if "did" in rec:
-                unknown = set(rec) - {"did", "p", "f", "s"}
-                if unknown:
-                    errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
-                _check_type(rec["did"], int, "did")
-
-                _check_type(_require_field(rec, "p"), int, "p")
-
-                _check_list_of_str(_require_field(rec, "f"), "f")
-                if "s" in rec:
-                    _check_list_of_str(rec["s"], "s")
-
-                if "p" in rec:
-                    if rec["p"] in seen_p_ids:
-                        errors.append(f"Рядок {line_num}: Дублікат індексу напрямку '{rec['p']}'")
-                    else:
-                        seen_p_ids.add(rec["p"])
-
-                if current_route_id is None:
-                    errors.append(f"Рядок {line_num}: Напрямок без заголовку маршруту")
-                elif current_route_id != rec["did"]:
-                    errors.append(
-                        f"Рядок {line_num}: Напрямок не належить маршруту над ним (очікується did={current_route_id})"
-                    )
-                    if len(errors) >= 10:
-                        errors.append("... (ще є помилки)")
-                        break
-
-                current_route_has_dirs = True
-                has_routes = True
-
-            if len(errors) >= 10:
-                errors.append("... (ще є помилки)")
-                break
-
-    if current_route_id is not None and not current_route_has_dirs:
-        errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
-
-    if not has_routes and not errors:
-        errors.append("У файлі не знайдено жодного маршруту")
-
-    return errors
 
 
 async def _stream_body_to_file(request, filepath):
@@ -650,17 +400,17 @@ class WebUpdateServer:
                 if not filename:
                     continue
 
-                if not filename.endswith((".txt", ".ndjson")):
+                if not filename.endswith((".json", ".ndjson")):
                     _cleanup_tmp()
-                    return self._error_response(f"Дозволені лише .txt і .ndjson файли: '{filename}'")
+                    return self._error_response(f"Дозволені лише .json і .ndjson файли: '{filename}'")
 
                 if name == "config_file":
                     if "config" in filename.lower():
-                        errors = _check_config_content_file(tmp_path)
+                        errors = check_config_content_file(tmp_path)
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у config.txt: {'; '.join(errors)}")
-                        files_to_save["config.txt"] = tmp_path
+                            return self._error_response(f"Помилка у config.json: {'; '.join(errors)}")
+                        files_to_save["config.json"] = tmp_path
                     else:
                         _cleanup_tmp()
                         return self._error_response(
@@ -669,7 +419,7 @@ class WebUpdateServer:
 
                 elif name == "routes_file":
                     if "routes" in filename.lower():
-                        errors = _check_routes_content_file(tmp_path)
+                        errors = check_routes_content_file(tmp_path)
                         if errors:
                             _cleanup_tmp()
                             return self._error_response(f"Помилка у routes.ndjson: {'; '.join(errors)}")
