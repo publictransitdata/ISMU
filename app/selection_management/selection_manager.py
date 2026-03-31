@@ -15,12 +15,10 @@ TEMP_SELECTION_PATH = "app/selection_management/selection.tmp"
 class TripInfo:
     def __init__(
         self,
-        group_id: str,
-        point_id: str,
+        point_id: int,
         full_name: list[str],
         short_name: list[str] | None,
     ):
-        self.group_id = group_id
         self.point_id = point_id
         self.full_name = full_name
         self.short_name = short_name
@@ -28,11 +26,10 @@ class TripInfo:
     @staticmethod
     def trip_from_dict(d: dict | None):
         if d is not None:
-            group_id = d.get("trip_id", "")
-            point_id = d.get("point_id", "")
+            point_id = d.get("point_id", 0)
             full_name = d.get("full_name") or []
             short_name = d.get("short_name") or []
-            return TripInfo(group_id, point_id, full_name, short_name)
+            return TripInfo(point_id, full_name, short_name)
         else:
             return None
 

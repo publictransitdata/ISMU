@@ -7,35 +7,10 @@ import uasyncio as asyncio
 from microdot import Microdot  # type: ignore
 
 from app.error_codes import ErrorCodes
-from app.routes_management import RoutesManager
 from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
-
-ALLOWED_CHARS = set(
-    " !\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
-    "ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
-)
-
-ALLOWED_CONFIG_CHARS = set(" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_=.-\n\r")
-
-
-VALID_CONFIG_KEYS = {
-    "line_telegram",
-    "destination_number_telegram",
-    "destination_telegram",
-    "show_start_and_end_stops",
-    "force_short_names",
-    "stop_board_telegram",
-    "show_info_on_stop_board",
-    "ap_name",
-    "ap_password",
-    "ap_ip",
-    "baudrate",
-    "bits",
-    "parity",
-    "stop",
-}
+from utils.file_checker import check_config_content_file, check_routes_content_file
 
 
 def _get_base_style():
@@ -100,9 +75,9 @@ def _get_upload_html():
     <div class="c">
       <h1>Режим оновлення</h1>
       <form action="/upload" method="post" enctype="multipart/form-data">
-        <p>Завантажити config.txt:</p>
+        <p>Завантажити config.json:</p>
         <input type="file" name="config_file" />
-        <p>Завантажити routes.txt:</p>
+        <p>Завантажити routes.ndjson:</p>
         <input type="file" name="routes_file" />
         <input type="submit" value="Завантажити" />
       </form>
@@ -192,9 +167,9 @@ def _get_error_html(message: str):
     )
 
 
-TMP_RAW = "/tmp_raw.bin"
-TMP_CONFIG = "/tmp_config.txt"
-TMP_ROUTES = "/tmp_routes.txt"
+TMP_RAW = "config/tmp_raw.bin"
+TMP_CONFIG = "config/tmp_config.json"
+TMP_ROUTES = "config/tmp_routes.ndjson"
 STREAM_CHUNK = 1024
 
 
@@ -204,205 +179,6 @@ def _cleanup_tmp():
             os.remove(p)
         except OSError:
             pass
-
-
-def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
-    errors = []
-    line_num = 1
-    char_index = 0
-    try:
-        with open(filepath) as f:
-            while True:
-                chunk = f.read(128)
-                if not chunk:
-                    break
-                for ch in chunk:
-                    if ch == "\n":
-                        line_num += 1
-                    elif ch == "\r":
-                        pass
-                    elif ch not in allowed_chars:
-                        errors.append(f"Рядок {line_num}: Недопустимий символ '{ch}'")
-                        if len(errors) >= 5:
-                            errors.append("... (ще є помилки)")
-                            return errors
-                    char_index += 1
-    except UnicodeDecodeError as err:
-        return [f"Невірне кодування файлу (позиція {err.start})"]
-    return errors
-
-
-def _file_is_empty(filepath: str) -> bool:
-    try:
-        s = os.stat(filepath)
-        if s[6] == 0:
-            return True
-    except OSError:
-        return True
-    with open(filepath) as f:
-        while True:
-            chunk = f.read(128)
-            if not chunk:
-                return True
-            if chunk.strip():
-                return False
-
-
-def _check_config_content_file(filepath: str) -> list:
-    errors = []
-
-    if _file_is_empty(filepath):
-        return ["Файл налаштувань порожній"]
-
-    char_errors = _check_invalid_chars_file(filepath, ALLOWED_CONFIG_CHARS)
-    if char_errors:
-        return char_errors
-
-    found_keys = set()
-    line_num = 0
-    with open(filepath) as f:
-        while True:
-            line = f.readline()
-            if not line:
-                break
-            line_num += 1
-            line = line.strip()
-            if not line:
-                continue
-
-            if "=" not in line:
-                errors.append(f"Рядок {line_num}: Відсутній знак '='")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
-                    break
-                continue
-
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip()
-
-            if key not in VALID_CONFIG_KEYS:
-                errors.append(f"Рядок {line_num}: Невідомий параметр '{key}'")
-            else:
-                found_keys.add(key)
-                nullable_telegram_keys = {
-                    "line",
-                    "destination_number",
-                    "destination",
-                    "stop_board_telegram",
-                }
-
-                if not value and key not in nullable_telegram_keys:
-                    errors.append(f"Рядок {line_num}: Параметр '{key}' не має значення")
-
-            if len(errors) >= 10:
-                errors.append("... (ще є помилки)")
-                break
-
-    missing_keys = VALID_CONFIG_KEYS - found_keys
-    if missing_keys:
-        errors.append(f"Відсутні обов'язкові параметри: {', '.join(sorted(missing_keys))}")
-
-    return errors
-
-
-def _check_routes_content_file(filepath: str) -> list:
-    errors = []
-
-    if _file_is_empty(filepath):
-        return ["Файл маршрутів порожній"]
-
-    char_errors = _check_invalid_chars_file(filepath, ALLOWED_CHARS)
-    if char_errors:
-        return char_errors
-
-    current_route = None
-    expecting_route = False
-    expecting_route_line = 0
-    has_routes = False
-    line_num = 0
-    seen_p_ids = {}
-
-    with open(filepath) as f:
-        while True:
-            raw_line = f.readline()
-            if not raw_line:
-                break
-            line_num += 1
-            line = raw_line.strip()
-            if not line:
-                continue
-
-            if line.startswith("|"):
-                if expecting_route:
-                    errors.append(
-                        f"Рядок {line_num}: Роздільник '|' без номера маршруту перед ним (рядок {expecting_route_line})"
-                    )
-                expecting_route = True
-                expecting_route_line = line_num
-                current_route = None
-                continue
-
-            if expecting_route:
-                if "#" in line:
-                    route_num_line = line.split("#", 1)[0].strip()
-                else:
-                    route_num_line = line
-
-                if route_num_line.endswith("-"):
-                    route_num_line = route_num_line[:-1].strip()
-
-                if not route_num_line:
-                    errors.append(f"Рядок {line_num}: Порожній номер маршруту після роздільника")
-                else:
-                    current_route = route_num_line
-                    has_routes = True
-                expecting_route = False
-                continue
-
-            if not current_route:
-                errors.append(f"Рядок {line_num}: Дані напрямку без номера маршруту")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
-                    break
-                continue
-
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) not in (3, 4):
-                errors.append(f"Рядок {line_num}: Очікується 3 або 4 значення через кому, отримано {len(parts)}")
-                if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
-                    break
-                continue
-
-            d_id, p_id, _ = parts[0], parts[1], parts[2]
-
-            if not d_id or not p_id:
-                errors.append(f"Рядок {line_num}: Порожній ID напрямку або точки")
-            else:
-                if p_id in seen_p_ids:
-                    errors.append(
-                        f"Рядок {line_num}: Дублікат індексу напрямку '{p_id}' (вже є на рядку {seen_p_ids[p_id]})"
-                    )
-                else:
-                    seen_p_ids[p_id] = line_num
-
-            if len(parts) == 4:
-                short_name_str = parts[3]
-                if "^" not in short_name_str:
-                    errors.append(f"Рядок {line_num}: Коротка назва має містити роздільник '^'")
-
-            if len(errors) >= 10:
-                errors.append("... (ще є помилки)")
-                break
-
-    if expecting_route:
-        errors.append(f"Рядок {expecting_route_line}: Роздільник '|' без номера маршруту після нього")
-
-    if not has_routes and not errors:
-        errors.append("У файлі не знайдено жодного маршруту")
-
-    return errors
 
 
 async def _stream_body_to_file(request, filepath):
@@ -576,7 +352,7 @@ class WebUpdateServer:
     def _register_routes(self):
         @self._app.errorhandler(413)
         async def payload_too_large(request):
-            return self._error_response("Файл занадто великий. Максимум: 16KB", code=413)
+            return self._error_response("Файл занадто великий. Максимум: 24KB", code=413)
 
         @safe_route(self)
         @self._app.route("/")
@@ -624,17 +400,18 @@ class WebUpdateServer:
                 if not filename:
                     continue
 
-                if not filename.endswith(".txt"):
+                if not filename.endswith((".json", ".ndjson")):
                     _cleanup_tmp()
-                    return self._error_response(f"Дозволені лише .txt файли: '{filename}'")
+                    return self._error_response(f"Дозволені лише .json і .ndjson файли: '{filename}'")
 
                 if name == "config_file":
                     if "config" in filename.lower():
-                        errors = _check_config_content_file(tmp_path)
+                        errors = check_config_content_file(tmp_path)
+                        gc.collect()
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у config.txt: {'; '.join(errors)}")
-                        files_to_save["config.txt"] = tmp_path
+                            return self._error_response(f"Помилка у config.json: {'; '.join(errors)}")
+                        files_to_save["config.json"] = tmp_path
                     else:
                         _cleanup_tmp()
                         return self._error_response(
@@ -643,11 +420,12 @@ class WebUpdateServer:
 
                 elif name == "routes_file":
                     if "routes" in filename.lower():
-                        errors = _check_routes_content_file(tmp_path)
+                        errors = check_routes_content_file(tmp_path)
+                        gc.collect()
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у routes.txt: {'; '.join(errors)}")
-                        files_to_save["routes.txt"] = tmp_path
+                            return self._error_response(f"Помилка у routes.ndjson: {'; '.join(errors)}")
+                        files_to_save["routes.ndjson"] = tmp_path
                     else:
                         _cleanup_tmp()
                         return self._error_response(
@@ -668,15 +446,9 @@ class WebUpdateServer:
                 _cleanup_tmp()
                 gc.collect()
 
-                if "routes.txt" in saved_files:
-                    try:
-                        routes_manager = RoutesManager()
-                        selection_manager = SelectionManager()
-                        routes_manager.refresh_db("/config/routes.txt")
-                        selection_manager.reset_selection()
-
-                    except Exception as err:
-                        set_error_and_raise(ErrorCodes.REFRESH_ROUTES_DB_ERROR, err, show_message=True)
+                if "routes.ndjson" in saved_files:
+                    selection_manager = SelectionManager()
+                    selection_manager.reset_selection()
 
                 asyncio.create_task(self._delayed_reset())
                 return self._success_response(", ".join(saved_files))

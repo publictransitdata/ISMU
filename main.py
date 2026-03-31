@@ -25,8 +25,8 @@ try:
 except ImportError:
     set_error_and_raise(ErrorCodes.MISSING_LANGUAGE_FILE)
 
-CONFIG_PATH = "/config/config.txt"
-ROUTES_PATH = "/config/routes.txt"
+CONFIG_PATH = "/config/config.json"
+ROUTES_PATH = "/config/routes.ndjson"
 CONFIG_EXAMPLE_PATH = "/config/config.example"
 COMBO_GRACE_MS = 50
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
     if not isinstance(gui_manager._state, InitialState) and not isinstance(gui_manager._state, ErrorState):
-        config_manager.load_config(CONFIG_PATH)
+        config_manager.load_config()
         routes_manager.load_routes()
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)

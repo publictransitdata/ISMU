@@ -3,7 +3,6 @@ import gc
 import sys
 import time
 
-import ujson as json
 
 from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
@@ -183,31 +182,15 @@ class GuiManager:
     def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int) -> None:
         self._state.handle_buttons(btn_menu, btn_up, btn_down, btn_select)
 
-    def get_route_list_to_display(self, route_file_path) -> list[str]:
+    def get_route_list_to_display(self) -> list[str]:
         routes = self._routes_manager._route_list
 
-        labels = {}
-
-        try:
-            with open(route_file_path) as f:
-                for line in f:
-                    try:
-                        record = json.loads(line)
-                    except Exception:
-                        continue
-                    if record.get("t") == "dir":
-                        route_id = record.get("rid")
-                        if route_id is not None and route_id not in labels:
-                            labels[route_id] = record.get("s") or record.get("f", "")
-                            if len(labels) == len(routes):
-                                break
-        except OSError:
-            pass
+        labels = self._routes_manager.get_routes_labels()
 
         result = []
         for route_info in routes:
             route_id = route_info["id"]
-            route_number = route_info["n"]
+            route_number = route_info["r"]
             note = route_info.get("note")
 
             if note:
@@ -224,12 +207,12 @@ class GuiManager:
 
     def get_trip_list_to_display(self, route) -> list[str]:
         menu_items = []
-        for d in route.get("dirs", []):
+        for num, d in enumerate(route.get("dirs", []), 1):
             name_list = d.get("short_name") or d.get("full_name", "")
             if len(name_list) == 2:
                 name = name_list[1]
             else:
                 name = name_list[0]
 
-            menu_items.append(f"{d.get('trip_id')} {name}")
+            menu_items.append(f"{num:02d} {name}")
         return menu_items

@@ -11,6 +11,7 @@ typings/
 
 # Configuration files
 *.json
+!sample-config.json 
 config/lang.py
 config/*.txt
 
