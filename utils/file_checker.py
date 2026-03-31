@@ -196,8 +196,10 @@ def _check_routes_ndjson_line_structure(s):
 
     while i < n and s[i] in " \t\n\r":
         i += 1
-    if i >= n or s[i] != "{":
+    if i >= n:
         return None
+    if s[i] != "{":
+        return "Очікувався JSON-об'єкт, що починається з '{'"
     i += 1
 
     while i < n and s[i] in " \t\n\r":
@@ -432,6 +434,7 @@ def check_routes_content_file(filepath: str) -> list:
                     rec = json.loads(line)
                 except Exception:
                     errors.append(f"Рядок {line_num}: Невірний JSON")
+                    continue
 
                 for key in rec:
                     if line.count('"' + key + '":') > 1:
@@ -499,6 +502,10 @@ def check_routes_content_file(filepath: str) -> list:
                 if len(errors) >= 10:
                     errors.append("... (ще є помилки)")
                     break
+
+            if current_route_id is not None and not current_route_has_dirs:
+                errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
+
     except OSError:
         return ["Помилка відкриття файлу маршрутів"]
 

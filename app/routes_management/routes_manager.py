@@ -76,7 +76,7 @@ class RoutesManager:
                         continue
                     if "did" not in record or record["did"] in labels:
                         continue
-                    labels[record["did"]] = record.get("s") or record.get("f", "")
+                    labels[record["did"]] = record.get("s") or record.get("f", [])
                     if len(labels) == len(self._route_list):
                         break
         except OSError:
@@ -109,7 +109,6 @@ class RoutesManager:
                         continue
                     if rec.get("did") == route_id:
                         dirs.append({
-                            "trip_id": rec.get("d", ""),
                             "point_id": rec.get("p", ""),
                             "full_name": rec.get("f", ""),
                             "short_name": rec.get("s", None),
