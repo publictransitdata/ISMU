@@ -5,6 +5,8 @@ exclude = [
     "lib/",
     "config/",
     "typings/",
+    "manifest_debug.py",
+    "manifest_release.py",
 ]
 preview = true
 
