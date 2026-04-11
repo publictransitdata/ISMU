@@ -8,8 +8,8 @@ from app.routes_management.routes_manager import RoutesManager
 from utils.error_handler import set_error_and_raise
 from utils.singleton_decorator import singleton
 
-SELECTION_PATH = "app/selection_management/selection.json"
-TEMP_SELECTION_PATH = "app/selection_management/selection.tmp"
+SELECTION_PATH = "/config/selection.json"
+TEMP_SELECTION_PATH = "/config/selection.tmp"
 
 
 class TripInfo:

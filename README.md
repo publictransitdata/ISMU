@@ -78,7 +78,52 @@ pre-commit install
   - **Right-click** on the file you want to upload in the side panel (or folder/project view).
   - In the context menu that appears, select **Upload File to Pico**
 
-#### 11. Run the Script
+> You don't need all files on board. You only need: app, config, lib, utils directories and main.py
 
-- **Right-click** on the file you want to run In Mpy Remote Workspace.
+#### 11. Run the Program
+
+- **Right-click** on the main.py in Mpy Remote Workspace.
 - In the context menu that appears, select **run current file on Pico**
+
+> Alternatively, right-click main.py in the MicroPython Remote Workspace, then click the Run button at the bottom.
+
+### How to freeze code and make firmware for raspberry pi pico W board
+
+#### 1. Git clone micropython repo
+
+```
+git clone https://github.com/micropython/micropython.git
+```
+
+#### 2. Go inside cloned directory and build the MicroPython cross-compiler
+
+```
+cd micropython
+make -C mpy-cross
+```
+
+#### 3. Build the firmware
+
+```
+make BOARD=RPI_PICO_W submodules
+make BOARD=RPI_PICO_W clean
+make -j $(nproc) BOARD=RPI_PICO_W FROZEN_MANIFEST=/path/to/manifest.py/file/inside/ISMU/directory
+```
+
+> The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other excludes it so you can run the code manually from an IDE.
+
+#### 4. Deploying firmware to the device
+
+Firmware can be deployed to the device by putting it into bootloader mode
+(hold down BOOTSEL while powering on or resetting) and then either copying
+`firmware.uf2` to the USB mass storage device that appears.
+
+> You can find firmware.uf2 inside build-RPI_PICO_W directory. (schematic path : micropython/ports/rp2/build-RPI_PICO_W)
+
+#### 5. Cleaning unnecessary files from Mpy Remote Workplace
+
+After loading compiled code to firmware, you don't need anymore app, lib, utils directories and main.py(if you used manifest_release.py), so you can remove it from there. In config directory you need to have: char_map.json, lang.py(font), lang.json(language file).
+
+### How to make lang.py - font file for project
+
+todo
