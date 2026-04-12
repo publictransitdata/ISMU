@@ -1,5 +1,7 @@
 import sys
 
+from utils.i18n import string
+
 from .gui_config import (
     ScreenConfig,
 )
@@ -107,74 +109,48 @@ class GuiDrawer:
     ) -> None:
         line_height = self._screen_config.font_size + 2
         left_offset = 2
-        screen_height = self._screen_config.screen_height
+        bottom_y = self._screen_config.screen_height - line_height
+
+        route_text = string("gui_lbl_route").format(selected_route_id)
+        trip_text = string("gui_lbl_trip").format(selected_trip_id)
+        trip_code_text = string("gui_lbl_trip_code").format(selected_trip_number)
+
+        route_width = self._writer.stringlen(route_text)
+        trip_width = self._writer.stringlen(trip_text)
 
         self._display.fill(0)
 
         self._writer.set_textpos(self._display, 0, left_offset)
         self._writer.printstring("> " + selected_trip_name, False)
 
-        bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
-        self._writer.printstring(
-            f"М:{selected_route_id}",
-            False,
-        )
+        self._writer.printstring(route_text, False)
 
-        route_text_width = self._writer.stringlen(f"М:{selected_route_id}")
-        trip_text_width = self._writer.stringlen(f"Н:{selected_trip_id:02d}")
+        self._writer.set_textpos(self._display, bottom_y, left_offset + route_width + 3)
+        self._writer.printstring(trip_text, False)
 
-        self._writer.set_textpos(self._display, bottom_y, left_offset + route_text_width + 3)
-
-        self._writer.printstring(
-            f"Н:{selected_trip_id:02d}",
-            False,
-        )
-
-        self._writer.set_textpos(
-            self._display,
-            bottom_y,
-            left_offset + route_text_width + trip_text_width + 6,
-        )
-
-        self._writer.printstring(
-            f"К:{selected_trip_number}",
-            False,
-        )
+        self._writer.set_textpos(self._display, bottom_y, left_offset + route_width + trip_width + 6)
+        self._writer.printstring(trip_code_text, False)
 
         self._display.show()
 
     def draw_error_screen(self, error_code: str, message: str | None = None) -> None:
         self._display.fill(0)
 
+        line_height = self._screen_config.font_size + 2
+        screen_width = self._screen_config.screen_width
+        line1 = string("gui_title_error_code").format(error_code)
+        line1_width = self._writer.stringlen(line1)
+        line1_offset = (screen_width - line1_width) // 2
+
         if not message:
-            line_height = self._screen_config.font_size + 2
-            screen_width = self._screen_config.screen_width
             screen_height = self._screen_config.screen_height
-
-            line1 = f"Помилка: {error_code}"
-
             centrized_top_y = (screen_height - line_height) // 2
-
-            line1_width = self._writer.stringlen(line1)
-            line1_offset = (screen_width - line1_width) // 2
-
             self._writer.set_textpos(self._display, centrized_top_y, line1_offset)
             self._writer.printstring(line1, False)
-
         else:
-            line_height = self._screen_config.font_size + 2
-            screen_width = self._screen_config.screen_width
-
-            line1 = f"Помилка: {error_code}"
-
-            line_height = self._screen_config.font_size + 2
-            line1_width = self._writer.stringlen(line1)
-            line1_offset = (screen_width - line1_width) // 2
-
             self._writer.set_textpos(self._display, 0, line1_offset)
             self._writer.printstring(line1, False)
-
             self._writer.set_textpos(self._display, line_height + 2, 0)
             self._writer.printstring(message, False)
 
@@ -188,13 +164,13 @@ class GuiDrawer:
         screen_height = self._screen_config.screen_height
 
         bottom_y = screen_height - line_height
-        note_for_user = ">Натисни OK<"
+        note_for_user = f">{string('gui_msg_ok_hint')}<"
 
         note_width = self._writer.stringlen(note_for_user)
         note_offset = (screen_width - note_width) // 2
 
         if error_code is not None:
-            line1 = f"E:{error_code}"
+            line1 = string("gui_lbl_error_prefix").format(error_code)
             line1_width = self._writer.stringlen(line1)
 
             self._writer.set_textpos(self._display, 0, 0)
@@ -217,7 +193,7 @@ class GuiDrawer:
     def draw_initial_screen(self) -> None:
         self._display.fill(0)
         self._writer.set_textpos(self._display, 0, 0)
-        self._writer.printstring("Потрібно завантажити файли конфігурації та маршрутів", False)
+        self._writer.printstring(string("gui_msg_initial"), False)
         self._display.show()
 
     def draw_update_mode_screen(self, ip_address: str, ap_name: str) -> None:
@@ -227,7 +203,7 @@ class GuiDrawer:
         screen_width = self._screen_config.screen_width
         screen_height = self._screen_config.screen_height
 
-        line1 = "Режим оновлення"
+        line1 = string("gui_title_update_mode")
         line2 = f"{ap_name}"
         line3 = f"ІР:{ip_address}"
 
@@ -272,13 +248,13 @@ class GuiDrawer:
         telegrams_text = ", ".join(filtered_telegrams)
 
         self._writer.printstring(
-            f"Телеграми: {telegrams_text}",
+            string("gui_lbl_telegrams").format(telegrams_text),
             False,
         )
 
         bottom_y = screen_height - line_height
         self._writer.set_textpos(self._display, bottom_y, left_offset)
-        self._writer.printstring(f"вер:{config.version}", False)
+        self._writer.printstring(string("gui_lbl_ver").format(config.version), False)
 
         self._display.show()
 

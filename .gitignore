@@ -12,12 +12,13 @@ typings/
 # Configuration files
 *.json
 !sample-config.json 
-config/lang.py
-config/*.txt
+*.ndjson
 
 # Generated files
-*.ndjson
 .ruff_cache/
 
 # Virtual environment
 .venv/
+
+# Byte-compiled files
+lib/font.py

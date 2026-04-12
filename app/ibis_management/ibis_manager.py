@@ -7,15 +7,8 @@ from app.selection_management import SelectionManager
 from utils.custom_error import CustomError
 from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import trigger_message
+from utils.i18n import string
 from utils.singleton_decorator import singleton
-
-try:
-    with open("/config/char_map.json") as f:
-        char_map = json.load(f)
-except Exception:
-    char_map = {}
-    set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
-
 
 TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
@@ -41,6 +34,7 @@ class IBISManager:
         self.selection_manager = SelectionManager()
         self._system_config = SystemConfig()
         self._failed_telegrams = set()
+        self._char_map = {}
 
         self.dispatch = {
             "DS001": self.DS001,
@@ -49,6 +43,15 @@ class IBISManager:
             "DS003a": self.DS003a,
             "DS003c": self.DS003c,
         }
+
+        if self._system_config.use_char_map:
+            try:
+                with open("/config/char_map.json") as f:
+                    self._char_map = json.load(f)
+            except Exception:
+                set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
+        else:
+            self._char_map = {}
 
     def calculate_ibis_checksum(self, data_bytes):
         parity = 0x7F
@@ -80,8 +83,8 @@ class IBISManager:
         for c in text:
             if 32 <= ord(c) <= 126:
                 sanitized += c
-            elif c in char_map:
-                sanitized += char_map[c]
+            elif c in self._char_map:
+                sanitized += self._char_map[c]
             else:
                 sanitized += "?"
         return sanitized
@@ -90,11 +93,11 @@ class IBISManager:
         value = self.selection_manager.get_active_selection().route_number
         format = TELEGRAM_FORMATS["DS001"]
         if value is None:
-            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться")
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
         try:
             formatted = format.format(int(value))
         except Exception as err:
-            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться") from err
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -105,11 +108,11 @@ class IBISManager:
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
         if value is None:
-            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, "Номер маршруту не виводиться")
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
         try:
             formatted = format.format(value)
         except Exception as err:
-            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, "Номер маршруту не виводиться") from err
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -117,16 +120,16 @@ class IBISManager:
     def DS003(self):
         trip = self.selection_manager.get_active_selection().trip
         if trip is None:
-            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, "Код напрямку не відправляється")
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, string("ibis_msg_no_trip_code"))
 
         value = trip.point_id
         format = TELEGRAM_FORMATS["DS003"]
         if value is None:
-            raise CustomError(ErrorCodes.POINT_ID_IS_NONE, "Код напрямку не відправляється")
+            raise CustomError(ErrorCodes.POINT_ID_IS_NONE, string("ibis_msg_no_trip_code"))
         try:
             formatted = format.format(value)
         except Exception as err:
-            raise CustomError(ErrorCodes.POINT_ID_VALUE_IS_WRONG, "Код напрямку не відправляється") from err
+            raise CustomError(ErrorCodes.POINT_ID_VALUE_IS_WRONG, string("ibis_msg_no_trip_code")) from err
 
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -136,7 +139,7 @@ class IBISManager:
         if trip is None:
             raise CustomError(
                 ErrorCodes.TRIP_INFO_IS_NONE,
-                "Текст на зовнішньому табло не відображається",
+                string("ibis_msg_no_outer_text"),
             )
         value = trip.get_proper_trip_name()
         if len(value) == 2:
@@ -156,7 +159,7 @@ class IBISManager:
         except Exception as err:
             raise CustomError(
                 ErrorCodes.TRIP_NAME_IS_WRONG,
-                "Текст на зовнішньому табло не відображається",
+                string("ibis_msg_no_outer_text"),
             ) from err
         packet = self.create_ibis_packet(formatted)
         self.uart.write(packet)
@@ -169,14 +172,14 @@ class IBISManager:
             if trip is None:
                 raise CustomError(
                     ErrorCodes.TRIP_INFO_IS_NONE,
-                    "Текст на внутрішньому табло не відображається",
+                    string("ibis_msg_no_inner_text"),
                 )
             format = TELEGRAM_FORMATS["DS003c"]
 
             if route_number is None:
                 raise CustomError(
                     ErrorCodes.ROUTE_NUMBER_IS_NONE,
-                    "Текст на внутрішньому табло не відображається",
+                    string("ibis_msg_no_inner_text"),
                 )
             if isinstance(route_number, str):
                 route_number = self.sanitize_ibis_text(route_number)
@@ -191,7 +194,7 @@ class IBISManager:
             if trip_name is None:
                 raise CustomError(
                     ErrorCodes.TRIP_NAME_IS_NONE,
-                    "Текст на внутрішньому табло не відображається",
+                    string("ibis_msg_no_inner_text"),
                 )
             if isinstance(trip_name, str):
                 trip_name = self.sanitize_ibis_text(trip_name)
@@ -200,7 +203,7 @@ class IBISManager:
             except Exception as err:
                 raise CustomError(
                     ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
-                    "Текст на внутрішньому табло не відображається",
+                    string("ibis_msg_no_inner_text"),
                 ) from err
 
             packet = self.create_ibis_packet(formatted)
@@ -234,7 +237,7 @@ class IBISManager:
                         self._running = False
                         set_error_and_raise(
                             ErrorCodes.UNKNOWN_TELEGRAM,
-                            RuntimeError(f"Невідомий тип телеграми: {code}"),
+                            RuntimeError(string("ibis_err_unknown_telegram").format(code)),
                             show_message=True,
                             raise_exception=False,
                         )

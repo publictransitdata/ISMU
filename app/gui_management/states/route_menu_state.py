@@ -1,5 +1,7 @@
 import time
 
+from utils.i18n import string
+
 from .state import State
 
 
@@ -13,7 +15,7 @@ class RouteMenuState(State):
 
         ctx._gui_drawer._draw_menu(
             ctx._routes_for_menu_display_list,
-            "Маршрут:",
+            f"{string('gui_title_route_menu')}:",
             highlighted_item_index,
             number_of_menu_items,
         )

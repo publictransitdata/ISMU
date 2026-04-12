@@ -16,6 +16,7 @@ class SystemConfig:
         self.force_short_names: bool = False
         self.stop_board_telegram: str = ""
         self.show_info_on_stop_board: bool = False
+        self.use_char_map: bool = True
         self.ap_name: str = AP_NAME
         self.ap_password: str = AP_PASSWORD
         self.ap_ip: str = AP_IP

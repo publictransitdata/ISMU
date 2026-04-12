@@ -80,9 +80,12 @@ pre-commit install
 
 > You don't need all files on board. You only need: app, config, lib, utils directories and main.py
 
+> [!IMPORTANT]
+> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
+
 #### 11. Run the Program
 
-- **Right-click** on the main.py in Mpy Remote Workspace.
+- **Right-click** on the `main.py` in Mpy Remote Workspace.
 - In the context menu that appears, select **run current file on Pico**
 
 > Alternatively, right-click main.py in the MicroPython Remote Workspace, then click the Run button at the bottom.
@@ -112,18 +115,21 @@ make -j $(nproc) BOARD=RPI_PICO_W FROZEN_MANIFEST=/path/to/manifest.py/file/insi
 
 > The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other excludes it so you can run the code manually from an IDE.
 
+> [!IMPORTANT]
+> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
+
 #### 4. Deploying firmware to the device
 
 Firmware can be deployed to the device by putting it into bootloader mode
 (hold down BOOTSEL while powering on or resetting) and then either copying
 `firmware.uf2` to the USB mass storage device that appears.
 
-> You can find firmware.uf2 inside build-RPI_PICO_W directory. (schematic path : micropython/ports/rp2/build-RPI_PICO_W)
+> You can find `firmware.uf2` inside build-RPI_PICO_W directory. (schematic path : micropython/ports/rp2/build-RPI_PICO_W)
 
 #### 5. Cleaning unnecessary files from Mpy Remote Workplace
 
-After loading compiled code to firmware, you don't need anymore app, lib, utils directories and main.py(if you used manifest_release.py), so you can remove it from there. In config directory you need to have: char_map.json, lang.py(font), lang.json(language file).
+After loading compiled code to firmware, you don't need anymore `app`, `lib`, `utils` directories and `main.py`(if you used `manifest_release.py`), so you can remove it from there. In config directory you need to have: `char_map.json`, `font.py`, `lang.json`(language file).
 
-### How to make lang.py - font file for project
+### How to make font.py for project
 
 todo
