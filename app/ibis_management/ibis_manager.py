@@ -10,14 +10,6 @@ from utils.gui_hooks import trigger_message
 from utils.i18n import string
 from utils.singleton_decorator import singleton
 
-try:
-    with open("/config/char_map.json") as f:
-        char_map = json.load(f)
-except Exception:
-    char_map = {}
-    set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
-
-
 TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
     "DS001neu": "q{:0>4}",
@@ -42,6 +34,7 @@ class IBISManager:
         self.selection_manager = SelectionManager()
         self._system_config = SystemConfig()
         self._failed_telegrams = set()
+        self._char_map = {}
 
         self.dispatch = {
             "DS001": self.DS001,
@@ -50,6 +43,15 @@ class IBISManager:
             "DS003a": self.DS003a,
             "DS003c": self.DS003c,
         }
+
+        if self._system_config.use_char_map:
+            try:
+                with open("/config/char_map.json") as f:
+                    self._char_map = json.load(f)
+            except Exception:
+                set_error_and_raise(ErrorCodes.CHAR_MAP_LOAD_ERROR)
+        else:
+            self._char_map = {}
 
     def calculate_ibis_checksum(self, data_bytes):
         parity = 0x7F
@@ -81,8 +83,8 @@ class IBISManager:
         for c in text:
             if 32 <= ord(c) <= 126:
                 sanitized += c
-            elif c in char_map:
-                sanitized += char_map[c]
+            elif c in self._char_map:
+                sanitized += self._char_map[c]
             else:
                 sanitized += "?"
         return sanitized

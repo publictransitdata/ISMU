@@ -22,6 +22,7 @@ VALID_CONFIG_KEYS = {
     "force_short_names",
     "stop_board_telegram",
     "show_info_on_stop_board",
+    "use_char_map",
     "ap_name",
     "ap_password",
     "ap_ip",
@@ -352,7 +353,7 @@ def check_config_content_file(filepath: str) -> list:
 
     nullable_keys = {"line_telegram", "destination_number_telegram", "destination_telegram", "stop_board_telegram"}
     str_keys = {"ap_name", "ap_password", "ap_ip"}
-    bool_keys = {"show_start_and_end_stops", "force_short_names", "show_info_on_stop_board"}
+    bool_keys = {"show_start_and_end_stops", "force_short_names", "show_info_on_stop_board", "use_char_map"}
     int_keys = {"baudrate", "bits", "parity", "stop"}
 
     for key in nullable_keys:
