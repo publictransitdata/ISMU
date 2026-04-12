@@ -28,6 +28,7 @@ class ErrorCodes:
 
     # Files errors (4XX)
     MISSING_LANGUAGE_FILE = 400
+    MISSING_FONT_FILE = 401
 
     # GUI errors (5XX)
     UNKNOWN_MENU_TYPE = 500

@@ -1,5 +1,5 @@
 try:
-    from config.lang import strings as _current_strings  # type: ignore
+    from lang import strings as _current_strings  # type: ignore
 except ImportError:
     from app.error_codes import ErrorCodes
     from utils.error_handler import set_error_and_raise

@@ -22,7 +22,7 @@ from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import trigger_initial
 
 try:
-    from config import font  # type: ignore
+    from lib import font  # type: ignore
 except ImportError:
     set_error_and_raise(ErrorCodes.MISSING_FONT_FILE)
 
