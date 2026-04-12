@@ -8,8 +8,9 @@ todo: write short description of project
 ### Prerequisites
 
 1. **Hardware:**
-   - Raspberry Pi Pico W.
-   - USB cable with data transfer capability.
+
+- Raspberry Pi Pico W.
+- USB cable with data transfer capability.
 
 2. **Software:**
 
