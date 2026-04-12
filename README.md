@@ -80,6 +80,9 @@ pre-commit install
 
 > You don't need all files on board. You only need: app, config, lib, utils directories and main.py
 
+> [!IMPORTANT]
+> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
+
 #### 11. Run the Program
 
 - **Right-click** on the `main.py` in Mpy Remote Workspace.
@@ -113,7 +116,7 @@ make -j $(nproc) BOARD=RPI_PICO_W FROZEN_MANIFEST=/path/to/manifest.py/file/insi
 > The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other excludes it so you can run the code manually from an IDE.
 
 > [!IMPORTANT]
-> You must have a `lang.py` file in your `config` directory. An English language file is included by default, but you can replace it with your preferred language.
+> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
 
 #### 4. Deploying firmware to the device
 
