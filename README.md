@@ -1,6 +1,7 @@
 # ISMU
 
 Information system master unit
+todo: write short description of project
 
 ## How to Run the Project on Raspberry Pi Pico W Using VSCode
 
@@ -10,8 +11,14 @@ Information system master unit
    - Raspberry Pi Pico W.
    - USB cable with data transfer capability.
 
-2. **Software:** - [Visual Studio Code (VSCode)](https://code.visualstudio.com/) installed. - VSCode Extension: MicroPico. - Python 3.x (preferably version 3.11 or newer). - MicroPython UF2 file installed on the Raspberry Pi Pico W.
-   > Follow the [official MicroPython setup guide](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html) for installing it on your Pico.
+2. **Software:**
+
+- [Visual Studio Code (VSCode)](https://code.visualstudio.com/) installed.
+- VSCode Extension: MicroPico.
+- Python 3.x (preferably version 3.11 or newer).
+- MicroPython firmware(.uf2 file) installed on the Raspberry Pi Pico W.
+
+> Follow the [official MicroPython setup guide](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html) for installing it on your Pico.
 
 ### Steps to Configure and Run the Project
 
@@ -30,11 +37,7 @@ Information system master unit
   cd ISMU
 ```
 
-#### 3. Make Sure Required Files Are in Place
-
-- Ensure Python files for your project are located in a directory that will be synced to the Pico. Typically, this is the project’s root directory.
-
-#### 4. Open the Project in VSCode
+#### 3. Open the Project in VSCode
 
 - Launch Visual Studio Code and open the project directory:
 
@@ -42,37 +45,42 @@ Information system master unit
   code .
 ```
 
-#### 5. Initialize virtual environment in project directory
+#### 4. Initialize virtual environment in project directory
 
 ```
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-#### 6. Install all required dependencies(if you want to develop project install also dev dependencies)
+#### 4a. (Optional) Install dependencies and set up the git hook scripts
+
+> [!TIP]
+> Skip this step if you only want to run the project on the Pico. Install dependencies and set up git hooks if you want to develop the project.
 
 ```
-pip install -r requirements.txt
-opptionally:
 pip install -r requirements-dev.txt
 ```
-
-#### 7. Set up the git hook scripts
 
 ```
 pre-commit install
 ```
 
-#### 8. Initialize MicroPico project
+#### 5. Initialize MicroPico project
 
 - **Right-click** on area in folder/project view.
 - In the context menu that appears, select **Initialize MicroPico project**
 
-#### 9. Toggle virtual MicroPico workspace
+> After that step the extension will treat the folder as a MicroPico project and enables the right-click commands ("Upload File to Pico", "Run current file on Pico", etc.). Without it, those menu options won't appear.
 
-- At the bottom of vs studio you will see a button with the same name and you have to click it
+#### 6. Toggle virtual MicroPico workspace
 
-#### 10. Upload Code to Pico
+- At the bottom of vs studio you will see a button with the same name and you should click it
+
+#### 7. Prepare project for work
+
+todo: say about files what should be generated or changed, and config options what should be added
+
+#### 8. Upload Code to Pico
 
 - To upload your code:
   - **Right-click** on the file you want to upload in the side panel (or folder/project view).

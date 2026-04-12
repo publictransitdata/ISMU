@@ -100,6 +100,7 @@ if __name__ == "__main__":
             stop=config_manager.config.stop,
         )
 
+    if not isinstance(gui_manager._state, InitialState) and not isinstance(gui_manager._state, ErrorState):
         ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
 
     async def gui_loop(gui: GuiManager):
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
 
-        if not isinstance(gui_manager._state, ErrorState):
+        if not isinstance(gui_manager._state, ErrorState) and not isinstance(gui_manager._state, InitialState):
             ibis_manager.start()
 
             try:
