@@ -2,6 +2,8 @@ import os
 
 import ujson as json
 
+from utils.i18n import string
+
 ALLOWED_ROUTES_CHARS = set(
     " []{}!\"'+,-./0123456789:<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz()"
     "ÓóĄąĆćĘęŁłŚśŻżЄІЇАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгдежзийклмнопрстуфхцчшщьюяєії^#|\n\r,+"
@@ -46,13 +48,13 @@ def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
                     elif ch == "\r":
                         pass
                     elif ch not in allowed_chars:
-                        errors.append(f"Рядок {line_num}: Недопустимий символ '{ch}'")
+                        errors.append(string("fc_invalid_char").format(line_num=line_num, ch=ch))
                         if len(errors) >= 5:
-                            errors.append("... (ще є помилки)")
+                            errors.append(string("fc_more_errors"))
                             return errors
                     char_index += 1
     except UnicodeDecodeError as err:
-        return [f"Невірне кодування файлу (позиція {err.start})"]
+        return [string("fc_invalid_encoding").format(err.start)]
     return errors
 
 
@@ -132,7 +134,7 @@ def _check_config_json_structure(s):
             return None
 
         if s[i] != '"':
-            return "Очікувався ключ у лапках у файлі налаштувань"
+            return string("fc_expected_key_in_config")
         i += 1
         key_start = i
         while i < n:
@@ -148,13 +150,13 @@ def _check_config_json_structure(s):
         while i < n and s[i] in " \t\n\r":
             i += 1
         if i >= n or s[i] != ":":
-            return f"Відсутнє ':' після ключа '{key}'"
+            return string("fc_missing_colon_after_key").format(key)
         i += 1
 
         while i < n and s[i] in " \t\n\r":
             i += 1
         if i >= n:
-            return f"Відсутнє значення для ключа '{key}'"
+            return string("fc_missing_value_for_key").format(key)
         ch = s[i]
         if ch == '"':
             i += 1
@@ -176,7 +178,7 @@ def _check_config_json_structure(s):
         elif s[i : i + 4] == "null":
             i += 4
         else:
-            return f"Невідоме значення для ключа '{key}'"
+            return string("fc_unknown_value_for_key").format(key)
 
         while i < n and s[i] in " \t\n\r":
             i += 1
@@ -187,7 +189,7 @@ def _check_config_json_structure(s):
         elif s[i] == "}":
             return None
         else:
-            return "Відсутня кома між парами ключ:значення"
+            return string("fc_missing_comma")
 
 
 def _check_routes_ndjson_line_structure(s):
@@ -199,7 +201,7 @@ def _check_routes_ndjson_line_structure(s):
     if i >= n:
         return None
     if s[i] != "{":
-        return "Очікувався JSON-об'єкт, що починається з '{'"
+        return string("fc_expected_json_object")
     i += 1
 
     while i < n and s[i] in " \t\n\r":
@@ -214,7 +216,7 @@ def _check_routes_ndjson_line_structure(s):
             return None
 
         if s[i] != '"':
-            return "Очікувався ключ у лапках"
+            return string("fc_expected_key_in_quotes")
         i += 1
         key_start = i
         while i < n:
@@ -230,13 +232,13 @@ def _check_routes_ndjson_line_structure(s):
         while i < n and s[i] in " \t\n\r":
             i += 1
         if i >= n or s[i] != ":":
-            return f"Відсутнє ':' після ключа '{key}'"
+            return string("fc_missing_colon_after_key").format(key)
         i += 1
 
         while i < n and s[i] in " \t\n\r":
             i += 1
         if i >= n:
-            return f"Відсутнє значення для ключа '{key}'"
+            return string("fc_missing_value_for_key").format(key)
         ch = s[i]
         if ch == '"':
             i += 1
@@ -268,7 +270,7 @@ def _check_routes_ndjson_line_structure(s):
                     while i < n and s[i] in " \t\n\r":
                         i += 1
                     if i >= n or s[i] != '"':
-                        return f"Очікувався рядок у списку для ключа '{key}'"
+                        return string("fc_expected_string_in_list").format(key)
                     i += 1
                     while i < n:
                         if s[i] == "\\":
@@ -281,16 +283,16 @@ def _check_routes_ndjson_line_structure(s):
                     while i < n and s[i] in " \t\n\r":
                         i += 1
                     if i >= n:
-                        return f"Незакритий список для ключа '{key}'"
+                        return string("fc_unclosed_list").format(key)
                     if s[i] == ",":
                         i += 1
                     elif s[i] == "]":
                         i += 1
                         break
                     else:
-                        return f"Відсутня кома у списку для ключа '{key}'"
+                        return string("fc_missing_comma_in_list").format(key)
         else:
-            return f"Невідоме значення для ключа '{key}'"
+            return string("fc_unknown_value_for_key").format(key)
 
         while i < n and s[i] in " \t\n\r":
             i += 1
@@ -301,14 +303,14 @@ def _check_routes_ndjson_line_structure(s):
         elif s[i] == "}":
             return None
         else:
-            return "Відсутня кома між парами ключ:значення"
+            return string("fc_missing_comma")
 
 
 def check_config_content_file(filepath: str) -> list:
     errors = []
 
     if _file_is_empty(filepath):
-        return ["Файл налаштувань порожній"]
+        return [string("fc_config_file_empty")]
 
     char_errors = _check_invalid_chars_file(filepath, ALLOWED_CONFIG_CHARS)
     if char_errors:
@@ -318,11 +320,11 @@ def check_config_content_file(filepath: str) -> list:
         with open(filepath) as f:
             content = f.read()
     except OSError:
-        return ["Помилка відкриття файлу налаштувань"]
+        return [string("fc_config_file_open_error")]
 
     dup = _find_duplicate_key(content)
     if dup is not None:
-        errors.append(f"Дублікат ключа '{dup}'")
+        errors.append(string("fc_duplicate_key").format(dup))
         return errors
 
     struct_err = _check_config_json_structure(content)
@@ -332,18 +334,18 @@ def check_config_content_file(filepath: str) -> list:
     try:
         cfg = json.loads(content)
     except Exception:
-        return ["Файл налаштувань містить невірний JSON"]
+        return [string("fc_config_invalid_json")]
 
     if not isinstance(cfg, dict):
-        return ["Файл налаштувань не є об'єктом JSON"]
+        return [string("fc_config_not_json_object")]
 
     unknown = set(cfg) - VALID_CONFIG_KEYS
     if unknown:
-        errors.append(f"Невідомі параметри: {', '.join(sorted(unknown))}")
+        errors.append(string("fc_unknown_params").format(", ".join(sorted(unknown))))
 
     missing = VALID_CONFIG_KEYS - set(cfg)
     if missing:
-        errors.append(f"Відсутні обов'язкові параметри: {', '.join(sorted(missing))}")
+        errors.append(string("fc_missing_params").format(", ".join(sorted(missing))))
 
     if errors:
         return errors
@@ -356,24 +358,24 @@ def check_config_content_file(filepath: str) -> list:
     for key in nullable_keys:
         v = cfg[key]
         if v is not None and not isinstance(v, str):
-            errors.append(f"Параметр '{key}' має бути рядком або пустим")
+            errors.append(string("fc_param_must_be_string_or_null").format(key))
 
     for key in str_keys:
         v = cfg[key]
         if not isinstance(v, str):
-            errors.append(f"Параметр '{key}' має бути рядком")
+            errors.append(string("fc_param_must_be_string").format(key))
         elif not v:
-            errors.append(f"Параметр '{key}' не може бути порожнім")
+            errors.append(string("fc_param_must_not_be_empty").format(key))
 
     for key in bool_keys:
         v = cfg[key]
         if not isinstance(v, bool):
-            errors.append(f"Параметр '{key}' має бути true або false")
+            errors.append(string("fc_param_must_be_bool").format(key))
 
     for key in int_keys:
         v = cfg[key]
         if isinstance(v, bool) or not isinstance(v, int):
-            errors.append(f"Параметр '{key}' має бути цілим числом")
+            errors.append(string("fc_param_must_be_int").format(key))
 
     return errors
 
@@ -382,7 +384,7 @@ def check_routes_content_file(filepath: str) -> list:
     errors = []
 
     if _file_is_empty(filepath):
-        return ["Файл маршрутів порожній"]
+        return [string("fc_routes_file_empty")]
 
     char_errors = _check_invalid_chars_file(filepath, ALLOWED_ROUTES_CHARS)
     if char_errors:
@@ -399,11 +401,11 @@ def check_routes_content_file(filepath: str) -> list:
         if value is None:
             return
         if not isinstance(value, expected_type):
-            errors.append(f"Рядок {line_num}: Поле '{field}' має неправильні дані")
+            errors.append(string("fc_field_wrong_data").format(line_num=line_num, field=field))
 
     def _require_field(rec, field: str):
         if field not in rec:
-            errors.append(f"Рядок {line_num}: Відсутній '{field}'")
+            errors.append(string("fc_missing_field").format(line_num=line_num, field=field))
             return None
         return rec[field]
 
@@ -411,11 +413,11 @@ def check_routes_content_file(filepath: str) -> list:
         if value is None:
             return
         if not isinstance(value, list):
-            errors.append(f"Рядок {line_num}: Поле '{field}' має бути списком")
+            errors.append(string("fc_field_must_be_list").format(line_num=line_num, field=field))
             return
         for item in value:
             if not isinstance(item, str):
-                errors.append(f"Рядок {line_num}: Поле '{field}' має містити лише рядки")
+                errors.append(string("fc_field_must_contain_strings").format(line_num=line_num, field=field))
                 return
 
     try:
@@ -424,36 +426,38 @@ def check_routes_content_file(filepath: str) -> list:
                 line_num += 1
                 struct_err = _check_routes_ndjson_line_structure(line)
                 if struct_err is not None:
-                    errors.append(f"Рядок {line_num}: {struct_err}")
+                    errors.append(string("fc_at_line").format(line_num=line_num, err=struct_err))
                     if len(errors) >= 10:
-                        errors.append("... (ще є помилки)")
+                        errors.append(string("fc_more_errors"))
                         break
                     continue
 
                 try:
                     rec = json.loads(line)
                 except Exception:
-                    errors.append(f"Рядок {line_num}: Невірний JSON")
+                    errors.append(string("fc_routes_invalid_json").format(line_num))
                     continue
 
                 for key in rec:
                     if line.count('"' + key + '":') > 1:
-                        errors.append(f"Рядок {line_num}: Дублікат ключа '{key}'")
+                        errors.append(string("fc_duplicate_route_key").format(line_num=line_num, key=key))
                         break
 
                 if "id" in rec and "did" in rec:
-                    errors.append(f"Рядок {line_num}: Запис містить одночасно 'id' та 'did'")
+                    errors.append(string("fc_id_and_did_both").format(line_num))
                     break
                 elif "id" not in rec and "did" not in rec:
-                    errors.append(f"Рядок {line_num}: Невідомий тип запису (немає 'id' або 'did')")
+                    errors.append(string("fc_unknown_record_type").format(line_num))
                     break
 
                 if "id" in rec:
                     unknown = set(rec) - {"id", "r", "nlt", "note"}
                     if unknown:
-                        errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
+                        errors.append(
+                            string("fc_unknown_fields").format(line_num=line_num, fields=", ".join(sorted(unknown)))
+                        )
                     if current_route_id is not None and not current_route_has_dirs:
-                        errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
+                        errors.append(string("fc_route_has_no_dirs").format(current_route_line))
                     _check_type(rec["id"], int, "id")
                     _check_type(_require_field(rec, "r"), str, "r")
                     if "nlt" in rec:
@@ -461,7 +465,7 @@ def check_routes_content_file(filepath: str) -> list:
                     if "note" in rec:
                         _check_type(rec["note"], str, "note")
                     if rec["id"] in seen_route_ids:
-                        errors.append(f"Рядок {line_num}: Дублікат id маршруту '{rec['id']}'")
+                        errors.append(string("fc_duplicate_route_id").format(line_num=line_num, route_id=rec["id"]))
                     else:
                         seen_route_ids.add(rec["id"])
                     current_route_id = rec["id"]
@@ -471,7 +475,9 @@ def check_routes_content_file(filepath: str) -> list:
                 if "did" in rec:
                     unknown = set(rec) - {"did", "p", "f", "s"}
                     if unknown:
-                        errors.append(f"Рядок {line_num}: Невідомі поля: {', '.join(sorted(unknown))}")
+                        errors.append(
+                            string("fc_unknown_fields").format(line_num=line_num, fields=", ".join(sorted(unknown)))
+                        )
                     _check_type(rec["did"], int, "did")
 
                     _check_type(_require_field(rec, "p"), int, "p")
@@ -482,31 +488,30 @@ def check_routes_content_file(filepath: str) -> list:
 
                     if "p" in rec:
                         if rec["p"] in seen_p_ids:
-                            errors.append(f"Рядок {line_num}: Дублікат індексу напрямку '{rec['p']}'")
+                            errors.append(string("fc_duplicate_dir_index").format(line_num=line_num, p_id=rec["p"]))
                         else:
                             seen_p_ids.add(rec["p"])
 
                     if current_route_id is None:
-                        errors.append(f"Рядок {line_num}: Напрямок без заголовку маршруту")
+                        errors.append(string("fc_direction_without_route").format(line_num))
                     elif current_route_id != rec["did"]:
                         errors.append(
-                            f"Рядок {line_num}: Напрямок не належить маршруту над ним "
-                            f"(очікується did={current_route_id})"
+                            string("fc_direction_wrong_route").format(line_num=line_num, did=current_route_id)
                         )
                         if len(errors) >= 10:
-                            errors.append("... (ще є помилки)")
+                            errors.append(string("fc_more_errors"))
                             break
 
                     current_route_has_dirs = True
 
                 if len(errors) >= 10:
-                    errors.append("... (ще є помилки)")
+                    errors.append(string("fc_more_errors"))
                     break
 
             if current_route_id is not None and not current_route_has_dirs:
-                errors.append(f"Рядок {current_route_line}: Маршрут не має жодного напрямку")
+                errors.append(string("fc_route_has_no_dirs").format(current_route_line))
 
     except OSError:
-        return ["Помилка відкриття файлу маршрутів"]
+        return [string("fc_routes_file_open_error")]
 
     return errors

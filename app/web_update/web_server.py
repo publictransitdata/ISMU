@@ -11,6 +11,7 @@ from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
 from utils.file_checker import check_config_content_file, check_routes_content_file
+from utils.i18n import string
 
 
 def _get_base_style():
@@ -40,107 +41,83 @@ h1 {
 """
 
 
+def _get_upload_style():
+    return """p {
+        margin: 0.5em 0 0.2em;
+        text-align: left;
+      }
+      input[type="file"] { width: 100%; }
+      input[type="submit"] {
+        margin-top: 1em; width: 100%; padding: 0.7em;
+        font-size: 1em; background: #4caf50; color: #fff;
+        border: none; border-radius: 4px; cursor: pointer;
+      }"""
+
+
 def _get_upload_html():
-    return (
-        """<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Завантажити</title>
+    <title>{string("web_title_upload_tab")}</title>
     <style>
-      """
-        + _get_base_style()
-        + """p {
-        margin: 0.5em 0 0.2em;
-        text-align: left;
-      }
-      input[type="file"] {
-        width: 100%;
-      }
-      input[type="submit"] {
-        margin-top: 1em;
-        width: 100%;
-        padding: 0.7em;
-        font-size: 1em;
-        background: #4caf50;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
+      {_get_base_style()}
+      {_get_upload_style()}
     </style>
   </head>
   <body>
     <div class="c">
-      <h1>Режим оновлення</h1>
+      <h1>{string("web_title_update_mode")}</h1>
       <form action="/upload" method="post" enctype="multipart/form-data">
-        <p>Завантажити config.json:</p>
+        <p>{string("web_lbl_upload_config")}:</p>
         <input type="file" name="config_file" />
-        <p>Завантажити routes.ndjson:</p>
+        <p>{string("web_lbl_upload_routes")}:</p>
         <input type="file" name="routes_file" />
-        <input type="submit" value="Завантажити" />
+        <input type="submit" value="{string("web_btn_upload")}" />
       </form>
     </div>
   </body>
-</html>
-"""
-    )
+</html>"""
+
+
+def _get_success_style():
+    return """.ok {
+        color: #4caf50;
+        font-size: 3em;
+      }
+      p { margin: 1em 0; }"""
 
 
 def _get_success_html(files: str):
-    return (
-        """<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Успіх</title>
+    <title>{string("web_title_success_tab")}</title>
     <style>
-      """
-        + _get_base_style()
-        + """.ok {
-        color: #4caf50;
-        font-size: 3em;
-      }
-      p {
-        margin: 1em 0;
-      }
+      {_get_base_style()}
+      {_get_success_style()}
     </style>
   </head>
   <body>
     <div class="c">
       <div class="ok">&#10004;</div>
-      <h1>Успішно завантажено</h1>
-      <p>Збережені файли: """
-        + files
-        + """</p>
-      <p>Пристрій перезавантажиться...</p>
+      <h1>{string("web_title_success")}</h1>
+      <p>{string("web_lbl_saved_files").format(files)}</p>
+      <p>{string("web_msg_restart")}</p>
     </div>
   </body>
-</html>
-"""
-    )
+</html>"""
 
 
-def _get_error_html(message: str):
-    return (
-        """<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Помилка</title>
-    <style>
-      """
-        + _get_base_style()
-        + """.err {
+def _get_error_style():
+    return """.err {
         color: #f44336;
         font-size: 3em;
       }
-      p {
-        margin: 1em 0;
-      }
+      p { margin: 1em 0; }
       a {
         display: inline-block;
         margin-top: 1em;
@@ -149,22 +126,30 @@ def _get_error_html(message: str):
         color: #fff;
         text-decoration: none;
         border-radius: 4px;
-      }
+      }"""
+
+
+def _get_error_html(message: str):
+    return f"""<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{string("web_title_error_tab")}</title>
+    <style>
+      {_get_base_style()}
+      {_get_error_style()}
     </style>
   </head>
   <body>
     <div class="c">
       <div class="err">&#10008;</div>
-      <h1>Помилка</h1>
-      <p>"""
-        + message
-        + """</p>
-      <a href="/">Спробувати ще раз</a>
+      <h1>{string("web_title_error")}</h1>
+      <p>{message}</p>
+      <a href="/">{string("web_btn_try_again")}</a>
     </div>
   </body>
-</html>
-"""
-    )
+</html>"""
 
 
 TMP_RAW = "config/tmp_raw.bin"
@@ -352,7 +337,7 @@ class WebUpdateServer:
     def _register_routes(self):
         @self._app.errorhandler(413)
         async def payload_too_large(request):
-            return self._error_response("Файл занадто великий. Максимум: 24KB", code=413)
+            return self._error_response(string("web_err_file_too_big"), code=413)
 
         @safe_route(self)
         @self._app.route("/")
@@ -367,7 +352,7 @@ class WebUpdateServer:
 
             content_type = request.headers.get("Content-Type", "")
             if "multipart/form-data" not in content_type:
-                return self._error_response("Непідтримуваний тип файлу")
+                return self._error_response(string("web_err_invalid_file_type"))
 
             boundary = content_type.split("boundary=")[-1]
 
@@ -375,7 +360,7 @@ class WebUpdateServer:
                 await _stream_body_to_file(request, TMP_RAW)
             except Exception as err:
                 _cleanup_tmp()
-                return self._error_response(f"Помилка при отриманні даних: {err}")
+                return self._error_response(string("web_err_streaming").format(err))
 
             gc.collect()
 
@@ -383,7 +368,7 @@ class WebUpdateServer:
                 parts = _extract_parts_from_file(TMP_RAW, boundary.encode())
             except Exception as err:
                 _cleanup_tmp()
-                return self._error_response(f"Помилка при обробці файлів: {err}")
+                return self._error_response(string("web_err_parsing").format(err))
 
             try:
                 os.remove(TMP_RAW)
@@ -402,7 +387,7 @@ class WebUpdateServer:
 
                 if not filename.endswith((".json", ".ndjson")):
                     _cleanup_tmp()
-                    return self._error_response(f"Дозволені лише .json і .ndjson файли: '{filename}'")
+                    return self._error_response(string("web_err_invalid_format").format(filename))
 
                 if name == "config_file":
                     if "config" in filename.lower():
@@ -410,13 +395,11 @@ class WebUpdateServer:
                         gc.collect()
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у config.json: {'; '.join(errors)}")
+                            return self._error_response(string("web_err_config_content").format("; ".join(errors)))
                         files_to_save["config.json"] = tmp_path
                     else:
                         _cleanup_tmp()
-                        return self._error_response(
-                            f'Невірна назва файлу. Очікується файл з "config" у назві (замість {filename})'
-                        )
+                        return self._error_response(string("web_err_config_filename").format(filename))
 
                 elif name == "routes_file":
                     if "routes" in filename.lower():
@@ -424,13 +407,11 @@ class WebUpdateServer:
                         gc.collect()
                         if errors:
                             _cleanup_tmp()
-                            return self._error_response(f"Помилка у routes.ndjson: {'; '.join(errors)}")
+                            return self._error_response(string("web_err_routes_content").format("; ".join(errors)))
                         files_to_save["routes.ndjson"] = tmp_path
                     else:
                         _cleanup_tmp()
-                        return self._error_response(
-                            f'Невірна назва файлу. Очікується файл з "routes" у назві (замість {filename})'
-                        )
+                        return self._error_response(string("web_err_routes_filename").format(filename))
 
             if files_to_save:
                 saved_files = []
@@ -454,7 +435,7 @@ class WebUpdateServer:
                 return self._success_response(", ".join(saved_files))
             else:
                 _cleanup_tmp()
-                return self._error_response("Не завантажено жодного файлу")
+                return self._error_response(string("web_err_no_files"))
 
     async def _delayed_reset(self):
         await asyncio.sleep(3)

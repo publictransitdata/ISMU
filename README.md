@@ -122,8 +122,8 @@ Firmware can be deployed to the device by putting it into bootloader mode
 
 #### 5. Cleaning unnecessary files from Mpy Remote Workplace
 
-After loading compiled code to firmware, you don't need anymore app, lib, utils directories and main.py(if you used manifest_release.py), so you can remove it from there. In config directory you need to have: char_map.json, lang.py(font), lang.json(language file).
+After loading compiled code to firmware, you don't need anymore app, lib, utils directories and main.py(if you used manifest_release.py), so you can remove it from there. In config directory you need to have: char_map.json, font.py, lang.json(language file).
 
-### How to make lang.py - font file for project
+### How to make font.py for project
 
 todo

@@ -3,7 +3,7 @@ import gc
 import sys
 import time
 
-
+from utils.i18n import string
 from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
@@ -132,7 +132,7 @@ class GuiManager:
         else:
             set_error_and_raise(
                 ErrorCodes.UNKNOWN_MENU_TYPE,
-                ValueError(f"Unknown menu type: {menu_type}"),
+                ValueError(string("uknown_menu_type").format(menu_type)),
                 show_message=True,
             )
 

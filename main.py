@@ -6,6 +6,7 @@ import sh1106  # type: ignore
 import uasyncio as asyncio
 import writer  # type: ignore
 from machine import I2C, UART, Pin
+from utils.i18n import string
 
 from app.gui_management import (
     ErrorState,
@@ -21,9 +22,9 @@ from utils.error_handler import set_error_and_raise
 from utils.gui_hooks import trigger_initial
 
 try:
-    from config import lang  # type: ignore
+    from config import font  # type: ignore
 except ImportError:
-    set_error_and_raise(ErrorCodes.MISSING_LANGUAGE_FILE)
+    set_error_and_raise(ErrorCodes.MISSING_FONT_FILE)
 
 CONFIG_PATH = "/config/config.json"
 ROUTES_PATH = "/config/routes.ndjson"
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     i2c = I2C(1, scl=Pin(11), sda=Pin(10))
     display = sh1106.SH1106_I2C(128, 64, i2c)
 
-    writer = writer.Writer(display, lang)
+    writer = writer.Writer(display, font)
 
     gui_manager = GuiManager(display, writer)
     gc.collect()
@@ -125,8 +126,8 @@ if __name__ == "__main__":
                 await asyncio.sleep_ms(30)
         except Exception as err:
             set_error_and_raise(
-                ErrorCodes.MAIN_LOOP_ERROR,
-                RuntimeError(f"GUI loop error: {err}"),
+                ErrorCodes.GUI_LOOP_ERROR,
+                RuntimeError(string("sys_msg_gui_loop_error").format(err)),
                 show_message=True,
                 raise_exception=False,
             )
@@ -147,7 +148,7 @@ if __name__ == "__main__":
             except Exception as err:
                 set_error_and_raise(
                     ErrorCodes.MAIN_LOOP_ERROR,
-                    RuntimeError(f"Main loop error: {err}"),
+                    RuntimeError(string("sys_msg_main_loop_error").format(err)),
                     show_message=True,
                     raise_exception=False,
                 )
