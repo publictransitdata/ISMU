@@ -1,7 +1,20 @@
 # ISMU
 
 Information system master unit
-todo: write short description of project
+
+## Overview
+
+ISMU is an open source project that is used to control passenger information systems over IBIS (VDV300) protocol. This solution is specifically designed and developed for public transit applications.
+
+This repository provides all the necessary code, documentation and resources to run it on Raspberry Pi Pico W
+
+### Target Audience
+
+- **Public transit agencies**: small and large operators who need an affordable, fully customizable control unit for passenger information systems.
+
+- **System integrators**: teams deploying or maintaining IBIS-compatible display systems who need a ready-made, configurable solution.
+
+- **Embedded developers and makers**: developers and enthusiasts working on transit-related projects.
 
 ## Documentation
 
@@ -16,7 +29,24 @@ todo: fix link when wiki will be created
 1. **Hardware:**
 
 - Raspberry Pi Pico W.
+- OLED SH1106 I2C screen.
+- 4 normally opened push buttons or 4 button matrix keypad.
+- IBIS (VDV300) module with UART connection.
 - USB cable with data transfer capability.
+
+1.1. **Connections**
+
+| Pi Pico W    | Devices             |
+|--------------|---------------------|
+| GPIO 0 (TX)  | IBIS module RX      |
+| GPIO 1 (RX)  | IBIS module TX      |
+| GPIO 2       | Button Down         |
+| GPIO 3       | Button Select       |
+| GPIO 4       | Button Menu         |
+| GPIO 5       | Button Up           |
+| GPIO 10 (SDA)| SH1106 SDA          |
+| GPIO 11 (SCL)| SH1106 SCL          |
+
 
 2. **Software:**
 
