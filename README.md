@@ -20,7 +20,9 @@ This repository provides all the necessary code, documentation and resources to 
 
 Extended documentation is available in the [project Wiki](https://github.com/publictransitdata/ISMU/wiki)
 
-todo: fix link when wiki will be created
+> [!NOTE]
+> The wiki is coming soon.
+
 
 ## How to Run the Project on Raspberry Pi Pico W Using VSCode
 
