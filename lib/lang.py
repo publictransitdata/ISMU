@@ -90,6 +90,9 @@ strings = {
     "fc_missing_field": "Line {line_num}: Missing '{field}'",
     "fc_field_must_be_list": "Line {line_num}: Field '{field}' must be a list",
     "fc_field_must_contain_strings": "Line {line_num}: Field '{field}' must contain only strings",
+    # routes and config matching
+    "fc_wrong_route_number_format": "Line {line_num}: Route number '{route_number}' is not numeric",
+    "routes_config_mismatch": "Routes file does not match configuration: {}",
     # main.py
     "sys_msg_main_loop_error": "Error in main loop: {}",
     "sys_msg_gui_loop_error": "Error in GUI loop: {}",
@@ -120,6 +123,7 @@ strings = {
     # Files errors
     "E400": "Language file is missing. The lang.py file must be in the lib folder. See readme.",
     "E401": "Font file is missing. The font.py file must be in the lib folder. See readme.",
+    "E402": "Routes file does not match configuration",
     # GUI errors
     "E500": "Unknown menu type: {}",
     # Web server errors
