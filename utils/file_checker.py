@@ -516,3 +516,46 @@ def check_routes_content_file(filepath: str) -> list:
         return [string("fc_routes_file_open_error")]
 
     return errors
+
+
+def assert_routes_match_config(routes_filepath, config_filepath):
+    errors = []
+    telegrams_list = []
+    line_num = 0
+
+    keys = [
+        "line_telegram",
+        "destination_number_telegram",
+        "destination_telegram",
+        "stop_board_telegram",
+    ]
+
+    try:
+        with open(config_filepath) as file:
+            try:
+                data = json.load(file)
+                for key, value in data.items():
+                    if key in keys:
+                        telegrams_list.append(value)
+            except Exception:
+                return [string("fc_config_invalid_json")]
+    except OSError:
+        return [string("fc_config_file_open_error")]
+
+    try:
+        with open(routes_filepath) as f:
+            for line in f:
+                line_num += 1
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                if "id" in rec:
+                    if not rec["r"].isdigit() and "DS001neu" not in telegrams_list:
+                        errors.append(
+                            string("fc_wrong_route_number_format").format(line_num=line_num, route_number=rec["r"])
+                        )
+    except OSError:
+        return [string("fc_routes_file_open_error")]
+
+    return errors

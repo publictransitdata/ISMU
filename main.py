@@ -19,10 +19,11 @@ from app.error_codes import ErrorCodes
 from app.ibis_management import IBISManager
 from app.routes_management import RoutesManager
 from utils.error_handler import set_error_and_raise
+from utils.file_checker import assert_routes_match_config
 from utils.gui_hooks import trigger_initial
 
 try:
-    from lib import font  # type: ignore
+    import font  # type: ignore
 except ImportError:
     set_error_and_raise(ErrorCodes.MISSING_FONT_FILE)
 
@@ -71,9 +72,21 @@ if __name__ == "__main__":
 
     check_config_related_files(CONFIG_PATH, ROUTES_PATH, CONFIG_EXAMPLE_PATH)
 
-    if not isinstance(gui_manager._state, InitialState) and not isinstance(gui_manager._state, ErrorState):
+    if not isinstance(gui_manager._state, (InitialState, ErrorState)):
         config_manager.load_config()
+
+    if not isinstance(gui_manager._state, (InitialState, ErrorState)):
         routes_manager.load_routes()
+
+    if not isinstance(gui_manager._state, (InitialState, ErrorState)):
+        errors = assert_routes_match_config(ROUTES_PATH, CONFIG_PATH)
+        if errors:
+            set_error_and_raise(
+                ErrorCodes.ROUTES_CONFIG_MISMATCH,
+                RuntimeError(string("routes_config_mismatch").format("; ".join(errors))),
+                show_message=True,
+                raise_exception=False,
+            )
 
     btn_down = Pin(2, Pin.IN, Pin.PULL_UP)
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
@@ -100,7 +113,7 @@ if __name__ == "__main__":
             stop=config_manager.config.stop,
         )
 
-    if not isinstance(gui_manager._state, InitialState) and not isinstance(gui_manager._state, ErrorState):
+    if not isinstance(gui_manager._state, (InitialState, ErrorState)):
         ibis_manager = IBISManager(uart, config_manager.get_telegram_types())
 
     async def gui_loop(gui: GuiManager):
@@ -138,7 +151,7 @@ if __name__ == "__main__":
     async def main_loop():
         gui_task = asyncio.create_task(gui_loop(gui_manager))
 
-        if not isinstance(gui_manager._state, ErrorState) and not isinstance(gui_manager._state, InitialState):
+        if not isinstance(gui_manager._state, (InitialState, ErrorState)):
             ibis_manager.start()
 
             try:

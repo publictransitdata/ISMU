@@ -23,7 +23,6 @@ Extended documentation is available in the [project Wiki](https://github.com/pub
 > [!NOTE]
 > The wiki is coming soon.
 
-
 ## How to Run the Project on Raspberry Pi Pico W Using VSCode
 
 ### Prerequisites
@@ -36,19 +35,18 @@ Extended documentation is available in the [project Wiki](https://github.com/pub
 - IBIS (VDV300) module with UART connection.
 - USB cable with data transfer capability.
 
-1.1. **Connections**
+  1.1. **Connections**
 
-| Pi Pico W    | Devices             |
-|--------------|---------------------|
-| GPIO 0 (TX)  | IBIS module RX      |
-| GPIO 1 (RX)  | IBIS module TX      |
-| GPIO 2       | Button Down         |
-| GPIO 3       | Button Select       |
-| GPIO 4       | Button Menu         |
-| GPIO 5       | Button Up           |
-| GPIO 10 (SDA)| SH1106 SDA          |
-| GPIO 11 (SCL)| SH1106 SCL          |
-
+| Pi Pico W     | Devices        |
+| ------------- | -------------- |
+| GPIO 0 (TX)   | IBIS module RX |
+| GPIO 1 (RX)   | IBIS module TX |
+| GPIO 2        | Button Down    |
+| GPIO 3        | Button Select  |
+| GPIO 4        | Button Menu    |
+| GPIO 5        | Button Up      |
+| GPIO 10 (SDA) | SH1106 SDA     |
+| GPIO 11 (SCL) | SH1106 SCL     |
 
 2. **Software:**
 
@@ -248,12 +246,13 @@ make -C mpy-cross
 #### 3. Build the firmware
 
 ```bash
+cd ports/rp2
 make BOARD=RPI_PICO_W submodules
 make BOARD=RPI_PICO_W clean
 make -j $(nproc) BOARD=RPI_PICO_W FROZEN_MANIFEST=/path/to/manifest.py/file/inside/ISMU/directory
 ```
 
-The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other excludes it so you can run the code manually from an IDE.
+The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other includes only libraries and font file so you can run the code manually from an IDE and freely change the code.
 
 > [!IMPORTANT]
 > Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
@@ -268,7 +267,11 @@ You can find `firmware.uf2` inside build-RPI_PICO_W directory. (schematic path :
 
 #### 5. Cleaning unnecessary files from Mpy Remote Workplace
 
-After loading compiled code to firmware, you don't need anymore **app**, **lib**, **utils** directories and `main.py`(if you used `manifest_release.py`), so you can remove it from there. In config directory you need to have: `char_map.json`. In lib directory you need to have: `font.py`, `lang.py`.
+After loading compiled code to firmware you need to cleanup redundancy on your board.
+
+If you used `manifest_release.py`, you don't need anymore **app**, **lib**, **utils** directories and `main.py`, so you can remove it from there. Please note that the config directory must still contain `char_map.json`.
+
+If you used `manifest_debug.py`, you can remove `microdot.py`, `sh1106.py`, `writer.py`, `font.py` from **lib**, so you can remove it from there. Keep all other files as they are.
 
 ## Third‑party licenses
 

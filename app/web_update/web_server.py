@@ -10,7 +10,7 @@ from app.error_codes import ErrorCodes
 from app.selection_management import SelectionManager
 from app.web_update.safe_route_decorator import safe_route
 from utils.error_handler import set_error_and_raise
-from utils.file_checker import check_config_content_file, check_routes_content_file
+from utils.file_checker import assert_routes_match_config, check_config_content_file, check_routes_content_file
 from utils.i18n import string
 
 
@@ -414,6 +414,13 @@ class WebUpdateServer:
                         return self._error_response(string("web_err_routes_filename").format(filename))
 
             if files_to_save:
+                errors = assert_routes_match_config(
+                    files_to_save.get("routes.ndjson"), files_to_save.get("config.json")
+                )
+                if errors:
+                    _cleanup_tmp()
+                    return self._error_response(string("routes_config_mismatch").format("; ".join(errors)))
+
                 saved_files = []
                 for fname, tmp_path in files_to_save.items():
                     dest = "/config/" + fname
