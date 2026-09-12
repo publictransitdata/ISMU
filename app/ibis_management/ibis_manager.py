@@ -26,6 +26,8 @@ TELEGRAM_FORMATS = {
 }
 
 TEXT_BLOCK_SIZE = 16
+RESEND_INTERVAL_MS = 10000
+CHANGE_POLL_MS = 100
 
 
 def ibis_hex(value: int) -> str:
@@ -345,7 +347,13 @@ class IBISManager:
                             raise_exception=False,
                         )
                         break
-            await asyncio.sleep(10)
+            await self._wait_for_selection_change(active_selection)
+
+    async def _wait_for_selection_change(self, selection):
+        waited = 0
+        while self._running and not selection.is_updated and waited < RESEND_INTERVAL_MS:
+            await asyncio.sleep_ms(CHANGE_POLL_MS)
+            waited += CHANGE_POLL_MS
 
     def start(self):
         """Start async loop as a task"""
