@@ -22,4 +22,3 @@ typings/
 
 # Byte-compiled files
 __pycache__/
-lib/font.py
