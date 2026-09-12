@@ -2,6 +2,7 @@
 import os
 import gc
 import sys
+import time
 
 import sh1106  # type: ignore
 import uasyncio as asyncio
@@ -31,6 +32,7 @@ except ImportError:
 CONFIG_PATH = "/config/config.json"
 ROUTES_PATH = "/config/routes.ndjson"
 CONFIG_EXAMPLE_PATH = "/config/config.example"
+SPLASH_SECONDS = 2
 COMBO_GRACE_MS = 50
 
 
@@ -68,6 +70,16 @@ if __name__ == "__main__":
     gc.collect()
 
     screen_config = ScreenConfig()
+    screen_config.set_screen_config(
+        screen_width,
+        screen_height,
+        font_size,
+        arrow_size,
+        max_menu_items,
+        max_number_of_characters_in_line,
+    )
+    gui_manager.show_splash_screen()
+    time.sleep(SPLASH_SECONDS)
 
     config_manager = ConfigManager()
     routes_manager = RoutesManager()
@@ -94,15 +106,6 @@ if __name__ == "__main__":
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
     btn_menu = Pin(4, Pin.IN, Pin.PULL_UP)
     btn_up = Pin(5, Pin.IN, Pin.PULL_UP)
-
-    screen_config.set_screen_config(
-        screen_width,
-        screen_height,
-        font_size,
-        arrow_size,
-        max_menu_items,
-        max_number_of_characters_in_line,
-    )
 
     if not isinstance(gui_manager._state, ErrorState):
         uart = UART(

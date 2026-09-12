@@ -107,6 +107,9 @@ class GuiManager:
         self.transition_to(InitialState())
         self.mark_dirty()
 
+    def show_splash_screen(self):
+        self._gui_drawer.draw_splash_screen(self._config_manager.config.version)
+
     def mark_dirty(self):
         self._dirty = True
 

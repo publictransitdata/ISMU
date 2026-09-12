@@ -8,6 +8,7 @@ strings = {
     "gui_msg_ok_hint": "Press OK",
     "gui_msg_initial": "Configuration and routes files need to be loaded",
     "gui_title_update_mode": "Update mode",
+    "gui_lbl_splash_version": "v: {}",
     "gui_title_route_menu": "Route",
     "gui_title_trip_menu": "Direction",
     # ibis manager strings

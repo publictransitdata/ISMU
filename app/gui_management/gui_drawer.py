@@ -190,6 +190,38 @@ class GuiDrawer:
 
         self._display.show()
 
+    def draw_splash_screen(self, version: str) -> None:
+        line_height = self._screen_config.font_size + 2
+        screen_width = self._screen_config.screen_width
+        screen_height = self._screen_config.screen_height
+
+        name = "ISMU"
+        site = "publictransitdata"
+        version_line = string("gui_lbl_splash_version").format(version)
+
+        top_y = (screen_height - line_height * 3) // 2
+
+        self._display.fill(0)
+
+        self._writer.set_textpos(self._display, top_y, (screen_width - self._writer.stringlen(name)) // 2)
+        self._writer.printstring(name, False)
+
+        self._writer.set_textpos(
+            self._display,
+            top_y + line_height,
+            (screen_width - self._writer.stringlen(site)) // 2,
+        )
+        self._writer.printstring(site, False)
+
+        self._writer.set_textpos(
+            self._display,
+            top_y + line_height * 2,
+            screen_width - self._writer.stringlen(version_line) - 2,
+        )
+        self._writer.printstring(version_line, False)
+
+        self._display.show()
+
     def draw_initial_screen(self) -> None:
         self._display.fill(0)
         self._writer.set_textpos(self._display, 0, 0)
