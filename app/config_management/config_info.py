@@ -25,4 +25,5 @@ class SystemConfig:
         self.parity: int = 2
         self.stop: int = 2
         self.nlt_data: str | None = None
+        self.displays: list = []
         self.version: str = VERSION

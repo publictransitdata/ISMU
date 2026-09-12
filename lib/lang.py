@@ -65,6 +65,11 @@ strings = {
     "fc_param_must_not_be_empty": "Parameter '{}' must not be empty",
     "fc_param_must_be_bool": "Parameter '{}' must be true or false",
     "fc_param_must_be_int": "Parameter '{}' must be an integer",
+    "fc_param_must_be_list": "Parameter '{}' must be a list",
+    "fc_param_must_be_object": "Parameter '{}' must be an object",
+    "fc_param_must_be_one_of": "Parameter '{}' must be one of: {}",
+    "fc_duplicate_display_addr": "Display address {} is used more than once",
+    "fc_no_enabled_display": "'{}' needs at least one enabled display in 'displays'",
     "fc_expected_key_in_config": "Expected a quoted key in configuration file",
     "fc_unknown_value_for_key": "Unknown value for key '{}'",
     # routes file
