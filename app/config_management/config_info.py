@@ -24,4 +24,5 @@ class SystemConfig:
         self.bits: int = 7
         self.parity: int = 2
         self.stop: int = 2
+        self.nlt_data: str | None = None
         self.version: str = VERSION

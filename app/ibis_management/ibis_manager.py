@@ -93,6 +93,9 @@ class IBISManager:
 
     def DS001(self):
         selection = self.selection_manager.get_active_selection()
+        if selection.no_line_telegram:
+            self._send_nlt_data("l", width=3)
+            return
         if selection.special_char is not None:
             self._send_special_char("lE", selection.special_char)
             return
@@ -111,6 +114,9 @@ class IBISManager:
 
     def DS001neu(self):
         selection = self.selection_manager.get_active_selection()
+        if selection.no_line_telegram:
+            self._send_nlt_data("q", width=4)
+            return
         if selection.special_char is not None:
             self._send_special_char("qE", selection.special_char)
             return
@@ -127,6 +133,14 @@ class IBISManager:
             raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
 
         packet = self.create_ibis_packet(formatted)
+        self.uart.write(packet)
+
+    def _send_nlt_data(self, prefix: str, width: int):
+        data = self._system_config.nlt_data
+        if data is None:
+            data = "0" * width
+
+        packet = self.create_ibis_packet(prefix + data)
         self.uart.write(packet)
 
     def _send_special_char(self, format_key: str, value: int):
@@ -239,8 +253,6 @@ class IBISManager:
             if active_selection.route_number is not None and active_selection.trip is not None:
                 for code in self.telegramTypes:
                     if code in self._failed_telegrams:
-                        continue
-                    if code in ("DS001", "DS001neu") and active_selection.no_line_telegram:
                         continue
 
                     handler = self.dispatch.get(code)

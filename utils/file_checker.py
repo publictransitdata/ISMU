@@ -14,7 +14,7 @@ ALLOWED_CONFIG_CHARS = set(
 )
 
 
-VALID_CONFIG_KEYS = {
+REQUIRED_CONFIG_KEYS = {
     "line_telegram",
     "destination_number_telegram",
     "destination_telegram",
@@ -30,6 +30,10 @@ VALID_CONFIG_KEYS = {
     "bits",
     "parity",
     "stop",
+}
+
+OPTIONAL_CONFIG_KEYS = {
+    "nlt_data",
 }
 
 
@@ -340,11 +344,11 @@ def check_config_content_file(filepath: str) -> list:
     if not isinstance(cfg, dict):
         return [string("fc_config_not_json_object")]
 
-    unknown = set(cfg) - VALID_CONFIG_KEYS
+    unknown = set(cfg) - REQUIRED_CONFIG_KEYS - OPTIONAL_CONFIG_KEYS
     if unknown:
         errors.append(string("fc_unknown_params").format(", ".join(sorted(unknown))))
 
-    missing = VALID_CONFIG_KEYS - set(cfg)
+    missing = REQUIRED_CONFIG_KEYS - set(cfg)
     if missing:
         errors.append(string("fc_missing_params").format(", ".join(sorted(missing))))
 
@@ -377,6 +381,12 @@ def check_config_content_file(filepath: str) -> list:
         v = cfg[key]
         if isinstance(v, bool) or not isinstance(v, int):
             errors.append(string("fc_param_must_be_int").format(key))
+
+    nlt_data = cfg.get("nlt_data")
+    if nlt_data is not None and not isinstance(nlt_data, str):
+        errors.append(string("fc_param_must_be_string_or_null").format("nlt_data"))
+    elif nlt_data == "":
+        errors.append(string("fc_param_must_not_be_empty").format("nlt_data"))
 
     return errors
 
