@@ -59,6 +59,7 @@ class RoutesManager:
                             "r": rec.get("r"),
                             "nlt": rec.get("nlt", False),
                             "note": rec.get("note"),
+                            "sc": rec.get("sc"),
                         })
         except OSError as err:
             raise CustomError(ErrorCodes.ROUTES_FILE_OPEN_FAILED, err) from err
@@ -95,6 +96,7 @@ class RoutesManager:
                 "dirs": [],
                 "no_line_telegram": False,
                 "note": None,
+                "special_char": None,
             }
 
         route_info = self._route_list[index]
@@ -102,6 +104,7 @@ class RoutesManager:
         route_number = route_info["r"]
         no_line_telegram = route_info.get("nlt", False)
         note = route_info.get("note")
+        special_char = route_info.get("sc")
         dirs = []
 
         try:
@@ -129,6 +132,7 @@ class RoutesManager:
             "dirs": dirs,
             "no_line_telegram": no_line_telegram,
             "note": note,
+            "special_char": special_char,
         }
 
     def get_length_of_routes(self) -> int:

@@ -381,6 +381,10 @@ def check_config_content_file(filepath: str) -> list:
     return errors
 
 
+def _is_special_char(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 99
+
+
 def check_routes_content_file(filepath: str) -> list:
     errors = []
 
@@ -452,7 +456,7 @@ def check_routes_content_file(filepath: str) -> list:
                     break
 
                 if "id" in rec:
-                    unknown = set(rec) - {"id", "r", "nlt", "note"}
+                    unknown = set(rec) - {"id", "r", "nlt", "note", "sc"}
                     if unknown:
                         errors.append(
                             string("fc_unknown_fields").format(line_num=line_num, fields=", ".join(sorted(unknown)))
@@ -465,6 +469,8 @@ def check_routes_content_file(filepath: str) -> list:
                         _check_type(rec["nlt"], bool, "nlt")
                     if "note" in rec:
                         _check_type(rec["note"], str, "note")
+                    if rec.get("sc") is not None and not _is_special_char(rec["sc"]):
+                        errors.append(string("fc_field_wrong_data").format(line_num=line_num, field="sc"))
                     if rec["id"] in seen_route_ids:
                         errors.append(string("fc_duplicate_route_id").format(line_num=line_num, route_id=rec["id"]))
                     else:
@@ -550,7 +556,7 @@ def assert_routes_match_config(routes_filepath, config_filepath):
                     rec = json.loads(line)
                 except Exception:
                     continue
-                if "id" in rec:
+                if "id" in rec and rec.get("sc") is None:
                     if not rec["r"].isdigit() and "DS001neu" not in telegrams_list:
                         errors.append(
                             string("fc_wrong_route_number_format").format(line_num=line_num, route_number=rec["r"])

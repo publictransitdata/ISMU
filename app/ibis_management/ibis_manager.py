@@ -13,6 +13,8 @@ from utils.singleton_decorator import singleton
 TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
     "DS001neu": "q{:0>4}",
+    "lE": "lE{:02d}",
+    "qE": "qE{:02d}",
     "DS003": "z{:03d}",
     "DS003a": "zA2{: <32}",
     "DS003b": "zR{:03d}",  # no description in documentation
@@ -90,7 +92,12 @@ class IBISManager:
         return sanitized
 
     def DS001(self):
-        value = self.selection_manager.get_active_selection().route_number
+        selection = self.selection_manager.get_active_selection()
+        if selection.special_char is not None:
+            self._send_special_char("lE", selection.special_char)
+            return
+
+        value = selection.route_number
         format = TELEGRAM_FORMATS["DS001"]
         if value is None:
             raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
@@ -103,7 +110,12 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS001neu(self):
-        value = self.selection_manager.get_active_selection().route_number
+        selection = self.selection_manager.get_active_selection()
+        if selection.special_char is not None:
+            self._send_special_char("qE", selection.special_char)
+            return
+
+        value = selection.route_number
         format = TELEGRAM_FORMATS["DS001neu"]
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
@@ -111,6 +123,15 @@ class IBISManager:
             raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
         try:
             formatted = format.format(value)
+        except Exception as err:
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
+
+        packet = self.create_ibis_packet(formatted)
+        self.uart.write(packet)
+
+    def _send_special_char(self, format_key: str, value: int):
+        try:
+            formatted = TELEGRAM_FORMATS[format_key].format(value)
         except Exception as err:
             raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
 
