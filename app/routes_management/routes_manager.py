@@ -39,6 +39,10 @@ class RoutesManager:
         except CustomError as err:
             set_error_and_raise(err.error_code, exception=err.detail, show_message=True, raise_exception=False)
 
+    def release_routes(self) -> None:
+        self._route_list = []
+        gc.collect()
+
     def build_route_list(self):
         routes_list = []
 

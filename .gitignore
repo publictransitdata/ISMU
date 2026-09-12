@@ -21,4 +21,4 @@ typings/
 .venv/
 
 # Byte-compiled files
-lib/font.py
+__pycache__/

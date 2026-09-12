@@ -1,29 +1,25 @@
 import time
 
-from utils.i18n import string
-
 from .state import State
 
 
-class RouteMenuState(State):
+class MenuState(State):
+    title = ""
+    menu_items = ()
+
+    def __init__(self):
+        self.highlighted_item_index = 0
+
     def draw_current_screen(self):
         ctx = self.context
-        if len(ctx._routes_for_menu_display_list) == 0:
-            ctx._routes_for_menu_display_list = ctx.get_route_list_to_display()
-        highlighted_item_index = ctx._get_menu_data(self).highlighted_item_index
-        number_of_menu_items = ctx.get_number_of_menu_items()
-
         ctx._gui_drawer._draw_menu(
-            ctx._routes_for_menu_display_list,
-            f"{string('gui_title_route_menu')}:",
-            highlighted_item_index,
-            number_of_menu_items,
+            self.menu_items,
+            self.title,
+            self.highlighted_item_index,
+            len(self.menu_items),
         )
 
     def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
-        from .nav_menu_state import NavMenuState
-        from .trip_menu_state import TripMenuState
-
         current_time = time.ticks_ms()
         ctx = self.context
 
@@ -31,26 +27,32 @@ class RouteMenuState(State):
             return
 
         if not btn_menu:
-            ctx.transition_to(NavMenuState())
+            self.go_back()
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
             return
 
         if not btn_up:
-            ctx.navigate_up(self)
+            if self.highlighted_item_index > 0:
+                self.highlighted_item_index -= 1
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
             return
 
         if not btn_down:
-            ctx.navigate_down(self)
+            if self.highlighted_item_index < len(self.menu_items) - 1:
+                self.highlighted_item_index += 1
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
             return
 
         if not btn_select:
-            ctx.transition_to(TripMenuState(RouteMenuState))
-            ctx._trip_menu_data.highlighted_item_index = 0
+            self.select_item(self.highlighted_item_index)
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
-            return
+
+    def go_back(self) -> None:
+        raise NotImplementedError("go_back method should be implemented in the subclass")
+
+    def select_item(self, index: int) -> None:
+        """Nothing to open by default - info screens are read-only."""

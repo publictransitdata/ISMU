@@ -14,13 +14,11 @@ class InitialState(State):
         current_time = time.ticks_ms()
         ctx = self.context
 
-        if not btn_down and not btn_select:
-            if ctx._is_long_pressed(
-                [btn_down, btn_select],
-                current_time,
-            ):
-                ctx.transition_to(UpdateState(InitialState()))
-                ctx._web_update_server.ensure_started()
-                ctx.mark_dirty()
-                return
+        if ctx._is_in_cooldown(current_time):
             return
+
+        if not btn_select:
+            ctx.enter_web_update()
+            ctx.transition_to(UpdateState(InitialState()))
+            ctx.mark_dirty()
+            ctx._last_single_button_time = current_time

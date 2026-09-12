@@ -141,18 +141,15 @@ class IBISManager:
                 ErrorCodes.TRIP_INFO_IS_NONE,
                 string("ibis_msg_no_outer_text"),
             )
-        value = trip.get_proper_trip_name()
-        if len(value) == 2:
-            if self._system_config.show_start_and_end_stops:
-                end_stop = self.sanitize_ibis_text(value[1][:16])
-                start_stop = self.sanitize_ibis_text(value[0][:16])
-                end_stop = f"{end_stop: <16}"
-                start_stop = f"{start_stop: <16}"
-                value = start_stop + end_stop
-            else:
-                value = value[1]
+        names = trip.get_proper_trip_name()
+        if len(names) == 2 and self._system_config.show_start_and_end_stops:
+            start_stop = f"{self.sanitize_ibis_text(names[0][:16]): <16}"
+            end_stop = f"{self.sanitize_ibis_text(names[1][:16]): <16}"
+            value = start_stop + end_stop
+        elif len(names) == 2:
+            value = self.sanitize_ibis_text(names[1])
         else:
-            value = value[0]
+            value = self.sanitize_ibis_text(names[0])
         format = TELEGRAM_FORMATS["DS003a"]
         try:
             formatted = format.format(value[:32])

@@ -21,15 +21,13 @@ from .gui_config import (
     TripMenuData,
 )
 from .gui_drawer import GuiDrawer
-from .states import (
-    ErrorState,
-    InitialState,
-    MessageState,
-    RouteMenuState,
-    State,
-    StatusState,
-    TripMenuState,
-)
+from .states.error_state import ErrorState
+from .states.initial_state import InitialState
+from .states.message_state import MessageState
+from .states.route_menu_state import RouteMenuState
+from .states.state import State
+from .states.status_state import StatusState
+from .states.trip_menu_state import TripMenuState
 
 if sys.platform != "rp2":
     from lib.sh1106 import SH1106_I2C  # for vs code
@@ -48,11 +46,7 @@ class GuiManager:
         """
         self._routes_manager = RoutesManager()
         self._config_manager = ConfigManager()
-        self._web_update_server = WebUpdateServer(
-            self._config_manager.config.ap_name,
-            self._config_manager.config.ap_ip,
-            self._config_manager.config.ap_password,
-        )
+        self._web_update_server = None
         self._route_menu_data = RouteMenuData()
         self._trip_menu_data = TripMenuData()
         self._selection_manager = SelectionManager()
@@ -61,7 +55,7 @@ class GuiManager:
         self._buttons_press_start_time = None
         self._buttons_press_active = False
         self._last_single_button_time = 0
-        self._single_button_cooldown = 150
+        self._single_button_cooldown = 400
 
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 
@@ -74,6 +68,24 @@ class GuiManager:
         register_error_hook(self._handle_error)
         register_message_hook(self._handle_message)
         register_initial_hook(self._handle_initial)
+
+    def enter_web_update(self):
+        """Whatever the update flow does not need is dropped first: the upload parses both files and builds
+        its pages in RAM the Pico W barely has."""
+        self._routes_for_menu_display_list = []
+        self._routes_manager.release_routes()
+        gc.collect()
+
+        if self._web_update_server is None:
+            config = self._config_manager.config
+            self._web_update_server = WebUpdateServer(config.ap_name, config.ap_ip, config.ap_password)
+        self._web_update_server.ensure_started()
+
+    def leave_web_update(self):
+        if self._web_update_server is not None:
+            self._web_update_server.stop()
+        gc.collect()
+        self._routes_manager.load_routes()
 
     def transition_to(self, state: State):
         self._state = state
@@ -94,6 +106,9 @@ class GuiManager:
     def _handle_initial(self):
         self.transition_to(InitialState())
         self.mark_dirty()
+
+    def show_splash_screen(self):
+        self._gui_drawer.draw_splash_screen(self._config_manager.config.version)
 
     def mark_dirty(self):
         self._dirty = True

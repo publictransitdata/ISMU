@@ -1,6 +1,8 @@
 # isort: skip_file
 import os
 import gc
+import sys
+import time
 
 import sh1106  # type: ignore
 import uasyncio as asyncio
@@ -30,6 +32,7 @@ except ImportError:
 CONFIG_PATH = "/config/config.json"
 ROUTES_PATH = "/config/routes.ndjson"
 CONFIG_EXAMPLE_PATH = "/config/config.example"
+SPLASH_SECONDS = 2
 COMBO_GRACE_MS = 50
 
 
@@ -52,13 +55,14 @@ def check_config_related_files(*paths):
 if __name__ == "__main__":
     screen_width = 128
     screen_height = 64
+    screen_rotation = 180
     font_size = 13
     arrow_size = 6
     max_menu_items = 2
     max_number_of_characters_in_line = 18
 
     i2c = I2C(1, scl=Pin(11), sda=Pin(10))
-    display = sh1106.SH1106_I2C(128, 64, i2c)
+    display = sh1106.SH1106_I2C(screen_width, screen_height, i2c, rotate=screen_rotation)
 
     writer = writer.Writer(display, font)
 
@@ -66,6 +70,16 @@ if __name__ == "__main__":
     gc.collect()
 
     screen_config = ScreenConfig()
+    screen_config.set_screen_config(
+        screen_width,
+        screen_height,
+        font_size,
+        arrow_size,
+        max_menu_items,
+        max_number_of_characters_in_line,
+    )
+    gui_manager.show_splash_screen()
+    time.sleep(SPLASH_SECONDS)
 
     config_manager = ConfigManager()
     routes_manager = RoutesManager()
@@ -92,15 +106,6 @@ if __name__ == "__main__":
     btn_select = Pin(3, Pin.IN, Pin.PULL_UP)
     btn_menu = Pin(4, Pin.IN, Pin.PULL_UP)
     btn_up = Pin(5, Pin.IN, Pin.PULL_UP)
-
-    screen_config.set_screen_config(
-        screen_width,
-        screen_height,
-        font_size,
-        arrow_size,
-        max_menu_items,
-        max_number_of_characters_in_line,
-    )
 
     if not isinstance(gui_manager._state, ErrorState):
         uart = UART(
@@ -139,6 +144,8 @@ if __name__ == "__main__":
                 gui.draw_current_screen()
                 await asyncio.sleep_ms(30)
         except Exception as err:
+            gc.collect()
+            sys.print_exception(err)
             set_error_and_raise(
                 ErrorCodes.GUI_LOOP_ERROR,
                 RuntimeError(string("sys_msg_gui_loop_error").format(err)),
@@ -160,6 +167,8 @@ if __name__ == "__main__":
                 else:
                     await gui_task
             except Exception as err:
+                gc.collect()
+                sys.print_exception(err)
                 set_error_and_raise(
                     ErrorCodes.MAIN_LOOP_ERROR,
                     RuntimeError(string("sys_msg_main_loop_error").format(err)),
