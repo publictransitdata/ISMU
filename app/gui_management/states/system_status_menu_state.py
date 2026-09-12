@@ -74,10 +74,7 @@ def _network_lines(config) -> list[str]:
 
 
 def _about_lines(ctx, config) -> list[str]:
-    route = ctx._routes_manager.get_route_by_index(ctx._route_menu_data.selected_item_index)
     return [
         string("gui_lbl_version").format(config.version),
         string("gui_lbl_routes_count").format(ctx._routes_manager.get_length_of_routes()),
-        string("gui_lbl_current_route").format(route["route_number"]),
-        string("gui_lbl_current_trip").format(ctx._trip_menu_data.selected_item_index + 1),
     ]

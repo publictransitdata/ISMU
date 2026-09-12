@@ -34,6 +34,4 @@ strings = {
     "gui_lbl_ap_ip": "IP: {}",
     "gui_lbl_version": "Version: {}",
     "gui_lbl_routes_count": "Routes: {}",
-    "gui_lbl_current_route": "Route: {}",
-    "gui_lbl_current_trip": "Direction: {:02d}",
 }
