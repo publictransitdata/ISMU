@@ -25,6 +25,43 @@ TELEGRAM_FORMATS = {
     "DS3cneu": None,  # no description in documentation
 }
 
+TEXT_BLOCK_SIZE = 16
+
+
+def ibis_hex(value: int) -> str:
+    return "".join(chr(0x30 + int(digit, 16)) for digit in f"{value:X}")
+
+
+def blocks_for(length: int) -> int:
+    return (length + TEXT_BLOCK_SIZE - 1) // TEXT_BLOCK_SIZE
+
+
+def layout_rows(rows: list, mode: str, width: int) -> str:
+    if mode == "flowing":
+        return "".join(rows)
+    if mode == "line_feed":
+        rows = list(rows)
+        while rows and not rows[-1]:
+            rows.pop()
+        return "\n".join(rows) + "\n\n"
+    return "".join((row + " " * width)[:width] for row in rows)
+
+
+def ds021_payload(addr: int, text: str) -> str:
+    blocks = blocks_for(len(text))
+    padding = " " * (blocks * TEXT_BLOCK_SIZE - len(text))
+    return "aA" + ibis_hex(addr) + ibis_hex(blocks) + text + padding
+
+
+def ds021neu_payload(addr: int, rows: list, font: str) -> str:
+    line1 = rows[0] if rows else ""
+    line2 = rows[1] if len(rows) > 1 else ""
+    text = ((line1 or " ") + "\n" + line2 if line2 else line1) + "\n\n"
+    suffix = "\n.CM" + font
+    blocks = blocks_for(len(text) + len(suffix))
+    padding = " " * (blocks * TEXT_BLOCK_SIZE - len(text) - len(suffix))
+    return "aA" + ibis_hex(addr) + ibis_hex(blocks) + text + padding + suffix
+
 
 @singleton
 class IBISManager:
@@ -44,6 +81,8 @@ class IBISManager:
             "DS003": self.DS003,
             "DS003a": self.DS003a,
             "DS003c": self.DS003c,
+            "DS021": self.DS021,
+            "DS021neu": self.DS021neu,
         }
 
         if self._system_config.use_char_map:
@@ -242,6 +281,40 @@ class IBISManager:
             self.uart.write(packet)
         else:
             pass
+
+    def DS021(self):
+        for display in self._enabled_displays():
+            text = layout_rows(self._display_rows(display), display.get("mode", "fixed"), display.get("width", 16))
+            packet = self.create_ibis_packet(ds021_payload(display["addr"], text))
+            self.uart.write(packet)
+
+    def DS021neu(self):
+        for display in self._enabled_displays():
+            payload = ds021neu_payload(display["addr"], self._display_rows(display), display.get("font", ""))
+            packet = self.create_ibis_packet(payload)
+            self.uart.write(packet)
+
+    def _enabled_displays(self) -> list:
+        return [display for display in self._system_config.displays if display.get("enabled", True)]
+
+    def _display_rows(self, display) -> list:
+        selection = self.selection_manager.get_active_selection()
+        if selection.trip is None:
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, string("ibis_msg_no_outer_text"))
+
+        names = [self.sanitize_ibis_text(name) for name in selection.trip.get_proper_trip_name()]
+        destination = names[-1] if names else ""
+
+        if display.get("display_type", "external") == "internal":
+            return [self.sanitize_ibis_text(selection.route_number or "") + " > " + destination]
+
+        show_start_and_end_stops = display.get(
+            "show_start_and_end_stops",
+            self._system_config.show_start_and_end_stops,
+        )
+        if len(names) == 2 and show_start_and_end_stops:
+            return names
+        return [destination]
 
     async def send_ibis_telegrams(self):
         self._running = True
