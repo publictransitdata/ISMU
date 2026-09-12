@@ -4,6 +4,7 @@ import sys
 import time
 
 from utils.i18n import string
+from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
@@ -69,12 +70,11 @@ class GuiManager:
         register_initial_hook(self._handle_initial)
 
     def enter_web_update(self):
-        """Built on first use: importing microdot at boot costs more RAM than the PIPCO W has to spare."""
+        """Whatever the update flow does not need is dropped first: the upload parses both files and builds
+        its pages in RAM the Pico W barely has."""
         self._routes_for_menu_display_list = []
         self._routes_manager.release_routes()
         gc.collect()
-
-        from app.web_update import WebUpdateServer
 
         if self._web_update_server is None:
             config = self._config_manager.config
