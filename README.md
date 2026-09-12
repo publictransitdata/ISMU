@@ -119,7 +119,7 @@ Click the "Toggle MicroPico Virtual Workspace" button in the VS Code status bar 
 To run the project you will need to create or configure the following files:
 
 - **`font.py`** (**lib** directory)
-  See the chapter on font generation for details.
+  A basic font is included, so there is nothing to do for a first run. Generate your own only to change the typeface, the size or the character set — see the chapter on font generation.
 
 - **`lang.py`** and **`lang_menu.py`** (**lib** directory)
   By default the interface is in English. You can modify both files to use your preferred language — just replace the key values with your translations and make sure your font file includes any language-specific symbols. `lang_menu.py` holds the menu and info screens, and is read only when those screens are opened, which keeps them out of memory while the device is driving.
@@ -162,7 +162,7 @@ To upload your code:
 > You don't need all files on board. You only need: **app**, **config**, **lib**, **utils** directories and main.py
 
 > [!IMPORTANT]
-> Your lib directory must contain three specific files: `lang.py`, `lang_menu.py` and `font.py`. English language files are included by default, though you can easily replace them with your preferred language. For the `font.py` file, please see [How to generate `font.py`](#how-to-generate-fontpy) chapter.
+> Your lib directory must contain three specific files: `lang.py`, `lang_menu.py` and `font.py`. All three are included by default — English language files and a basic font. To translate the interface, replace the values in the language files; to change the font, see [How to generate `font.py`](#how-to-generate-fontpy) chapter.
 
 > [!IMPORTANT]
 > If `"use_char_map": true` is set in `config.json`, you must provide `char_map.json` in the **config** directory. See the [char_map.json format](todo: add wiki link)
@@ -212,7 +212,7 @@ font_to_py.py is a command line utility written in Python 3. It is run on a PC. 
 Examples of usage to produce Python fonts with a height of 14 pixels:
 
 ```bash
-./font_to_py.py Monotype.ttf 14 lang.py
+./font_to_py.py Monotype.ttf 14 font.py
 ```
 
 Mandatory positional arguments:
