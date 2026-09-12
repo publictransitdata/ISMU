@@ -55,6 +55,12 @@ def ds021_payload(addr: int, text: str) -> str:
     return "aA" + ibis_hex(addr) + ibis_hex(blocks) + text + padding
 
 
+def ds021t_payload(addr: int, rows: list, cycle: int) -> str:
+    upper = rows[0] if rows else ""
+    lower = rows[1] if len(rows) > 1 else ""
+    return ds021_payload(addr, "A" + ibis_hex(cycle) + upper + "\n" + lower + "\n\n")
+
+
 def ds021neu_payload(addr: int, rows: list, font: str) -> str:
     line1 = rows[0] if rows else ""
     line2 = rows[1] if len(rows) > 1 else ""
@@ -85,6 +91,7 @@ class IBISManager:
             "DS003c": self.DS003c,
             "DS021": self.DS021,
             "DS021neu": self.DS021neu,
+            "DS021T": self.DS021T,
         }
 
         if self._system_config.use_char_map:
@@ -288,6 +295,12 @@ class IBISManager:
         for display in self._enabled_displays():
             text = layout_rows(self._display_rows(display), display.get("mode", "fixed"), display.get("width", 16))
             packet = self.create_ibis_packet(ds021_payload(display["addr"], text))
+            self.uart.write(packet)
+
+    def DS021T(self):
+        for display in self._enabled_displays():
+            payload = ds021t_payload(display["addr"], self._display_rows(display), display.get("cycle", 0))
+            packet = self.create_ibis_packet(payload)
             self.uart.write(packet)
 
     def DS021neu(self):

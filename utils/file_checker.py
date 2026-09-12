@@ -37,12 +37,13 @@ OPTIONAL_CONFIG_KEYS = {
     "displays",
 }
 
-ADDRESSED_TEXT_TELEGRAMS = ("DS021", "DS021neu")
-DISPLAY_KEYS = {"addr", "display_type", "enabled", "show_start_and_end_stops", "mode", "width", "font"}
+ADDRESSED_TEXT_TELEGRAMS = ("DS021", "DS021neu", "DS021T")
+DISPLAY_KEYS = {"addr", "display_type", "enabled", "show_start_and_end_stops", "mode", "width", "font", "cycle"}
 DISPLAY_TYPES = ("external", "internal")
 DISPLAY_MODES = ("fixed", "line_feed", "flowing")
 DISPLAY_WIDTHS = (16, 24)
 MAX_DISPLAY_ADDR = 15
+MAX_DISPLAY_CYCLE = 15
 
 
 def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
@@ -454,6 +455,9 @@ def _check_display(display, path: str) -> list:
     if "width" in display and not (_is_int(display["width"]) and display["width"] in DISPLAY_WIDTHS):
         widths = ", ".join(str(width) for width in DISPLAY_WIDTHS)
         errors.append(string("fc_param_must_be_one_of").format(path + ".width", widths))
+
+    if "cycle" in display and not (_is_int(display["cycle"]) and 0 <= display["cycle"] <= MAX_DISPLAY_CYCLE):
+        errors.append(string("fc_param_must_be_one_of").format(path + ".cycle", f"0..{MAX_DISPLAY_CYCLE}"))
 
     if "font" in display and not isinstance(display["font"], str):
         errors.append(string("fc_param_must_be_string").format(path + ".font"))
