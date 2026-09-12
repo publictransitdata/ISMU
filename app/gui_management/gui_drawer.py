@@ -191,7 +191,7 @@ class GuiDrawer:
         self._display.show()
 
     def draw_splash_screen(self, version: str) -> None:
-        line_height = self._screen_config.font_size + 2
+        row_height = self._screen_config.screen_height // 3
         screen_width = self._screen_config.screen_width
 
         name = "ISMU"
@@ -205,14 +205,14 @@ class GuiDrawer:
 
         self._writer.set_textpos(
             self._display,
-            line_height,
+            row_height,
             (screen_width - self._writer.stringlen(site)) // 2,
         )
         self._writer.printstring(site, False)
 
         self._writer.set_textpos(
             self._display,
-            line_height * 2,
+            row_height * 2,
             screen_width - self._writer.stringlen(version_line) - 2,
         )
         self._writer.printstring(version_line, False)
