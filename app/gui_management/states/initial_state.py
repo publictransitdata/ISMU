@@ -18,7 +18,7 @@ class InitialState(State):
             return
 
         if not btn_select:
-            ctx._web_update_server.ensure_started()
+            ctx.get_web_update_server().ensure_started()
             ctx.transition_to(UpdateState(InitialState()))
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time

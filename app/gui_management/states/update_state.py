@@ -22,7 +22,7 @@ class UpdateState(State):
             return
 
         if not btn_menu:
-            ctx._web_update_server.stop()
+            ctx.get_web_update_server().stop()
             ctx.transition_to(self._return_state or StatusState())
             gc.collect()
             ctx.mark_dirty()

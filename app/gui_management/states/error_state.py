@@ -21,7 +21,7 @@ class ErrorState(State):
             return
 
         if not btn_select:
-            ctx._web_update_server.ensure_started()
+            ctx.get_web_update_server().ensure_started()
             ctx.transition_to(UpdateState(ErrorState()))
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time

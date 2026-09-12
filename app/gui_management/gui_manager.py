@@ -4,7 +4,6 @@ import sys
 import time
 
 from utils.i18n import string
-from app.web_update import WebUpdateServer
 from app.config_management import ConfigManager
 from app.error_codes import ErrorCodes
 from app.routes_management import RoutesManager
@@ -21,15 +20,13 @@ from .gui_config import (
     TripMenuData,
 )
 from .gui_drawer import GuiDrawer
-from .states import (
-    ErrorState,
-    InitialState,
-    MessageState,
-    RouteMenuState,
-    State,
-    StatusState,
-    TripMenuState,
-)
+from .states.error_state import ErrorState
+from .states.initial_state import InitialState
+from .states.message_state import MessageState
+from .states.route_menu_state import RouteMenuState
+from .states.state import State
+from .states.status_state import StatusState
+from .states.trip_menu_state import TripMenuState
 
 if sys.platform != "rp2":
     from lib.sh1106 import SH1106_I2C  # for vs code
@@ -48,11 +45,7 @@ class GuiManager:
         """
         self._routes_manager = RoutesManager()
         self._config_manager = ConfigManager()
-        self._web_update_server = WebUpdateServer(
-            self._config_manager.config.ap_name,
-            self._config_manager.config.ap_ip,
-            self._config_manager.config.ap_password,
-        )
+        self._web_update_server = None
         self._route_menu_data = RouteMenuData()
         self._trip_menu_data = TripMenuData()
         self._selection_manager = SelectionManager()
@@ -74,6 +67,16 @@ class GuiManager:
         register_error_hook(self._handle_error)
         register_message_hook(self._handle_message)
         register_initial_hook(self._handle_initial)
+
+    def get_web_update_server(self):
+        """Built on first use: importing microdot at boot costs more RAM than the PIPCO W has to spare."""
+        if self._web_update_server is None:
+            from app.web_update import WebUpdateServer
+
+            gc.collect()
+            config = self._config_manager.config
+            self._web_update_server = WebUpdateServer(config.ap_name, config.ap_ip, config.ap_password)
+        return self._web_update_server
 
     def transition_to(self, state: State):
         self._state = state
