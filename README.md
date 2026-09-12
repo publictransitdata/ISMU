@@ -121,8 +121,8 @@ To run the project you will need to create or configure the following files:
 - **`font.py`** (**lib** directory)
   See the chapter on font generation for details.
 
-- **`lang.py`** (**lib** directory)
-  By default the interface is in English. You can modify `lang.py` to use your preferred language — just replace the key values with your translations and make sure your font file includes any language-specific symbols.
+- **`lang.py`** and **`lang_menu.py`** (**lib** directory)
+  By default the interface is in English. You can modify both files to use your preferred language — just replace the key values with your translations and make sure your font file includes any language-specific symbols. `lang_menu.py` holds the menu and info screens, and is read only when those screens are opened, which keeps them out of memory while the device is driving.
 
   > [!IMPORTANT]
   > You must add language-specific symbols to the font file for correct text rendering on screen. See the chapter on font generation.
@@ -162,7 +162,7 @@ To upload your code:
 > You don't need all files on board. You only need: **app**, **config**, **lib**, **utils** directories and main.py
 
 > [!IMPORTANT]
-> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see [How to generate `font.py`](#how-to-generate-fontpy) chapter.
+> Your lib directory must contain three specific files: `lang.py`, `lang_menu.py` and `font.py`. English language files are included by default, though you can easily replace them with your preferred language. For the `font.py` file, please see [How to generate `font.py`](#how-to-generate-fontpy) chapter.
 
 > [!IMPORTANT]
 > If `"use_char_map": true` is set in `config.json`, you must provide `char_map.json` in the **config** directory. See the [char_map.json format](todo: add wiki link)
@@ -255,7 +255,7 @@ make -j $(nproc) BOARD=RPI_PICO_W FROZEN_MANIFEST=/path/to/manifest.py/file/insi
 The ISMU directory contains two manifest files. One includes main.py (manifest_release.py) to auto-start the program on power-up, while the other includes only libraries and font file so you can run the code manually from an IDE and freely change the code.
 
 > [!IMPORTANT]
-> Your lib directory must contain two specific files: `lang.py` and `font.py`. An English `lang.py` is included by default, though you can easily replace it with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
+> Your lib directory must contain three specific files: `lang.py`, `lang_menu.py` and `font.py`. English language files are included by default, though you can easily replace them with your preferred language. For the `font.py` file, please see the chapter on generating font files using the `write` library.
 
 #### 4. Deploying firmware to the device
 
