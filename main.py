@@ -53,13 +53,14 @@ def check_config_related_files(*paths):
 if __name__ == "__main__":
     screen_width = 128
     screen_height = 64
+    screen_rotation = 180
     font_size = 13
     arrow_size = 6
     max_menu_items = 2
     max_number_of_characters_in_line = 18
 
     i2c = I2C(1, scl=Pin(11), sda=Pin(10))
-    display = sh1106.SH1106_I2C(128, 64, i2c)
+    display = sh1106.SH1106_I2C(screen_width, screen_height, i2c, rotate=screen_rotation)
 
     writer = writer.Writer(display, font)
 
