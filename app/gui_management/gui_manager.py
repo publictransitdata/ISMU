@@ -68,15 +68,24 @@ class GuiManager:
         register_message_hook(self._handle_message)
         register_initial_hook(self._handle_initial)
 
-    def get_web_update_server(self):
+    def enter_web_update(self):
         """Built on first use: importing microdot at boot costs more RAM than the PIPCO W has to spare."""
-        if self._web_update_server is None:
-            from app.web_update import WebUpdateServer
+        self._routes_for_menu_display_list = []
+        self._routes_manager.release_routes()
+        gc.collect()
 
-            gc.collect()
+        from app.web_update import WebUpdateServer
+
+        if self._web_update_server is None:
             config = self._config_manager.config
             self._web_update_server = WebUpdateServer(config.ap_name, config.ap_ip, config.ap_password)
-        return self._web_update_server
+        self._web_update_server.ensure_started()
+
+    def leave_web_update(self):
+        if self._web_update_server is not None:
+            self._web_update_server.stop()
+        gc.collect()
+        self._routes_manager.load_routes()
 
     def transition_to(self, state: State):
         self._state = state

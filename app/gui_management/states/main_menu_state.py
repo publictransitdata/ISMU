@@ -24,5 +24,5 @@ class MainMenuState(MenuState):
         if index == 0:
             ctx.transition_to(SystemStatusMenuState())
         elif index == 1:
-            ctx.get_web_update_server().ensure_started()
+            ctx.enter_web_update()
             ctx.transition_to(UpdateState(MainMenuState()))
