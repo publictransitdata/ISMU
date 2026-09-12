@@ -6,6 +6,9 @@ from .state import State
 
 
 class TripMenuState(State):
+    def __init__(self, opened_from=None):
+        self._opened_from = opened_from
+
     def draw_current_screen(self):
         ctx = self.context
         route = ctx._routes_manager.get_route_by_index(ctx._route_menu_data.highlighted_item_index)
@@ -31,7 +34,7 @@ class TripMenuState(State):
             return
 
         if not btn_menu:
-            ctx.transition_to(RouteMenuState())
+            ctx.transition_to((self._opened_from or RouteMenuState)())
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
             return

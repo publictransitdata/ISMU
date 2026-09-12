@@ -20,34 +20,15 @@ class StatusState(State):
         )
 
     def handle_buttons(self, btn_menu: int, btn_up: int, btn_down: int, btn_select: int):
-        from .route_menu_state import RouteMenuState
-        from .settings_state import SettingsState
-        from .trip_menu_state import TripMenuState
+        from .nav_menu_state import NavMenuState
 
         current_time = time.ticks_ms()
         ctx = self.context
-
-        if not btn_up and not btn_down:
-            if ctx._is_long_pressed(
-                [btn_up, btn_down],
-                current_time,
-            ):
-                ctx.transition_to(SettingsState())
-                ctx.mark_dirty()
-                return
-            return
 
         if ctx._is_in_cooldown(current_time):
             return
 
         if not btn_menu:
-            ctx.transition_to(RouteMenuState())
+            ctx.transition_to(NavMenuState())
             ctx.mark_dirty()
             ctx._last_single_button_time = current_time
-            return
-
-        if not btn_up:
-            ctx.transition_to(TripMenuState())
-            ctx.mark_dirty()
-            ctx._last_single_button_time = current_time
-            return
