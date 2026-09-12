@@ -1,6 +1,7 @@
 # isort: skip_file
 import os
 import gc
+import sys
 
 import sh1106  # type: ignore
 import uasyncio as asyncio
@@ -139,6 +140,8 @@ if __name__ == "__main__":
                 gui.draw_current_screen()
                 await asyncio.sleep_ms(30)
         except Exception as err:
+            gc.collect()
+            sys.print_exception(err)
             set_error_and_raise(
                 ErrorCodes.GUI_LOOP_ERROR,
                 RuntimeError(string("sys_msg_gui_loop_error").format(err)),
@@ -160,6 +163,8 @@ if __name__ == "__main__":
                 else:
                     await gui_task
             except Exception as err:
+                gc.collect()
+                sys.print_exception(err)
                 set_error_and_raise(
                     ErrorCodes.MAIN_LOOP_ERROR,
                     RuntimeError(string("sys_msg_main_loop_error").format(err)),
