@@ -22,15 +22,9 @@ class UpdateState(State):
             return
 
         if not btn_menu:
-            if ctx._is_long_pressed(
-                [btn_menu],
-                current_time,
-            ):
-                ctx._web_update_server.stop()
-                ctx.transition_to(self._return_state or StatusState())
-                gc.collect()
-                ctx.mark_dirty()
-                ctx._last_single_button_time = current_time
-                return
-
+            ctx._web_update_server.stop()
+            ctx.transition_to(self._return_state or StatusState())
+            gc.collect()
+            ctx.mark_dirty()
+            ctx._last_single_button_time = current_time
             return

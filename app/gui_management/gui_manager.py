@@ -61,7 +61,7 @@ class GuiManager:
         self._buttons_press_start_time = None
         self._buttons_press_active = False
         self._last_single_button_time = 0
-        self._single_button_cooldown = 150
+        self._single_button_cooldown = 400
 
         self._routes_for_menu_display_list = []  # Cache for route display list - it optimizes performance
 

@@ -229,35 +229,6 @@ class GuiDrawer:
 
         self._display.show()
 
-    def draw_active_settings_screen(self, config) -> None:
-        line_height = self._screen_config.font_size + 2
-        left_offset = 2
-        screen_height = self._screen_config.screen_height
-
-        self._display.fill(0)
-
-        self._writer.set_textpos(self._display, 0, 0)
-
-        telegrams_list = [
-            config.line_telegram,
-            config.destination_number_telegram,
-            config.destination_telegram,
-            config.stop_board_telegram,
-        ]
-        filtered_telegrams = [t for t in telegrams_list if t]
-        telegrams_text = ", ".join(filtered_telegrams)
-
-        self._writer.printstring(
-            string("gui_lbl_telegrams").format(telegrams_text),
-            False,
-        )
-
-        bottom_y = screen_height - line_height
-        self._writer.set_textpos(self._display, bottom_y, left_offset)
-        self._writer.printstring(string("gui_lbl_ver").format(config.version), False)
-
-        self._display.show()
-
     def draw_menu_items(
         self,
         menu_items: list[str],
