@@ -21,7 +21,7 @@ TELEGRAM_FORMATS = {
     "DS003c": "zI6{: <24}",
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
-    "DS009": "v{: <16}",
+    "DS009": "v{}",
     "DS3cneu": None,  # no description in documentation
 }
 
@@ -89,6 +89,7 @@ class IBISManager:
             "DS003": self.DS003,
             "DS003a": self.DS003a,
             "DS003c": self.DS003c,
+            "DS009": self.DS009,
             "DS021": self.DS021,
             "DS021neu": self.DS021neu,
             "DS021T": self.DS021T,
@@ -246,50 +247,41 @@ class IBISManager:
 
     def DS003c(self):
         if self._system_config.show_info_on_stop_board:
-            route_number = self.selection_manager.get_active_selection().route_number
-            trip = self.selection_manager.get_active_selection().trip
-
-            if trip is None:
-                raise CustomError(
-                    ErrorCodes.TRIP_INFO_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            format = TELEGRAM_FORMATS["DS003c"]
-
-            if route_number is None:
-                raise CustomError(
-                    ErrorCodes.ROUTE_NUMBER_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            if isinstance(route_number, str):
-                route_number = self.sanitize_ibis_text(route_number)
-
-            trip_name = trip.get_proper_trip_name()
-
-            if len(trip_name) == 2:
-                trip_name = trip_name[1]
-            else:
-                trip_name = trip_name[0]
-
-            if trip_name is None:
-                raise CustomError(
-                    ErrorCodes.TRIP_NAME_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            if isinstance(trip_name, str):
-                trip_name = self.sanitize_ibis_text(trip_name)
-            try:
-                formatted = format.format((route_number + " > " + trip_name)[:24])
-            except Exception as err:
-                raise CustomError(
-                    ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
-                    string("ibis_msg_no_inner_text"),
-                ) from err
-
+            formatted = TELEGRAM_FORMATS["DS003c"].format(self._stop_board_text()[:24])
             packet = self.create_ibis_packet(formatted)
             self.uart.write(packet)
-        else:
-            pass
+
+    def DS009(self):
+        if self._system_config.show_info_on_stop_board:
+            formatted = TELEGRAM_FORMATS["DS009"].format(self._stop_board_text())
+            packet = self.create_ibis_packet(formatted)
+            self.uart.write(packet)
+
+    def _stop_board_text(self) -> str:
+        selection = self.selection_manager.get_active_selection()
+        if selection.trip is None:
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, string("ibis_msg_no_inner_text"))
+        if selection.route_number is None:
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_inner_text"))
+
+        route_number = selection.route_number
+        if isinstance(route_number, str):
+            route_number = self.sanitize_ibis_text(route_number)
+
+        names = selection.trip.get_proper_trip_name()
+        trip_name = (names[1] if len(names) == 2 else names[0]) if names else None
+        if trip_name is None:
+            raise CustomError(ErrorCodes.TRIP_NAME_IS_NONE, string("ibis_msg_no_inner_text"))
+        if isinstance(trip_name, str):
+            trip_name = self.sanitize_ibis_text(trip_name)
+
+        try:
+            return route_number + " > " + trip_name
+        except Exception as err:
+            raise CustomError(
+                ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
+                string("ibis_msg_no_inner_text"),
+            ) from err
 
     def DS021(self):
         for display in self._enabled_displays():
