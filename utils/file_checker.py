@@ -14,7 +14,7 @@ ALLOWED_CONFIG_CHARS = set(
 )
 
 
-VALID_CONFIG_KEYS = {
+REQUIRED_CONFIG_KEYS = {
     "line_telegram",
     "destination_number_telegram",
     "destination_telegram",
@@ -31,6 +31,19 @@ VALID_CONFIG_KEYS = {
     "parity",
     "stop",
 }
+
+OPTIONAL_CONFIG_KEYS = {
+    "nlt_data",
+    "displays",
+}
+
+ADDRESSED_TEXT_TELEGRAMS = ("DS021", "DS021neu", "DS021T")
+DISPLAY_KEYS = {"addr", "display_type", "enabled", "show_start_and_end_stops", "mode", "width", "font", "cycle"}
+DISPLAY_TYPES = ("external", "internal")
+DISPLAY_MODES = ("fixed", "line_feed", "flowing")
+DISPLAY_WIDTHS = (16, 24)
+MAX_DISPLAY_ADDR = 15
+MAX_DISPLAY_CYCLE = 15
 
 
 def _check_invalid_chars_file(filepath: str, allowed_chars: set) -> list:
@@ -76,10 +89,9 @@ def _file_is_empty(filepath: str) -> bool:
 
 
 def _find_duplicate_key(s):
-    seen = set()
+    keys_per_object = []
     i = 0
     n = len(s)
-    depth = 0
     while i < n:
         ch = s[i]
         if ch == '"':
@@ -94,22 +106,41 @@ def _find_duplicate_key(s):
                 i += 1
             key = s[s_start:i]
             i += 1
-            if depth == 1:
-                j = i
-                while j < n and s[j] in " \t\n\r":
-                    j += 1
-                if j < n and s[j] == ":":
-                    if key in seen:
-                        return key
-                    seen.add(key)
+            j = i
+            while j < n and s[j] in " \t\n\r":
+                j += 1
+            if keys_per_object and j < n and s[j] == ":":
+                if key in keys_per_object[-1]:
+                    return key
+                keys_per_object[-1].add(key)
         elif ch == "{":
-            depth += 1
+            keys_per_object.append(set())
             i += 1
         elif ch == "}":
-            depth -= 1
+            if keys_per_object:
+                keys_per_object.pop()
             i += 1
         else:
             i += 1
+    return None
+
+
+def _skip_nested_value(s, i):
+    depth = 0
+    n = len(s)
+    while i < n:
+        ch = s[i]
+        if ch == '"':
+            i += 1
+            while i < n and s[i] != '"':
+                i += 2 if s[i] == "\\" else 1
+        elif ch in "[{":
+            depth += 1
+        elif ch in "]}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
     return None
 
 
@@ -178,6 +209,10 @@ def _check_config_json_structure(s):
             i += 5
         elif s[i : i + 4] == "null":
             i += 4
+        elif ch in "[{":
+            i = _skip_nested_value(s, i)
+            if i is None:
+                return string("fc_config_invalid_json")
         else:
             return string("fc_unknown_value_for_key").format(key)
 
@@ -340,11 +375,11 @@ def check_config_content_file(filepath: str) -> list:
     if not isinstance(cfg, dict):
         return [string("fc_config_not_json_object")]
 
-    unknown = set(cfg) - VALID_CONFIG_KEYS
+    unknown = set(cfg) - REQUIRED_CONFIG_KEYS - OPTIONAL_CONFIG_KEYS
     if unknown:
         errors.append(string("fc_unknown_params").format(", ".join(sorted(unknown))))
 
-    missing = VALID_CONFIG_KEYS - set(cfg)
+    missing = REQUIRED_CONFIG_KEYS - set(cfg)
     if missing:
         errors.append(string("fc_missing_params").format(", ".join(sorted(missing))))
 
@@ -378,7 +413,87 @@ def check_config_content_file(filepath: str) -> list:
         if isinstance(v, bool) or not isinstance(v, int):
             errors.append(string("fc_param_must_be_int").format(key))
 
+    nlt_data = cfg.get("nlt_data")
+    if nlt_data is not None and not isinstance(nlt_data, str):
+        errors.append(string("fc_param_must_be_string_or_null").format("nlt_data"))
+    elif nlt_data == "":
+        errors.append(string("fc_param_must_not_be_empty").format("nlt_data"))
+
+    errors.extend(_check_displays(cfg))
+
     return errors
+
+
+def _is_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _check_display(display, path: str) -> list:
+    if not isinstance(display, dict):
+        return [string("fc_param_must_be_object").format(path)]
+
+    errors = []
+    unknown = set(display) - DISPLAY_KEYS
+    if unknown:
+        errors.append(string("fc_unknown_params").format(", ".join(path + "." + key for key in sorted(unknown))))
+
+    if "addr" not in display:
+        errors.append(string("fc_missing_params").format(path + ".addr"))
+    elif not _is_int(display["addr"]):
+        errors.append(string("fc_param_must_be_int").format(path + ".addr"))
+    elif not 1 <= display["addr"] <= MAX_DISPLAY_ADDR:
+        errors.append(string("fc_param_must_be_one_of").format(path + ".addr", f"1..{MAX_DISPLAY_ADDR}"))
+
+    for key in ("enabled", "show_start_and_end_stops"):
+        if key in display and not isinstance(display[key], bool):
+            errors.append(string("fc_param_must_be_bool").format(path + "." + key))
+
+    for key, allowed in (("display_type", DISPLAY_TYPES), ("mode", DISPLAY_MODES)):
+        if key in display and display[key] not in allowed:
+            errors.append(string("fc_param_must_be_one_of").format(path + "." + key, ", ".join(allowed)))
+
+    if "width" in display and not (_is_int(display["width"]) and display["width"] in DISPLAY_WIDTHS):
+        widths = ", ".join(str(width) for width in DISPLAY_WIDTHS)
+        errors.append(string("fc_param_must_be_one_of").format(path + ".width", widths))
+
+    if "cycle" in display and not (_is_int(display["cycle"]) and 0 <= display["cycle"] <= MAX_DISPLAY_CYCLE):
+        errors.append(string("fc_param_must_be_one_of").format(path + ".cycle", f"0..{MAX_DISPLAY_CYCLE}"))
+
+    if "font" in display and not isinstance(display["font"], str):
+        errors.append(string("fc_param_must_be_string").format(path + ".font"))
+
+    return errors
+
+
+def _check_displays(cfg) -> list:
+    displays = cfg.get("displays")
+    telegram = cfg.get("destination_telegram")
+    addressed = telegram in ADDRESSED_TEXT_TELEGRAMS
+
+    if displays is None:
+        return [string("fc_missing_params").format("displays")] if addressed else []
+    if not isinstance(displays, list):
+        return [string("fc_param_must_be_list").format("displays")]
+
+    errors = []
+    seen_addresses = set()
+    for index, display in enumerate(displays):
+        display_errors = _check_display(display, f"displays[{index}]")
+        errors.extend(display_errors)
+        if display_errors:
+            continue
+        if display["addr"] in seen_addresses:
+            errors.append(string("fc_duplicate_display_addr").format(display["addr"]))
+        seen_addresses.add(display["addr"])
+
+    if addressed and not errors and not any(display.get("enabled", True) for display in displays):
+        errors.append(string("fc_no_enabled_display").format(telegram))
+
+    return errors
+
+
+def _is_special_char(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 99
 
 
 def check_routes_content_file(filepath: str) -> list:
@@ -452,7 +567,7 @@ def check_routes_content_file(filepath: str) -> list:
                     break
 
                 if "id" in rec:
-                    unknown = set(rec) - {"id", "r", "nlt", "note"}
+                    unknown = set(rec) - {"id", "r", "nlt", "note", "sc"}
                     if unknown:
                         errors.append(
                             string("fc_unknown_fields").format(line_num=line_num, fields=", ".join(sorted(unknown)))
@@ -465,6 +580,8 @@ def check_routes_content_file(filepath: str) -> list:
                         _check_type(rec["nlt"], bool, "nlt")
                     if "note" in rec:
                         _check_type(rec["note"], str, "note")
+                    if rec.get("sc") is not None and not _is_special_char(rec["sc"]):
+                        errors.append(string("fc_field_wrong_data").format(line_num=line_num, field="sc"))
                     if rec["id"] in seen_route_ids:
                         errors.append(string("fc_duplicate_route_id").format(line_num=line_num, route_id=rec["id"]))
                     else:
@@ -550,7 +667,7 @@ def assert_routes_match_config(routes_filepath, config_filepath):
                     rec = json.loads(line)
                 except Exception:
                     continue
-                if "id" in rec:
+                if "id" in rec and rec.get("sc") is None:
                     if not rec["r"].isdigit() and "DS001neu" not in telegrams_list:
                         errors.append(
                             string("fc_wrong_route_number_format").format(line_num=line_num, route_number=rec["r"])

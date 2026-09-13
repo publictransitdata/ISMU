@@ -48,18 +48,27 @@ class ActiveSelection:
         self.route_number: str | None = None
         self.trip: TripInfo | None = None
         self.no_line_telegram: bool = False
+        self.special_char: int | None = None
         self.is_updated: bool = False
 
-    def apply(self, route_number: str | None, trip: dict | None, no_line_telegram: bool = False):
+    def apply(
+        self,
+        route_number: str | None,
+        trip: dict | None,
+        no_line_telegram: bool = False,
+        special_char: int | None = None,
+    ):
         self.route_number = route_number
         self.trip = TripInfo.trip_from_dict(trip)
         self.no_line_telegram = no_line_telegram
+        self.special_char = special_char
         self.is_updated = True
 
     def reset(self):
         self.route_number = None
         self.trip = None
         self.no_line_telegram = False
+        self.special_char = None
         self.is_updated = False
 
 
@@ -127,6 +136,7 @@ class SelectionManager:
                 route_number=route["route_number"],
                 trip=trip,
                 no_line_telegram=route.get("no_line_telegram", False),
+                special_char=route.get("special_char"),
             )
         else:
             self._active_selection.reset()

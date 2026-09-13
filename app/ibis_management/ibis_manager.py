@@ -13,15 +13,62 @@ from utils.singleton_decorator import singleton
 TELEGRAM_FORMATS = {
     "DS001": "l{:0>3}",
     "DS001neu": "q{:0>4}",
+    "lE": "lE{:02d}",
+    "qE": "qE{:02d}",
     "DS003": "z{:03d}",
     "DS003a": "zA2{: <32}",
     "DS003b": "zR{:03d}",  # no description in documentation
     "DS003c": "zI6{: <24}",
     "DS003d": "zN{:03d}",
     "DS3aMAS": None,  # no description in documentation
-    "DS009": "v{: <16}",
+    "DS009": "v{}",
     "DS3cneu": None,  # no description in documentation
 }
+
+TEXT_BLOCK_SIZE = 16
+RESEND_INTERVAL_MS = 10000
+CHANGE_POLL_MS = 100
+
+
+def ibis_hex(value: int) -> str:
+    return "".join(chr(0x30 + int(digit, 16)) for digit in f"{value:X}")
+
+
+def blocks_for(length: int) -> int:
+    return (length + TEXT_BLOCK_SIZE - 1) // TEXT_BLOCK_SIZE
+
+
+def layout_rows(rows: list, mode: str, width: int) -> str:
+    if mode == "flowing":
+        return "".join(rows)
+    if mode == "line_feed":
+        rows = list(rows)
+        while rows and not rows[-1]:
+            rows.pop()
+        return "\n".join(rows) + "\n\n"
+    return "".join((row + " " * width)[:width] for row in rows)
+
+
+def ds021_payload(addr: int, text: str) -> str:
+    blocks = blocks_for(len(text))
+    padding = " " * (blocks * TEXT_BLOCK_SIZE - len(text))
+    return "aA" + ibis_hex(addr) + ibis_hex(blocks) + text + padding
+
+
+def ds021t_payload(addr: int, rows: list, cycle: int) -> str:
+    upper = rows[0] if rows else ""
+    lower = rows[1] if len(rows) > 1 else ""
+    return ds021_payload(addr, "A" + ibis_hex(cycle) + upper + "\n" + lower + "\n\n")
+
+
+def ds021neu_payload(addr: int, rows: list, font: str) -> str:
+    line1 = rows[0] if rows else ""
+    line2 = rows[1] if len(rows) > 1 else ""
+    text = ((line1 or " ") + "\n" + line2 if line2 else line1) + "\n\n"
+    suffix = "\n.CM" + font
+    blocks = blocks_for(len(text) + len(suffix))
+    padding = " " * (blocks * TEXT_BLOCK_SIZE - len(text) - len(suffix))
+    return "aA" + ibis_hex(addr) + ibis_hex(blocks) + text + padding + suffix
 
 
 @singleton
@@ -42,6 +89,10 @@ class IBISManager:
             "DS003": self.DS003,
             "DS003a": self.DS003a,
             "DS003c": self.DS003c,
+            "DS009": self.DS009,
+            "DS021": self.DS021,
+            "DS021neu": self.DS021neu,
+            "DS021T": self.DS021T,
         }
 
         if self._system_config.use_char_map:
@@ -90,7 +141,15 @@ class IBISManager:
         return sanitized
 
     def DS001(self):
-        value = self.selection_manager.get_active_selection().route_number
+        selection = self.selection_manager.get_active_selection()
+        if selection.no_line_telegram:
+            self._send_nlt_data("l", width=3)
+            return
+        if selection.special_char is not None:
+            self._send_special_char("lE", selection.special_char)
+            return
+
+        value = selection.route_number
         format = TELEGRAM_FORMATS["DS001"]
         if value is None:
             raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
@@ -103,7 +162,15 @@ class IBISManager:
         self.uart.write(packet)
 
     def DS001neu(self):
-        value = self.selection_manager.get_active_selection().route_number
+        selection = self.selection_manager.get_active_selection()
+        if selection.no_line_telegram:
+            self._send_nlt_data("q", width=4)
+            return
+        if selection.special_char is not None:
+            self._send_special_char("qE", selection.special_char)
+            return
+
+        value = selection.route_number
         format = TELEGRAM_FORMATS["DS001neu"]
         if isinstance(value, str):
             value = self.sanitize_ibis_text(value)
@@ -111,6 +178,23 @@ class IBISManager:
             raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_route"))
         try:
             formatted = format.format(value)
+        except Exception as err:
+            raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
+
+        packet = self.create_ibis_packet(formatted)
+        self.uart.write(packet)
+
+    def _send_nlt_data(self, prefix: str, width: int):
+        data = self._system_config.nlt_data
+        if data is None:
+            data = "0" * width
+
+        packet = self.create_ibis_packet(prefix + data)
+        self.uart.write(packet)
+
+    def _send_special_char(self, format_key: str, value: int):
+        try:
+            formatted = TELEGRAM_FORMATS[format_key].format(value)
         except Exception as err:
             raise CustomError(ErrorCodes.ROUTE_VALUE_IS_WRONG, string("ibis_msg_no_route")) from err
 
@@ -163,50 +247,81 @@ class IBISManager:
 
     def DS003c(self):
         if self._system_config.show_info_on_stop_board:
-            route_number = self.selection_manager.get_active_selection().route_number
-            trip = self.selection_manager.get_active_selection().trip
-
-            if trip is None:
-                raise CustomError(
-                    ErrorCodes.TRIP_INFO_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            format = TELEGRAM_FORMATS["DS003c"]
-
-            if route_number is None:
-                raise CustomError(
-                    ErrorCodes.ROUTE_NUMBER_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            if isinstance(route_number, str):
-                route_number = self.sanitize_ibis_text(route_number)
-
-            trip_name = trip.get_proper_trip_name()
-
-            if len(trip_name) == 2:
-                trip_name = trip_name[1]
-            else:
-                trip_name = trip_name[0]
-
-            if trip_name is None:
-                raise CustomError(
-                    ErrorCodes.TRIP_NAME_IS_NONE,
-                    string("ibis_msg_no_inner_text"),
-                )
-            if isinstance(trip_name, str):
-                trip_name = self.sanitize_ibis_text(trip_name)
-            try:
-                formatted = format.format((route_number + " > " + trip_name)[:24])
-            except Exception as err:
-                raise CustomError(
-                    ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
-                    string("ibis_msg_no_inner_text"),
-                ) from err
-
+            formatted = TELEGRAM_FORMATS["DS003c"].format(self._stop_board_text()[:24])
             packet = self.create_ibis_packet(formatted)
             self.uart.write(packet)
-        else:
-            pass
+
+    def DS009(self):
+        if self._system_config.show_info_on_stop_board:
+            formatted = TELEGRAM_FORMATS["DS009"].format(self._stop_board_text())
+            packet = self.create_ibis_packet(formatted)
+            self.uart.write(packet)
+
+    def _stop_board_text(self) -> str:
+        selection = self.selection_manager.get_active_selection()
+        if selection.trip is None:
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, string("ibis_msg_no_inner_text"))
+        if selection.route_number is None:
+            raise CustomError(ErrorCodes.ROUTE_NUMBER_IS_NONE, string("ibis_msg_no_inner_text"))
+
+        route_number = selection.route_number
+        if isinstance(route_number, str):
+            route_number = self.sanitize_ibis_text(route_number)
+
+        names = selection.trip.get_proper_trip_name()
+        trip_name = (names[1] if len(names) == 2 else names[0]) if names else None
+        if trip_name is None:
+            raise CustomError(ErrorCodes.TRIP_NAME_IS_NONE, string("ibis_msg_no_inner_text"))
+        if isinstance(trip_name, str):
+            trip_name = self.sanitize_ibis_text(trip_name)
+
+        try:
+            return route_number + " > " + trip_name
+        except Exception as err:
+            raise CustomError(
+                ErrorCodes.TRIP_NAME_OR_ROUTE_NUMBER_IS_WRONG,
+                string("ibis_msg_no_inner_text"),
+            ) from err
+
+    def DS021(self):
+        for display in self._enabled_displays():
+            text = layout_rows(self._display_rows(display), display.get("mode", "fixed"), display.get("width", 16))
+            packet = self.create_ibis_packet(ds021_payload(display["addr"], text))
+            self.uart.write(packet)
+
+    def DS021T(self):
+        for display in self._enabled_displays():
+            payload = ds021t_payload(display["addr"], self._display_rows(display), display.get("cycle", 0))
+            packet = self.create_ibis_packet(payload)
+            self.uart.write(packet)
+
+    def DS021neu(self):
+        for display in self._enabled_displays():
+            payload = ds021neu_payload(display["addr"], self._display_rows(display), display.get("font", ""))
+            packet = self.create_ibis_packet(payload)
+            self.uart.write(packet)
+
+    def _enabled_displays(self) -> list:
+        return [display for display in self._system_config.displays if display.get("enabled", True)]
+
+    def _display_rows(self, display) -> list:
+        selection = self.selection_manager.get_active_selection()
+        if selection.trip is None:
+            raise CustomError(ErrorCodes.TRIP_INFO_IS_NONE, string("ibis_msg_no_outer_text"))
+
+        names = [self.sanitize_ibis_text(name) for name in selection.trip.get_proper_trip_name()]
+        destination = names[-1] if names else ""
+
+        if display.get("display_type", "external") == "internal":
+            return [self.sanitize_ibis_text(selection.route_number or "") + " > " + destination]
+
+        show_start_and_end_stops = display.get(
+            "show_start_and_end_stops",
+            self._system_config.show_start_and_end_stops,
+        )
+        if len(names) == 2 and show_start_and_end_stops:
+            return names
+        return [destination]
 
     async def send_ibis_telegrams(self):
         self._running = True
@@ -218,8 +333,6 @@ class IBISManager:
             if active_selection.route_number is not None and active_selection.trip is not None:
                 for code in self.telegramTypes:
                     if code in self._failed_telegrams:
-                        continue
-                    if code in ("DS001", "DS001neu") and active_selection.no_line_telegram:
                         continue
 
                     handler = self.dispatch.get(code)
@@ -239,7 +352,13 @@ class IBISManager:
                             raise_exception=False,
                         )
                         break
-            await asyncio.sleep(10)
+            await self._wait_for_selection_change(active_selection)
+
+    async def _wait_for_selection_change(self, selection):
+        waited = 0
+        while self._running and not selection.is_updated and waited < RESEND_INTERVAL_MS:
+            await asyncio.sleep_ms(CHANGE_POLL_MS)
+            waited += CHANGE_POLL_MS
 
     def start(self):
         """Start async loop as a task"""
