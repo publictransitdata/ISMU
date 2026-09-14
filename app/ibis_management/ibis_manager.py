@@ -126,18 +126,21 @@ class IBISManager:
 
     def sanitize_ibis_text(self, text):
         """
-        If it’s a standard printable ASCII character (code point 32–126), it’s kept unchanged.
-        If it’s not ASCII but exists in the char_map, it gets replaced with the mapped value.
-        If it’s neither ASCII nor in the map, it gets replaced with a ?.
+        If it exists in the char_map, it gets replaced with the mapped value -- ASCII included,
+        since a redrawn font can move punctuation to other keys (e.g. '.' sent as '/').
+        If it’s not in the map but is a standard printable ASCII character (code point 32–126),
+        it’s kept unchanged.
+        If it’s neither, it gets replaced with a question mark, as the char_map sends one.
         """
+        unknown = self._char_map.get("?", "?")
         sanitized = ""
         for c in text:
-            if 32 <= ord(c) <= 126:
-                sanitized += c
-            elif c in self._char_map:
+            if c in self._char_map:
                 sanitized += self._char_map[c]
+            elif 32 <= ord(c) <= 126:
+                sanitized += c
             else:
-                sanitized += "?"
+                sanitized += unknown
         return sanitized
 
     def DS001(self):
