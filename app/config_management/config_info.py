@@ -3,7 +3,7 @@ from utils.singleton_decorator import singleton
 AP_NAME = "ismu-hotspot"
 AP_PASSWORD = "12345678"
 AP_IP = "192.168.4.1"
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 @singleton
